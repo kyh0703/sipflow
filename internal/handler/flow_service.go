@@ -20,6 +20,11 @@ func NewFlowService(client *ent.Client) *FlowService {
 	}
 }
 
+// SetEntClient updates the ent client (called during app startup)
+func (s *FlowService) SetEntClient(client *ent.Client) {
+	s.entClient = client
+}
+
 // CreateFlow creates a new flow with the given name and description
 func (s *FlowService) CreateFlow(name, description string) Response[*ent.Flow] {
 	if name == "" {

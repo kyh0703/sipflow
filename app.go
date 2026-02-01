@@ -24,6 +24,7 @@ type App struct {
 func NewApp() *App {
 	return &App{
 		eventEmitter: handler.NewEventEmitter(),
+		flowService:  handler.NewFlowService(nil), // Will be set during startup
 	}
 }
 
@@ -64,8 +65,8 @@ func (a *App) startup(ctx context.Context) {
 
 	log.Printf("Database initialized at: %s", dbPath)
 
-	// Create FlowService with ent client
-	a.flowService = handler.NewFlowService(client)
+	// Set ent client for FlowService (FlowService was created in NewApp for Wails binding)
+	a.flowService.SetEntClient(client)
 
 	// Set EventEmitter context and initialize handshake
 	a.eventEmitter.SetContext(ctx)
