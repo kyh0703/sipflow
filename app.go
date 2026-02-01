@@ -8,18 +8,23 @@ import (
 	"path/filepath"
 
 	"sipflow/ent"
+	"sipflow/internal/handler"
 	"sipflow/internal/infra/sqlite"
 )
 
 // App struct
 type App struct {
-	ctx       context.Context
-	entClient *ent.Client
+	ctx          context.Context
+	entClient    *ent.Client
+	eventEmitter *handler.EventEmitter
+	flowService  *handler.FlowService
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
-	return &App{}
+	return &App{
+		eventEmitter: handler.NewEventEmitter(),
+	}
 }
 
 // startup is called when the app starts. The context is saved
@@ -58,6 +63,13 @@ func (a *App) startup(ctx context.Context) {
 	}
 
 	log.Printf("Database initialized at: %s", dbPath)
+
+	// Create FlowService with ent client
+	a.flowService = handler.NewFlowService(client)
+
+	// Set EventEmitter context and initialize handshake
+	a.eventEmitter.SetContext(ctx)
+	a.eventEmitter.OnStartup(ctx)
 }
 
 // shutdown is called when the app is closing
