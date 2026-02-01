@@ -5,32 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** 그린 플로우가 실제 SIP 통신으로 실행되어야 한다. 디자인과 실행이 하나로 연결되는 것이 핵심.
-**Current focus:** Phase 1 - Foundation & Project Structure
+**Current focus:** Phase 2 - Visual Flow Designer
 
 ## Current Position
 
-Phase: 1 of 10 (Foundation & Project Structure)
-Plan: 3 of 4
+Phase: 2 of 10 (Visual Flow Designer)
+Plan: 1 of 4
 Status: In progress
-Last activity: 2026-02-01 — Completed 01-02-PLAN.md
+Last activity: 2026-02-01 — Completed 02-01-PLAN.md
 
-Progress: [███░░░░░░░] 30%
+Progress: [█░░░░░░░░░] 12%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 4 min
-- Total execution time: 0.20 hours
+- Total plans completed: 5
+- Average duration: 3.6 min
+- Total execution time: ~0.28 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation-project-structure | 3 | 12 min | 4 min |
+| 01-foundation-project-structure | 4 | ~14 min | ~3.5 min |
+| 02-visual-flow-designer | 1 | ~3 min | ~3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4min), 01-03 (2min), 01-02 (6min)
+- Last 5 plans: 01-03 (2min), 01-02 (6min), 01-04 (human-verify), 02-01 (3min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -58,6 +59,11 @@ Recent decisions affecting current work:
 - 01-02: Use Tailwind CSS v4 @theme directive instead of v3 @layer approach
 - 01-03: Use generic Response[T] type for type-safe handler responses
 - 01-03: FlowService directly uses ent client (no usecase layer in Phase 1 - YAGNI)
+- 02-01: Use @xyflow/react native Node/Edge types instead of custom interfaces
+- 02-01: Define nodeTypes/edgeTypes at module level with memo() to prevent performance collapse
+- 02-01: Use applyNodeChanges/applyEdgeChanges for xyflow interactivity
+- 02-01: Move sidebarOpen state from uiStore to flowStore (flow-canvas-specific)
+- 02-01: Create serverStore with mock data for Phase 4 settings implementation
 
 ### Pending Todos
 
@@ -76,13 +82,14 @@ None yet.
 - ✅ 01-01: Foreign key enforcement enabled via custom driver PRAGMA
 - ✅ 01-02: Event handshake protocol implemented on frontend side (frontend:ready)
 - ✅ 01-03: Event handshake protocol completed on backend side (backend:ready emission)
+- ✅ 02-01: Module-level nodeTypes/edgeTypes defined to prevent performance collapse
 
 ## Session Continuity
 
-Last session: 2026-02-01 09:31 UTC
-Stopped at: Completed 01-02-PLAN.md (React Frontend Layer)
+Last session: 2026-02-01 14:14 UTC
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None
 
 ---
 *State initialized: 2026-02-01*
-*Last updated: 2026-02-01 09:31 UTC*
+*Last updated: 2026-02-01 14:14 UTC*
