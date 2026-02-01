@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { ReactFlowProvider } from '@xyflow/react'
 import { Header } from './components/layout/Header'
-import { Sidebar } from './components/layout/Sidebar'
+import { LeftSidebar } from './components/flow/LeftSidebar'
+import { FlowCanvas } from './components/flow/FlowCanvas'
 import { initializeEventHandshake } from './services/eventService'
 import { flowService, isSuccess } from './services/flowService'
 import './App.css'
@@ -37,37 +39,18 @@ function App() {
   }, [])
 
   return (
-    <div className="h-screen w-screen overflow-hidden">
-      <Header />
-      <Sidebar />
-      <main className="ml-64 mt-14 h-[calc(100vh-3.5rem)] w-[calc(100vw-16rem)] flex flex-col items-center justify-center gap-4">
-        <p className="opacity-60">Flow Canvas (Phase 2)</p>
-
-        {/* Connection status indicator */}
-        <div className="flex items-center gap-2">
-          {connectionState === 'connecting' && (
-            <>
-              <div className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse" />
-              <span className="text-sm opacity-60">Connecting to backend...</span>
-            </>
-          )}
-          {connectionState === 'connected' && (
-            <>
-              <div className="h-2 w-2 rounded-full bg-green-500" />
-              <span className="text-sm opacity-60">Backend connected</span>
-            </>
-          )}
-          {connectionState === 'error' && (
-            <>
-              <div className="h-2 w-2 rounded-full bg-red-500" />
-              <span className="text-sm text-red-500">
-                Connection failed: {errorMessage}
-              </span>
-            </>
-          )}
+    <ReactFlowProvider>
+      <div className="h-screen w-screen overflow-hidden flex flex-col">
+        <Header
+          connectionState={connectionState}
+          errorMessage={errorMessage}
+        />
+        <div className="flex-1 flex mt-14 overflow-hidden">
+          <LeftSidebar />
+          <FlowCanvas />
         </div>
-      </main>
-    </div>
+      </div>
+    </ReactFlowProvider>
   )
 }
 
