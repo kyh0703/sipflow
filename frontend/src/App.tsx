@@ -1,12 +1,15 @@
 import { useEffect } from 'react'
 import { Header } from './components/layout/Header'
 import { Sidebar } from './components/layout/Sidebar'
+import { initializeEventHandshake } from './services/eventService'
 import './App.css'
 
 function App() {
   useEffect(() => {
-    // Event handshake will be initialized here in Task 2
-    // initializeEventHandshake()
+    // Initialize event handshake with backend
+    initializeEventHandshake().catch((error) => {
+      console.error('Failed to initialize event handshake:', error)
+    })
   }, [])
 
   return (
