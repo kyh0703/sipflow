@@ -1,28 +1,23 @@
-import {useState} from 'react';
-import logo from './assets/images/logo-universal.png';
-import './App.css';
-import {Greet} from "../wailsjs/go/main/App";
+import { useEffect } from 'react'
+import { Header } from './components/layout/Header'
+import { Sidebar } from './components/layout/Sidebar'
+import './App.css'
 
 function App() {
-    const [resultText, setResultText] = useState("Please enter your name below 👇");
-    const [name, setName] = useState('');
-    const updateName = (e: any) => setName(e.target.value);
-    const updateResultText = (result: string) => setResultText(result);
+  useEffect(() => {
+    // Event handshake will be initialized here in Task 2
+    // initializeEventHandshake()
+  }, [])
 
-    function greet() {
-        Greet(name).then(updateResultText);
-    }
-
-    return (
-        <div id="App">
-            <img src={logo} id="logo" alt="logo"/>
-            <div id="result" className="result">{resultText}</div>
-            <div id="input" className="input-box">
-                <input id="name" className="input" onChange={updateName} autoComplete="off" name="input" type="text"/>
-                <button className="btn" onClick={greet}>Greet</button>
-            </div>
-        </div>
-    )
+  return (
+    <div className="h-screen w-screen overflow-hidden">
+      <Header />
+      <Sidebar />
+      <main className="ml-64 mt-14 h-[calc(100vh-3.5rem)] w-[calc(100vw-16rem)] flex items-center justify-center">
+        <p className="opacity-60">Flow Canvas (Phase 2)</p>
+      </main>
+    </div>
+  )
 }
 
 export default App
