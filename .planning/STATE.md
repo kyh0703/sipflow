@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 2 of 10 (Visual Flow Designer)
-Plan: 1 of 4
+Plan: 2 of 4
 Status: In progress
-Last activity: 2026-02-01 — Completed 02-01-PLAN.md
+Last activity: 2026-02-01 — Completed 02-02-PLAN.md
 
-Progress: [█░░░░░░░░░] 12%
+Progress: [██░░░░░░░░] 15%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: 3.6 min
-- Total execution time: ~0.28 hours
+- Total execution time: ~0.31 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation-project-structure | 4 | ~14 min | ~3.5 min |
-| 02-visual-flow-designer | 1 | ~3 min | ~3 min |
+| 02-visual-flow-designer | 2 | ~7 min | ~3.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (2min), 01-02 (6min), 01-04 (human-verify), 02-01 (3min)
+- Last 5 plans: 01-02 (6min), 01-04 (human-verify), 02-01 (3min), 02-02 (4min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -64,6 +64,10 @@ Recent decisions affecting current work:
 - 02-01: Use applyNodeChanges/applyEdgeChanges for xyflow interactivity
 - 02-01: Move sidebarOpen state from uiStore to flowStore (flow-canvas-specific)
 - 02-01: Create serverStore with mock data for Phase 4 settings implementation
+- 02-02: Use HTML5 DnD with application/xyflow MIME type for sidebar-to-canvas drag-drop
+- 02-02: Use screenToFlowPosition to calculate correct drop position accounting for pan/zoom
+- 02-02: Move connection status from App.tsx main area to Header component
+- 02-02: Install shadcn/ui Accordion and Button components for consistent UI
 
 ### Pending Todos
 
@@ -86,10 +90,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-01 14:14 UTC
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-02-01 14:21 UTC
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
 
 ---
 *State initialized: 2026-02-01*
-*Last updated: 2026-02-01 14:14 UTC*
+*Last updated: 2026-02-01 14:21 UTC*
