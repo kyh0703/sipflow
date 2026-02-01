@@ -12,7 +12,7 @@ SIPFlow is a desktop call flow designer for SIP developers and QA engineers. Thi
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & Project Structure** - Wails project skeleton, SQLite schema, Go-React bindings
+- [x] **Phase 1: Foundation & Project Structure** - Wails project skeleton, SQLite schema, Go-React bindings
 - [ ] **Phase 2: Visual Flow Designer** - xyflow canvas with SIP/Command/Event nodes
 - [ ] **Phase 3: Flow Persistence** - Save and load flows from SQLite
 - [ ] **Phase 4: SIP Infrastructure** - External server config, UA lifecycle management
@@ -38,10 +38,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 4 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Wails project init, Go Clean Architecture structure, SQLite driver, ent schemas
-- [ ] 01-02-PLAN.md — React frontend structure, Zustand stores, event hooks, shadcn/ui setup
-- [ ] 01-03-PLAN.md — Wails handler bindings, FlowService CRUD, EventEmitter handshake protocol
-- [ ] 01-04-PLAN.md — Integration wiring, frontend-backend communication verification, build check
+- [x] 01-01-PLAN.md — Wails project init, Go Clean Architecture structure, SQLite driver, ent schemas
+- [x] 01-02-PLAN.md — React frontend structure, Zustand stores, event hooks, shadcn/ui setup
+- [x] 01-03-PLAN.md — Wails handler bindings, FlowService CRUD, EventEmitter handshake protocol
+- [x] 01-04-PLAN.md — Integration wiring, frontend-backend communication verification, build check
 
 ### Phase 2: Visual Flow Designer
 **Goal**: Users can visually design SIP call flows using drag-and-drop node-based interface with three node types (SIP Instance, Command, Event) connected by edges.
@@ -53,9 +53,13 @@ Plans:
   3. User can add Event nodes (SIP event wait) to canvas
   4. User can connect nodes with edges to define execution order
   5. Canvas remains responsive with 100+ nodes without performance degradation
-**Plans**: TBD
+**Plans**: 4 plans
 
-Plans: (to be created during planning)
+Plans:
+- [ ] 02-01-PLAN.md — Install @xyflow/react + lucide-react, custom node/edge components, flowStore upgrade to xyflow types
+- [ ] 02-02-PLAN.md — FlowCanvas with ReactFlow, left sidebar palette with drag-and-drop, App.tsx layout wiring
+- [ ] 02-03-PLAN.md — Right slide-out property panel (Sheet) with SIP Instance, Command, Event forms
+- [ ] 02-04-PLAN.md — Edge validation with visual warnings, end-to-end human verification
 
 ### Phase 3: Flow Persistence
 **Goal**: Users can save designed flows to SQLite and reload them across sessions, enabling scenario reuse and iteration.
@@ -172,8 +176,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Project Structure | 0/4 | Planning complete | - |
-| 2. Visual Flow Designer | 0/TBD | Not started | - |
+| 1. Foundation & Project Structure | 4/4 | ✅ Complete | 2026-02-01 |
+| 2. Visual Flow Designer | 0/4 | Planning complete | - |
 | 3. Flow Persistence | 0/TBD | Not started | - |
 | 4. SIP Infrastructure | 0/TBD | Not started | - |
 | 5. Basic SIP Commands | 0/TBD | Not started | - |
