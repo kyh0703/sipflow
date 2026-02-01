@@ -1,24 +1,35 @@
 import { create } from 'zustand'
+import {
+  type Node,
+  type Edge,
+  type NodeChange,
+  type EdgeChange,
+  type Connection,
+  applyNodeChanges,
+  applyEdgeChanges,
+  addEdge as addEdgeUtil,
+} from '@xyflow/react'
+import type { SIPFlowNode, SIPFlowEdge } from '@/types/nodes'
 
 /**
- * Generic node type (React Flow will be added in Phase 2)
+ * Helper to validate edge connection based on node types
+ * SIP Instance -> Command -> Event -> Command... pattern
  */
-export interface Node {
-  id: string
-  type: string
-  position: { x: number; y: number }
-  data: Record<string, unknown>
-}
+function validateEdge(
+  sourceId: string,
+  targetId: string,
+  nodes: Node[]
+): boolean {
+  const sourceNode = nodes.find((n) => n.id === sourceId)
+  const targetNode = nodes.find((n) => n.id === targetId)
 
-/**
- * Generic edge type (React Flow will be added in Phase 2)
- */
-export interface Edge {
-  id: string
-  source: string
-  target: string
-  type?: string
-  data?: Record<string, unknown>
+  if (!sourceNode || !targetNode) {
+    return false
+  }
+
+  // Basic validation: allow all connections for now
+  // More specific validation will be added in property panel phase
+  return true
 }
 
 /**
@@ -28,9 +39,16 @@ interface FlowState {
   nodes: Node[]
   edges: Edge[]
   selectedNodeId: string | null
+  sidebarOpen: boolean
 
   // Actions grouped in object to keep references stable (prevents re-renders)
   actions: {
+    // React Flow change handlers (critical for drag, select, delete)
+    onNodesChange: (changes: NodeChange[]) => void
+    onEdgesChange: (changes: EdgeChange[]) => void
+    onConnect: (connection: Connection) => void
+
+    // Manual node/edge manipulation
     addNode: (node: Node) => void
     removeNode: (nodeId: string) => void
     updateNodeData: (nodeId: string, data: Record<string, unknown>) => void
@@ -39,6 +57,7 @@ interface FlowState {
     setNodes: (nodes: Node[]) => void
     setEdges: (edges: Edge[]) => void
     setSelectedNode: (nodeId: string | null) => void
+    toggleSidebar: () => void
   }
 }
 
@@ -50,14 +69,61 @@ interface FlowState {
  * // Use selectors to prevent unnecessary re-renders
  * const nodes = useFlowStore(state => state.nodes)
  * const addNode = useFlowStore(state => state.actions.addNode)
+ * const onNodesChange = useFlowStore(state => state.actions.onNodesChange)
  * ```
  */
-export const useFlowStore = create<FlowState>((set) => ({
+export const useFlowStore = create<FlowState>((set, get) => ({
   nodes: [],
   edges: [],
   selectedNodeId: null,
+  sidebarOpen: true,
 
   actions: {
+    // React Flow change handlers - use xyflow utilities for drag, select, delete
+    onNodesChange: (changes) =>
+      set((state) => ({
+        nodes: applyNodeChanges(changes, state.nodes),
+      })),
+
+    onEdgesChange: (changes) =>
+      set((state) => ({
+        edges: applyEdgeChanges(changes, state.edges),
+      })),
+
+    onConnect: (connection) =>
+      set((state) => {
+        const isValid = validateEdge(
+          connection.source,
+          connection.target,
+          state.nodes
+        )
+
+        const newEdges = addEdgeUtil(
+          connection,
+          state.edges
+        )
+
+        // Update the newly created edge with custom type and validation data
+        const updatedEdges = newEdges.map((edge) => {
+          // Find the edge that was just added (last one or match by source/target)
+          if (
+            edge.source === connection.source &&
+            edge.target === connection.target &&
+            !edge.type
+          ) {
+            return {
+              ...edge,
+              type: 'flowEdge',
+              data: { isValid },
+            }
+          }
+          return edge
+        })
+
+        return { edges: updatedEdges }
+      }),
+
+    // Manual node/edge manipulation (for programmatic changes)
     addNode: (node) =>
       set((state) => ({
         nodes: [...state.nodes, node],
@@ -95,5 +161,10 @@ export const useFlowStore = create<FlowState>((set) => ({
     setEdges: (edges) => set({ edges }),
 
     setSelectedNode: (nodeId) => set({ selectedNodeId: nodeId }),
+
+    toggleSidebar: () =>
+      set((state) => ({
+        sidebarOpen: !state.sidebarOpen,
+      })),
   },
 }))
