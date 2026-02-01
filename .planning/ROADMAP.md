@@ -13,7 +13,7 @@ SIPFlow is a desktop call flow designer for SIP developers and QA engineers. Thi
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & Project Structure** - Wails project skeleton, SQLite schema, Go-React bindings
-- [ ] **Phase 2: Visual Flow Designer** - xyflow canvas with SIP/Command/Event nodes
+- [x] **Phase 2: Visual Flow Designer** - xyflow canvas with SIP/Command/Event nodes
 - [ ] **Phase 3: Flow Persistence** - Save and load flows from SQLite
 - [ ] **Phase 4: SIP Infrastructure** - External server config, UA lifecycle management
 - [ ] **Phase 5: Basic SIP Commands** - MakeCall, Bye, Cancel implementation
@@ -56,10 +56,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Install @xyflow/react + lucide-react, custom node/edge components, flowStore upgrade to xyflow types
-- [ ] 02-02-PLAN.md — FlowCanvas with ReactFlow, left sidebar palette with drag-and-drop, App.tsx layout wiring
-- [ ] 02-03-PLAN.md — Right slide-out property panel (Sheet) with SIP Instance, Command, Event forms
-- [ ] 02-04-PLAN.md — Edge validation with visual warnings, end-to-end human verification
+- [x] 02-01-PLAN.md — Install @xyflow/react + lucide-react, custom node/edge components, flowStore upgrade to xyflow types
+- [x] 02-02-PLAN.md — FlowCanvas with ReactFlow, left sidebar palette with drag-and-drop, App.tsx layout wiring
+- [x] 02-03-PLAN.md — Right slide-out property panel (Sheet) with SIP Instance, Command, Event forms
+- [x] 02-04-PLAN.md — Edge validation with visual warnings, end-to-end human verification
 
 ### Phase 3: Flow Persistence
 **Goal**: Users can save designed flows to SQLite and reload them across sessions, enabling scenario reuse and iteration.
@@ -177,7 +177,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Project Structure | 4/4 | ✅ Complete | 2026-02-01 |
-| 2. Visual Flow Designer | 0/4 | Planning complete | - |
+| 2. Visual Flow Designer | 4/4 | ✅ Complete | 2026-02-01 |
 | 3. Flow Persistence | 0/TBD | Not started | - |
 | 4. SIP Infrastructure | 0/TBD | Not started | - |
 | 5. Basic SIP Commands | 0/TBD | Not started | - |
@@ -189,4 +189,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 ---
 *Roadmap created: 2026-02-01*
-*Last updated: 2026-02-01*
+*Last updated: 2026-02-01 (Phase 2 complete)*

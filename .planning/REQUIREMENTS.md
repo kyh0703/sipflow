@@ -7,16 +7,16 @@
 
 ### Foundation
 
-- [ ] **FOUN-01**: Wails v2 + React/Vite 프로젝트 구조 초기화
-- [ ] **FOUN-02**: SQLite 스키마 설계 및 초기화 (노드, 엣지, 플로우 테이블)
-- [ ] **FOUN-03**: Wails 바인딩을 통한 Go↔React 통신 구조
+- [x] **FOUN-01**: Wails v2 + React/Vite 프로젝트 구조 초기화
+- [x] **FOUN-02**: SQLite 스키마 설계 및 초기화 (노드, 엣지, 플로우 테이블)
+- [x] **FOUN-03**: Wails 바인딩을 통한 Go↔React 통신 구조
 
 ### Flow Design
 
-- [ ] **FLOW-01**: 캔버스에 SIP 인스턴스 노드를 드래그앤드롭으로 배치하고 UA 속성(SIP URI, 포트) 설정
-- [ ] **FLOW-02**: 커맨드 노드(MakeCall, Hold, Retrieve, Blind Transfer, Mute Transfer, Bye, Cancel, 486 Busy)를 캔버스에 배치
-- [ ] **FLOW-03**: 이벤트 노드(SIP 이벤트 대기)를 캔버스에 배치
-- [ ] **FLOW-04**: 노드 간 엣지로 실행 순서 연결
+- [x] **FLOW-01**: 캔버스에 SIP 인스턴스 노드를 드래그앤드롭으로 배치하고 UA 속성(SIP URI, 포트) 설정
+- [x] **FLOW-02**: 커맨드 노드(MakeCall, Hold, Retrieve, Blind Transfer, Mute Transfer, Bye, Cancel, 486 Busy)를 캔버스에 배치
+- [x] **FLOW-03**: 이벤트 노드(SIP 이벤트 대기)를 캔버스에 배치
+- [x] **FLOW-04**: 노드 간 엣지로 실행 순서 연결
 - [ ] **FLOW-05**: 플로우를 SQLite에 저장하고 불러오기
 
 ### SIP Commands
@@ -77,13 +77,13 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUN-01 | Phase 1 | Pending |
-| FOUN-02 | Phase 1 | Pending |
-| FOUN-03 | Phase 1 | Pending |
-| FLOW-01 | Phase 2 | Pending |
-| FLOW-02 | Phase 2 | Pending |
-| FLOW-03 | Phase 2 | Pending |
-| FLOW-04 | Phase 2 | Pending |
+| FOUN-01 | Phase 1 | Complete |
+| FOUN-02 | Phase 1 | Complete |
+| FOUN-03 | Phase 1 | Complete |
+| FLOW-01 | Phase 2 | Complete |
+| FLOW-02 | Phase 2 | Complete |
+| FLOW-03 | Phase 2 | Complete |
+| FLOW-04 | Phase 2 | Complete |
 | FLOW-05 | Phase 3 | Pending |
 | SIPC-01 | Phase 5 | Pending |
 | SIPC-02 | Phase 5 | Pending |
