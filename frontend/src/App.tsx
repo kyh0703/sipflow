@@ -3,6 +3,7 @@ import { ReactFlowProvider } from '@xyflow/react'
 import { Header } from './components/layout/Header'
 import { LeftSidebar } from './components/flow/LeftSidebar'
 import { FlowCanvas } from './components/flow/FlowCanvas'
+import { PropertyPanel } from './components/flow/PropertyPanel'
 import { initializeEventHandshake } from './services/eventService'
 import { flowService, isSuccess } from './services/flowService'
 import './App.css'
@@ -49,6 +50,7 @@ function App() {
           <LeftSidebar />
           <FlowCanvas />
         </div>
+        <PropertyPanel />
       </div>
     </ReactFlowProvider>
   )
