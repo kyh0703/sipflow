@@ -77,35 +77,35 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUN-01 | - | Pending |
-| FOUN-02 | - | Pending |
-| FOUN-03 | - | Pending |
-| FLOW-01 | - | Pending |
-| FLOW-02 | - | Pending |
-| FLOW-03 | - | Pending |
-| FLOW-04 | - | Pending |
-| FLOW-05 | - | Pending |
-| SIPC-01 | - | Pending |
-| SIPC-02 | - | Pending |
-| SIPC-03 | - | Pending |
-| SIPC-04 | - | Pending |
-| SIPC-05 | - | Pending |
-| SIPC-06 | - | Pending |
-| SIPC-07 | - | Pending |
-| SIPC-08 | - | Pending |
-| INFR-01 | - | Pending |
-| INFR-02 | - | Pending |
-| INFR-03 | - | Pending |
-| EXEC-01 | - | Pending |
-| EXEC-02 | - | Pending |
-| EXEC-03 | - | Pending |
-| EXEC-04 | - | Pending |
+| FOUN-01 | Phase 1 | Pending |
+| FOUN-02 | Phase 1 | Pending |
+| FOUN-03 | Phase 1 | Pending |
+| FLOW-01 | Phase 2 | Pending |
+| FLOW-02 | Phase 2 | Pending |
+| FLOW-03 | Phase 2 | Pending |
+| FLOW-04 | Phase 2 | Pending |
+| FLOW-05 | Phase 3 | Pending |
+| SIPC-01 | Phase 5 | Pending |
+| SIPC-02 | Phase 5 | Pending |
+| SIPC-03 | Phase 5 | Pending |
+| SIPC-04 | Phase 7 | Pending |
+| SIPC-05 | Phase 7 | Pending |
+| SIPC-06 | Phase 8 | Pending |
+| SIPC-07 | Phase 8 | Pending |
+| SIPC-08 | Phase 9 | Pending |
+| INFR-01 | Phase 4 | Pending |
+| INFR-02 | Phase 10 | Pending |
+| INFR-03 | Phase 4 | Pending |
+| EXEC-01 | Phase 6 | Pending |
+| EXEC-02 | Phase 6 | Pending |
+| EXEC-03 | Phase 6 | Pending |
+| EXEC-04 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 23 total
-- Mapped to phases: 0
-- Unmapped: 23 ⚠️
+- Mapped to phases: 23
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-01 after initial definition*
+*Last updated: 2026-02-01 after roadmap creation*
