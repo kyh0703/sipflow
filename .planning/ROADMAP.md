@@ -35,9 +35,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. React frontend can call Go backend methods via Wails bindings
   4. Backend can emit events that React receives without race conditions
   5. Application builds cross-platform without cgo dependencies
-**Plans**: TBD
+**Plans**: 4 plans
 
-Plans: (to be created during planning)
+Plans:
+- [ ] 01-01-PLAN.md — Wails project init, Go Clean Architecture structure, SQLite driver, ent schemas
+- [ ] 01-02-PLAN.md — React frontend structure, Zustand stores, event hooks, shadcn/ui setup
+- [ ] 01-03-PLAN.md — Wails handler bindings, FlowService CRUD, EventEmitter handshake protocol
+- [ ] 01-04-PLAN.md — Integration wiring, frontend-backend communication verification, build check
 
 ### Phase 2: Visual Flow Designer
 **Goal**: Users can visually design SIP call flows using drag-and-drop node-based interface with three node types (SIP Instance, Command, Event) connected by edges.
@@ -164,11 +168,11 @@ Plans: (to be created during planning)
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Project Structure | 0/TBD | Not started | - |
+| 1. Foundation & Project Structure | 0/4 | Planning complete | - |
 | 2. Visual Flow Designer | 0/TBD | Not started | - |
 | 3. Flow Persistence | 0/TBD | Not started | - |
 | 4. SIP Infrastructure | 0/TBD | Not started | - |
