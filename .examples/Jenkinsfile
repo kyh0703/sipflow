@@ -1,0 +1,225 @@
+pipeline {
+  agent {
+    node {
+      label 'dev-go'
+    }
+  }
+
+  environment {
+    GIT_COMMIT_AUTHOR = getCommitAuthor()
+    GIT_COMMIT_MSG = getCommitMsg()
+    GIT_CREDS = credentials('gitlab-ci-token-basic-auth')
+    GIT_HASH = GIT_COMMIT.take(8)
+    GIT_BRANCH_TYPE = getBranchType(env.GIT_BRANCH)
+    BUILD_ENV = getBranchDeploymentEnvironment(env.GIT_BRANCH_TYPE)
+    IMAGE_TAG = getImageTag(env.GIT_BRANCH, BUILD_ENV)
+    PKG_NAME = 'ne-ife'
+    SVC_NAME = 'frontend'
+    CHART_NAMES = 'frontend'
+  }
+
+  stages {
+    stage('Configuration') {
+      steps {
+        echo """
+          GIT_BRANCH: ${GIT_BRANCH}
+          GIT_BRANCH_TYPE: ${GIT_BRANCH_TYPE}
+          GIT_COMMIT_AUTHOR: ${GIT_COMMIT_AUTHOR}
+          GIT_COMMIT_MSG: ${GIT_COMMIT_MSG}
+          GIT_HASH: ${GIT_HASH}
+          BUILD_ENV: ${BUILD_ENV}
+          IMAGE_TAG: ${IMAGE_TAG}
+          PKG_NAME: ${PKG_NAME}
+          SVC_NAME: ${SVC_NAME}
+          CHART_NAMES: ${CHART_NAMES}
+        """
+      }
+    }
+
+    stage("Install dependencies") {
+      steps {
+        echo 'Install dependencies'
+        script {
+          sh 'pnpm install --frozen-lockfile --prefer-offline'
+        }
+      }
+    }
+
+    stage('Test') {
+      parallel {
+        stage('Test') {
+          steps { sh 'pnpm run test:ci' }
+        }
+        stage('Lint') {
+          steps {
+            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+              sh 'pnpm run lint'
+            }
+          }
+        }
+      }
+    }
+
+    stage('Docker image build') {
+      steps {
+        echo 'Build Docker Image'
+        script {
+          dockerImage = docker.build(
+            "${PKG_NAME}/${SVC_NAME}",
+            "--build-arg CI_USER=${GIT_CREDS_USR} --build-arg CI_TOKEN=${GIT_CREDS_PSW} --build-arg BASE_PATH=/ife ."
+          )
+        }
+      }
+    }
+
+    stage('Docker image push') {
+      steps {
+        echo 'Push Docker'
+        dir('build/image') {
+          script {
+            docker.withRegistry("${env.DOCKER_REGISTRY_URL}", "docker-registry") {
+              dockerImage.push("${IMAGE_TAG}")
+            }
+          }
+        }
+      }
+    }
+
+    stage('Update image tag in helm chart') {
+      steps {
+        git (
+          url: 'http://100.100.103.5/IPRON-NE/devops/helm/ife-charts.git',
+          credentialsId: 'gitlab-ci-token-basic-auth',
+        )
+        script {
+          VERSION = sh(script: "cat charts/${CHART_NAMES}/VERSION", returnStdout: true).trim()
+        }
+        dir ("charts/${CHART_NAMES}/${VERSION}/variants/${BUILD_ENV}") {
+          sh """#!/bin/bash
+            yq -i '
+              .image.tag = "${IMAGE_TAG}" |
+              .meta.commit.hash = "${GIT_HASH}" |
+              .meta.commit.author = "${GIT_COMMIT_AUTHOR}" |
+              .meta.commit.message = "${GIT_COMMIT_MSG}"
+            ' values.yaml
+            git diff-index --quiet HEAD || git commit -am '(${GIT_COMMIT_AUTHOR}) ${GIT_COMMIT_MSG}'
+          """
+        }
+      }
+    }
+
+    stage('Push Helm Repository') {
+      steps {
+        withCredentials([
+          gitUsernamePassword(credentialsId: 'gitlab-ci-token-basic-auth')
+        ]) {
+          sh "git push origin master"
+        }
+      }
+    }
+
+    stage('Docker image upload') {
+      when { expression { isTagPush() }  }
+      steps {
+        script {
+          ImageFileName = "${SVC_NAME}-${GIT_BRANCH}-${GIT_HASH}.tar"
+          sh "docker save -o ${ImageFileName} ${PKG_NAME}/${SVC_NAME}:latest"
+          sh """#!/bin/bash
+            wget http://100.100.103.9:8088/IPRON-NE/${PKG_NAME}/services/${SVC_NAME}/versions.yaml || true
+            touch versions.yaml
+            yq -i '.versions."${GIT_BRANCH}" = "${GIT_HASH}"' versions.yaml
+          """
+        }
+        ftpPublisher alwaysPublishFromMaster: true,
+                 continueOnError: false,
+                 failOnError: false,
+                 masterNodeName: '',
+                 paramPublish: null,
+                 publishers: [[configName: 'QA-SERVER', transfers: [[asciiMode: false, cleanRemote: false, excludes: '', flatten: false, makeEmptyDirs: true, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: "IPRON-NE/${PKG_NAME}/services/${SVC_NAME}", remoteDirectorySDF: false, removePrefix: '', sourceFiles: "${ImageFileName},versions.yaml"]], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false]]
+        script {
+          sh "rm -f ${ImageFileName} versions.yaml"
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      junit(
+        allowEmptyResults: true,
+        skipPublishingChecks: true,
+        skipMarkingBuildUnstable: true,
+        testResults: 'junit.xml'
+      )
+      emailext(
+        to: 'kyh0703@bridgetec.co.kr, jiwoonlee@bridgetec.co.kr',
+        subject: '${DEFAULT_SUBJECT}',
+        body: '${DEFAULT_CONTENT}'
+      )
+    }
+  }
+}
+
+def getBranchType(String branchName) {
+  def devPattern = ".*develop"
+  def releasePattern = ".*release/.*"
+  def featurePattern = ".*feature/.*"
+  def hotfixPattern = ".*hotfix/.*"
+  def masterPattern = "(.*master|v[0-9]+\\.[0-9]+\\.[0-9]+)"
+  if (branchName =~ devPattern) {
+      return "dev"
+  } else if (branchName =~ releasePattern) {
+      return "release"
+  } else if (branchName =~ masterPattern) {
+      return "master"
+  } else if (branchName =~ featurePattern) {
+      return "feature"
+  } else if (branchName =~ hotfixPattern) {
+      return "hotfix"
+  } else {
+      return null;
+  }
+}
+
+def getBranchDeploymentEnvironment(String branchType) {
+  switch (branchType) {
+  case "dev":
+    return "dev"
+  case "feature":
+    return "dev"
+  case "release":
+    return "staging"
+  case "hotfix":
+    return "staging"
+  case "master":
+    return "prod"
+  default:
+    return null
+  }
+}
+
+def getImageTag(String originalBranch, String buildEnv) {
+  switch (buildEnv) {
+  case "dev":
+  case 'staging':
+    return buildEnv
+  case "prod":
+    return originalBranch
+  }
+}
+
+def getCommitAuthor() {
+  script {
+    return sh(script: 'git log -1 --pretty=%cn ${GIT_COMMIT}', returnStdout: true).trim()
+  }
+}
+
+def getCommitMsg() {
+  script {
+    return sh(script : "git show -s --format=%B ${GIT_COMMIT}", returnStdout: true).trim()
+  }
+}
+
+def isTagPush() {
+  return env.GIT_BRANCH ==~ /^v.+/
+}

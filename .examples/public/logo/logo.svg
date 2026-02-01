@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Hexagonal Background -->
+  <polygon points="100,20 170,60 170,140 100,180 30,140 30,60" fill="#252F3E" stroke="#37B8AF" stroke-width="3"/>
+  
+  <!-- Flow Dynamic Lines -->
+  <path d="M50 100 Q80 60, 100 100 T150 100" stroke="#EE0000" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M50 120 Q80 80, 100 120 T150 120" stroke="#5BBDBF" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M50 80 Q80 40, 100 80 T150 80" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="2,2"/>
+  
+  <!-- Ansible Gear in Center -->
+  <circle cx="100" cy="100" r="25" fill="#37B8AF"/>
+  <path d="M100 85 L115 110 L85 110 Z" fill="#FFFFFF"/>
+  
+  <!-- Connection Nodes -->
+  <circle cx="50" cy="100" r="6" fill="#EE0000"/>
+  <circle cx="150" cy="100" r="6" fill="#EE0000"/>
+  <circle cx="50" cy="120" r="6" fill="#5BBDBF"/>
+  <circle cx="150" cy="120" r="6" fill="#5BBDBF"/>
+  
+  <!-- Text Element -->
+  <text x="100" y="155" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#FFFFFF">ANSIBLE-FLOW</text>
+</svg>

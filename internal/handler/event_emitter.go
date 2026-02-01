@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -12,6 +13,7 @@ type EventEmitter struct {
 	ctx           context.Context
 	frontendReady bool
 	readyChan     chan struct{}
+	readyOnce     sync.Once
 }
 
 // NewEventEmitter creates a new EventEmitter instance
@@ -38,8 +40,10 @@ func (e *EventEmitter) OnStartup(ctx context.Context) {
 		// Emit backend:ready to complete handshake
 		runtime.EventsEmit(ctx, "backend:ready")
 
-		// Signal any waiting goroutines
-		close(e.readyChan)
+		// Signal any waiting goroutines (safe against multiple calls from hot-reload)
+		e.readyOnce.Do(func() {
+			close(e.readyChan)
+		})
 	})
 }
 

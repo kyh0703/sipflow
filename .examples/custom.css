@@ -1,0 +1,22 @@
+@charset "UTF-8";
+
+@font-face {
+  font-family: 'RIDIBatang';
+  src: url('./RIDIBatang.otf') format('opentype');
+}
+
+section {
+  font-family: 'RIDIBatang', sans-serif;
+}
+
+header {
+  left: 0;
+  right: 0;
+  top: 0;
+}
+
+footer {
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
