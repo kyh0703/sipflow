@@ -116,6 +116,7 @@ export function FlowCanvas() {
         onDrop={onDrop}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        defaultEdgeOptions={{ type: 'flowEdge' }}
         isValidConnection={isValidConnection}
         fitView
         minZoom={0.1}

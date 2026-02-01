@@ -12,6 +12,27 @@ import {
 import type { SIPFlowNode, SIPFlowEdge } from '@/types/nodes'
 
 /**
+ * Valid connection sequences based on node types
+ * Defines allowed target node types for each source node type
+ */
+const validSequences: Record<string, string[]> = {
+  sipInstance: ['command'],
+  command: ['event', 'command'],
+  event: ['command'],
+}
+
+/**
+ * Validates if connection between source and target node types is allowed
+ */
+function validateConnection(sourceType: string, targetType: string): boolean {
+  const allowedTargets = validSequences[sourceType]
+  if (!allowedTargets) {
+    return false
+  }
+  return allowedTargets.includes(targetType)
+}
+
+/**
  * Helper to validate edge connection based on node types
  * SIP Instance -> Command -> Event -> Command... pattern
  */
@@ -27,9 +48,7 @@ function validateEdge(
     return false
   }
 
-  // Basic validation: allow all connections for now
-  // More specific validation will be added in property panel phase
-  return true
+  return validateConnection(sourceNode.type || '', targetNode.type || '')
 }
 
 /**
