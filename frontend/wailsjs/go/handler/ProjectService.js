@@ -25,3 +25,7 @@ export function OpenProject() {
 export function SaveProjectAs() {
   return window['go']['handler']['ProjectService']['SaveProjectAs']();
 }
+
+export function SetContext(arg1) {
+  return window['go']['handler']['ProjectService']['SetContext'](arg1);
+}
