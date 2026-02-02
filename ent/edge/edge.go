@@ -14,10 +14,16 @@ const (
 	Label = "edge"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldXyflowID holds the string denoting the xyflow_id field in the database.
+	FieldXyflowID = "xyflow_id"
+	// FieldType holds the string denoting the type field in the database.
+	FieldType = "type"
 	// FieldSourceHandle holds the string denoting the source_handle field in the database.
 	FieldSourceHandle = "source_handle"
 	// FieldTargetHandle holds the string denoting the target_handle field in the database.
 	FieldTargetHandle = "target_handle"
+	// FieldData holds the string denoting the data field in the database.
+	FieldData = "data"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// EdgeFlow holds the string denoting the flow edge name in mutations.
@@ -54,8 +60,11 @@ const (
 // Columns holds all SQL columns for edge fields.
 var Columns = []string{
 	FieldID,
+	FieldXyflowID,
+	FieldType,
 	FieldSourceHandle,
 	FieldTargetHandle,
+	FieldData,
 	FieldCreatedAt,
 }
 
@@ -83,6 +92,10 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultXyflowID holds the default value on creation for the "xyflow_id" field.
+	DefaultXyflowID string
+	// DefaultType holds the default value on creation for the "type" field.
+	DefaultType string
 	// DefaultSourceHandle holds the default value on creation for the "source_handle" field.
 	DefaultSourceHandle string
 	// DefaultTargetHandle holds the default value on creation for the "target_handle" field.
@@ -97,6 +110,16 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByXyflowID orders the results by the xyflow_id field.
+func ByXyflowID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldXyflowID, opts...).ToFunc()
+}
+
+// ByType orders the results by the type field.
+func ByType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldType, opts...).ToFunc()
 }
 
 // BySourceHandle orders the results by the source_handle field.

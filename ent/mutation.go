@@ -37,8 +37,11 @@ type EdgeMutation struct {
 	op                 Op
 	typ                string
 	id                 *int
+	xyflow_id          *string
+	_type              *string
 	source_handle      *string
 	target_handle      *string
+	data               *map[string]interface{}
 	created_at         *time.Time
 	clearedFields      map[string]struct{}
 	flow               *int
@@ -150,6 +153,104 @@ func (m *EdgeMutation) IDs(ctx context.Context) ([]int, error) {
 	}
 }
 
+// SetXyflowID sets the "xyflow_id" field.
+func (m *EdgeMutation) SetXyflowID(s string) {
+	m.xyflow_id = &s
+}
+
+// XyflowID returns the value of the "xyflow_id" field in the mutation.
+func (m *EdgeMutation) XyflowID() (r string, exists bool) {
+	v := m.xyflow_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldXyflowID returns the old "xyflow_id" field's value of the Edge entity.
+// If the Edge object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EdgeMutation) OldXyflowID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldXyflowID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldXyflowID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldXyflowID: %w", err)
+	}
+	return oldValue.XyflowID, nil
+}
+
+// ClearXyflowID clears the value of the "xyflow_id" field.
+func (m *EdgeMutation) ClearXyflowID() {
+	m.xyflow_id = nil
+	m.clearedFields[edge.FieldXyflowID] = struct{}{}
+}
+
+// XyflowIDCleared returns if the "xyflow_id" field was cleared in this mutation.
+func (m *EdgeMutation) XyflowIDCleared() bool {
+	_, ok := m.clearedFields[edge.FieldXyflowID]
+	return ok
+}
+
+// ResetXyflowID resets all changes to the "xyflow_id" field.
+func (m *EdgeMutation) ResetXyflowID() {
+	m.xyflow_id = nil
+	delete(m.clearedFields, edge.FieldXyflowID)
+}
+
+// SetType sets the "type" field.
+func (m *EdgeMutation) SetType(s string) {
+	m._type = &s
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *EdgeMutation) GetType() (r string, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the Edge entity.
+// If the Edge object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EdgeMutation) OldType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ClearType clears the value of the "type" field.
+func (m *EdgeMutation) ClearType() {
+	m._type = nil
+	m.clearedFields[edge.FieldType] = struct{}{}
+}
+
+// TypeCleared returns if the "type" field was cleared in this mutation.
+func (m *EdgeMutation) TypeCleared() bool {
+	_, ok := m.clearedFields[edge.FieldType]
+	return ok
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *EdgeMutation) ResetType() {
+	m._type = nil
+	delete(m.clearedFields, edge.FieldType)
+}
+
 // SetSourceHandle sets the "source_handle" field.
 func (m *EdgeMutation) SetSourceHandle(s string) {
 	m.source_handle = &s
@@ -246,6 +347,55 @@ func (m *EdgeMutation) TargetHandleCleared() bool {
 func (m *EdgeMutation) ResetTargetHandle() {
 	m.target_handle = nil
 	delete(m.clearedFields, edge.FieldTargetHandle)
+}
+
+// SetData sets the "data" field.
+func (m *EdgeMutation) SetData(value map[string]interface{}) {
+	m.data = &value
+}
+
+// Data returns the value of the "data" field in the mutation.
+func (m *EdgeMutation) Data() (r map[string]interface{}, exists bool) {
+	v := m.data
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldData returns the old "data" field's value of the Edge entity.
+// If the Edge object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EdgeMutation) OldData(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldData is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldData requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldData: %w", err)
+	}
+	return oldValue.Data, nil
+}
+
+// ClearData clears the value of the "data" field.
+func (m *EdgeMutation) ClearData() {
+	m.data = nil
+	m.clearedFields[edge.FieldData] = struct{}{}
+}
+
+// DataCleared returns if the "data" field was cleared in this mutation.
+func (m *EdgeMutation) DataCleared() bool {
+	_, ok := m.clearedFields[edge.FieldData]
+	return ok
+}
+
+// ResetData resets all changes to the "data" field.
+func (m *EdgeMutation) ResetData() {
+	m.data = nil
+	delete(m.clearedFields, edge.FieldData)
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -435,12 +585,21 @@ func (m *EdgeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EdgeMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 6)
+	if m.xyflow_id != nil {
+		fields = append(fields, edge.FieldXyflowID)
+	}
+	if m._type != nil {
+		fields = append(fields, edge.FieldType)
+	}
 	if m.source_handle != nil {
 		fields = append(fields, edge.FieldSourceHandle)
 	}
 	if m.target_handle != nil {
 		fields = append(fields, edge.FieldTargetHandle)
+	}
+	if m.data != nil {
+		fields = append(fields, edge.FieldData)
 	}
 	if m.created_at != nil {
 		fields = append(fields, edge.FieldCreatedAt)
@@ -453,10 +612,16 @@ func (m *EdgeMutation) Fields() []string {
 // schema.
 func (m *EdgeMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case edge.FieldXyflowID:
+		return m.XyflowID()
+	case edge.FieldType:
+		return m.GetType()
 	case edge.FieldSourceHandle:
 		return m.SourceHandle()
 	case edge.FieldTargetHandle:
 		return m.TargetHandle()
+	case edge.FieldData:
+		return m.Data()
 	case edge.FieldCreatedAt:
 		return m.CreatedAt()
 	}
@@ -468,10 +633,16 @@ func (m *EdgeMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *EdgeMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case edge.FieldXyflowID:
+		return m.OldXyflowID(ctx)
+	case edge.FieldType:
+		return m.OldType(ctx)
 	case edge.FieldSourceHandle:
 		return m.OldSourceHandle(ctx)
 	case edge.FieldTargetHandle:
 		return m.OldTargetHandle(ctx)
+	case edge.FieldData:
+		return m.OldData(ctx)
 	case edge.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	}
@@ -483,6 +654,20 @@ func (m *EdgeMutation) OldField(ctx context.Context, name string) (ent.Value, er
 // type.
 func (m *EdgeMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case edge.FieldXyflowID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetXyflowID(v)
+		return nil
+	case edge.FieldType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
 	case edge.FieldSourceHandle:
 		v, ok := value.(string)
 		if !ok {
@@ -496,6 +681,13 @@ func (m *EdgeMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTargetHandle(v)
+		return nil
+	case edge.FieldData:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetData(v)
 		return nil
 	case edge.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -534,11 +726,20 @@ func (m *EdgeMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *EdgeMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(edge.FieldXyflowID) {
+		fields = append(fields, edge.FieldXyflowID)
+	}
+	if m.FieldCleared(edge.FieldType) {
+		fields = append(fields, edge.FieldType)
+	}
 	if m.FieldCleared(edge.FieldSourceHandle) {
 		fields = append(fields, edge.FieldSourceHandle)
 	}
 	if m.FieldCleared(edge.FieldTargetHandle) {
 		fields = append(fields, edge.FieldTargetHandle)
+	}
+	if m.FieldCleared(edge.FieldData) {
+		fields = append(fields, edge.FieldData)
 	}
 	return fields
 }
@@ -554,11 +755,20 @@ func (m *EdgeMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *EdgeMutation) ClearField(name string) error {
 	switch name {
+	case edge.FieldXyflowID:
+		m.ClearXyflowID()
+		return nil
+	case edge.FieldType:
+		m.ClearType()
+		return nil
 	case edge.FieldSourceHandle:
 		m.ClearSourceHandle()
 		return nil
 	case edge.FieldTargetHandle:
 		m.ClearTargetHandle()
+		return nil
+	case edge.FieldData:
+		m.ClearData()
 		return nil
 	}
 	return fmt.Errorf("unknown Edge nullable field %s", name)
@@ -568,11 +778,20 @@ func (m *EdgeMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *EdgeMutation) ResetField(name string) error {
 	switch name {
+	case edge.FieldXyflowID:
+		m.ResetXyflowID()
+		return nil
+	case edge.FieldType:
+		m.ResetType()
+		return nil
 	case edge.FieldSourceHandle:
 		m.ResetSourceHandle()
 		return nil
 	case edge.FieldTargetHandle:
 		m.ResetTargetHandle()
+		return nil
+	case edge.FieldData:
+		m.ResetData()
 		return nil
 	case edge.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -694,23 +913,29 @@ func (m *EdgeMutation) ResetEdge(name string) error {
 // FlowMutation represents an operation that mutates the Flow nodes in the graph.
 type FlowMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	name          *string
-	description   *string
-	created_at    *time.Time
-	updated_at    *time.Time
-	clearedFields map[string]struct{}
-	nodes         map[int]struct{}
-	removednodes  map[int]struct{}
-	clearednodes  bool
-	edges         map[int]struct{}
-	removededges  map[int]struct{}
-	clearededges  bool
-	done          bool
-	oldValue      func(context.Context) (*Flow, error)
-	predicates    []predicate.Flow
+	op               Op
+	typ              string
+	id               *int
+	name             *string
+	description      *string
+	viewport_x       *float64
+	addviewport_x    *float64
+	viewport_y       *float64
+	addviewport_y    *float64
+	viewport_zoom    *float64
+	addviewport_zoom *float64
+	created_at       *time.Time
+	updated_at       *time.Time
+	clearedFields    map[string]struct{}
+	nodes            map[int]struct{}
+	removednodes     map[int]struct{}
+	clearednodes     bool
+	edges            map[int]struct{}
+	removededges     map[int]struct{}
+	clearededges     bool
+	done             bool
+	oldValue         func(context.Context) (*Flow, error)
+	predicates       []predicate.Flow
 }
 
 var _ ent.Mutation = (*FlowMutation)(nil)
@@ -894,6 +1119,174 @@ func (m *FlowMutation) DescriptionCleared() bool {
 func (m *FlowMutation) ResetDescription() {
 	m.description = nil
 	delete(m.clearedFields, flow.FieldDescription)
+}
+
+// SetViewportX sets the "viewport_x" field.
+func (m *FlowMutation) SetViewportX(f float64) {
+	m.viewport_x = &f
+	m.addviewport_x = nil
+}
+
+// ViewportX returns the value of the "viewport_x" field in the mutation.
+func (m *FlowMutation) ViewportX() (r float64, exists bool) {
+	v := m.viewport_x
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldViewportX returns the old "viewport_x" field's value of the Flow entity.
+// If the Flow object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FlowMutation) OldViewportX(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldViewportX is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldViewportX requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldViewportX: %w", err)
+	}
+	return oldValue.ViewportX, nil
+}
+
+// AddViewportX adds f to the "viewport_x" field.
+func (m *FlowMutation) AddViewportX(f float64) {
+	if m.addviewport_x != nil {
+		*m.addviewport_x += f
+	} else {
+		m.addviewport_x = &f
+	}
+}
+
+// AddedViewportX returns the value that was added to the "viewport_x" field in this mutation.
+func (m *FlowMutation) AddedViewportX() (r float64, exists bool) {
+	v := m.addviewport_x
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetViewportX resets all changes to the "viewport_x" field.
+func (m *FlowMutation) ResetViewportX() {
+	m.viewport_x = nil
+	m.addviewport_x = nil
+}
+
+// SetViewportY sets the "viewport_y" field.
+func (m *FlowMutation) SetViewportY(f float64) {
+	m.viewport_y = &f
+	m.addviewport_y = nil
+}
+
+// ViewportY returns the value of the "viewport_y" field in the mutation.
+func (m *FlowMutation) ViewportY() (r float64, exists bool) {
+	v := m.viewport_y
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldViewportY returns the old "viewport_y" field's value of the Flow entity.
+// If the Flow object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FlowMutation) OldViewportY(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldViewportY is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldViewportY requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldViewportY: %w", err)
+	}
+	return oldValue.ViewportY, nil
+}
+
+// AddViewportY adds f to the "viewport_y" field.
+func (m *FlowMutation) AddViewportY(f float64) {
+	if m.addviewport_y != nil {
+		*m.addviewport_y += f
+	} else {
+		m.addviewport_y = &f
+	}
+}
+
+// AddedViewportY returns the value that was added to the "viewport_y" field in this mutation.
+func (m *FlowMutation) AddedViewportY() (r float64, exists bool) {
+	v := m.addviewport_y
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetViewportY resets all changes to the "viewport_y" field.
+func (m *FlowMutation) ResetViewportY() {
+	m.viewport_y = nil
+	m.addviewport_y = nil
+}
+
+// SetViewportZoom sets the "viewport_zoom" field.
+func (m *FlowMutation) SetViewportZoom(f float64) {
+	m.viewport_zoom = &f
+	m.addviewport_zoom = nil
+}
+
+// ViewportZoom returns the value of the "viewport_zoom" field in the mutation.
+func (m *FlowMutation) ViewportZoom() (r float64, exists bool) {
+	v := m.viewport_zoom
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldViewportZoom returns the old "viewport_zoom" field's value of the Flow entity.
+// If the Flow object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FlowMutation) OldViewportZoom(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldViewportZoom is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldViewportZoom requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldViewportZoom: %w", err)
+	}
+	return oldValue.ViewportZoom, nil
+}
+
+// AddViewportZoom adds f to the "viewport_zoom" field.
+func (m *FlowMutation) AddViewportZoom(f float64) {
+	if m.addviewport_zoom != nil {
+		*m.addviewport_zoom += f
+	} else {
+		m.addviewport_zoom = &f
+	}
+}
+
+// AddedViewportZoom returns the value that was added to the "viewport_zoom" field in this mutation.
+func (m *FlowMutation) AddedViewportZoom() (r float64, exists bool) {
+	v := m.addviewport_zoom
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetViewportZoom resets all changes to the "viewport_zoom" field.
+func (m *FlowMutation) ResetViewportZoom() {
+	m.viewport_zoom = nil
+	m.addviewport_zoom = nil
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -1110,12 +1503,21 @@ func (m *FlowMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *FlowMutation) Fields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 7)
 	if m.name != nil {
 		fields = append(fields, flow.FieldName)
 	}
 	if m.description != nil {
 		fields = append(fields, flow.FieldDescription)
+	}
+	if m.viewport_x != nil {
+		fields = append(fields, flow.FieldViewportX)
+	}
+	if m.viewport_y != nil {
+		fields = append(fields, flow.FieldViewportY)
+	}
+	if m.viewport_zoom != nil {
+		fields = append(fields, flow.FieldViewportZoom)
 	}
 	if m.created_at != nil {
 		fields = append(fields, flow.FieldCreatedAt)
@@ -1135,6 +1537,12 @@ func (m *FlowMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case flow.FieldDescription:
 		return m.Description()
+	case flow.FieldViewportX:
+		return m.ViewportX()
+	case flow.FieldViewportY:
+		return m.ViewportY()
+	case flow.FieldViewportZoom:
+		return m.ViewportZoom()
 	case flow.FieldCreatedAt:
 		return m.CreatedAt()
 	case flow.FieldUpdatedAt:
@@ -1152,6 +1560,12 @@ func (m *FlowMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldName(ctx)
 	case flow.FieldDescription:
 		return m.OldDescription(ctx)
+	case flow.FieldViewportX:
+		return m.OldViewportX(ctx)
+	case flow.FieldViewportY:
+		return m.OldViewportY(ctx)
+	case flow.FieldViewportZoom:
+		return m.OldViewportZoom(ctx)
 	case flow.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case flow.FieldUpdatedAt:
@@ -1179,6 +1593,27 @@ func (m *FlowMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDescription(v)
 		return nil
+	case flow.FieldViewportX:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetViewportX(v)
+		return nil
+	case flow.FieldViewportY:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetViewportY(v)
+		return nil
+	case flow.FieldViewportZoom:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetViewportZoom(v)
+		return nil
 	case flow.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -1200,13 +1635,31 @@ func (m *FlowMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *FlowMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addviewport_x != nil {
+		fields = append(fields, flow.FieldViewportX)
+	}
+	if m.addviewport_y != nil {
+		fields = append(fields, flow.FieldViewportY)
+	}
+	if m.addviewport_zoom != nil {
+		fields = append(fields, flow.FieldViewportZoom)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *FlowMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case flow.FieldViewportX:
+		return m.AddedViewportX()
+	case flow.FieldViewportY:
+		return m.AddedViewportY()
+	case flow.FieldViewportZoom:
+		return m.AddedViewportZoom()
+	}
 	return nil, false
 }
 
@@ -1215,6 +1668,27 @@ func (m *FlowMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *FlowMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case flow.FieldViewportX:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddViewportX(v)
+		return nil
+	case flow.FieldViewportY:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddViewportY(v)
+		return nil
+	case flow.FieldViewportZoom:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddViewportZoom(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Flow numeric field %s", name)
 }
@@ -1256,6 +1730,15 @@ func (m *FlowMutation) ResetField(name string) error {
 		return nil
 	case flow.FieldDescription:
 		m.ResetDescription()
+		return nil
+	case flow.FieldViewportX:
+		m.ResetViewportX()
+		return nil
+	case flow.FieldViewportY:
+		m.ResetViewportY()
+		return nil
+	case flow.FieldViewportZoom:
+		m.ResetViewportZoom()
 		return nil
 	case flow.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -1384,6 +1867,7 @@ type NodeMutation struct {
 	typ                   string
 	id                    *int
 	_type                 *string
+	xyflow_id             *string
 	data                  *map[string]interface{}
 	position_x            *float64
 	addposition_x         *float64
@@ -1536,6 +2020,55 @@ func (m *NodeMutation) OldType(ctx context.Context) (v string, err error) {
 // ResetType resets all changes to the "type" field.
 func (m *NodeMutation) ResetType() {
 	m._type = nil
+}
+
+// SetXyflowID sets the "xyflow_id" field.
+func (m *NodeMutation) SetXyflowID(s string) {
+	m.xyflow_id = &s
+}
+
+// XyflowID returns the value of the "xyflow_id" field in the mutation.
+func (m *NodeMutation) XyflowID() (r string, exists bool) {
+	v := m.xyflow_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldXyflowID returns the old "xyflow_id" field's value of the Node entity.
+// If the Node object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NodeMutation) OldXyflowID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldXyflowID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldXyflowID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldXyflowID: %w", err)
+	}
+	return oldValue.XyflowID, nil
+}
+
+// ClearXyflowID clears the value of the "xyflow_id" field.
+func (m *NodeMutation) ClearXyflowID() {
+	m.xyflow_id = nil
+	m.clearedFields[node.FieldXyflowID] = struct{}{}
+}
+
+// XyflowIDCleared returns if the "xyflow_id" field was cleared in this mutation.
+func (m *NodeMutation) XyflowIDCleared() bool {
+	_, ok := m.clearedFields[node.FieldXyflowID]
+	return ok
+}
+
+// ResetXyflowID resets all changes to the "xyflow_id" field.
+func (m *NodeMutation) ResetXyflowID() {
+	m.xyflow_id = nil
+	delete(m.clearedFields, node.FieldXyflowID)
 }
 
 // SetData sets the "data" field.
@@ -1916,9 +2449,12 @@ func (m *NodeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NodeMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m._type != nil {
 		fields = append(fields, node.FieldType)
+	}
+	if m.xyflow_id != nil {
+		fields = append(fields, node.FieldXyflowID)
 	}
 	if m.data != nil {
 		fields = append(fields, node.FieldData)
@@ -1942,6 +2478,8 @@ func (m *NodeMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case node.FieldType:
 		return m.GetType()
+	case node.FieldXyflowID:
+		return m.XyflowID()
 	case node.FieldData:
 		return m.Data()
 	case node.FieldPositionX:
@@ -1961,6 +2499,8 @@ func (m *NodeMutation) OldField(ctx context.Context, name string) (ent.Value, er
 	switch name {
 	case node.FieldType:
 		return m.OldType(ctx)
+	case node.FieldXyflowID:
+		return m.OldXyflowID(ctx)
 	case node.FieldData:
 		return m.OldData(ctx)
 	case node.FieldPositionX:
@@ -1984,6 +2524,13 @@ func (m *NodeMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetType(v)
+		return nil
+	case node.FieldXyflowID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetXyflowID(v)
 		return nil
 	case node.FieldData:
 		v, ok := value.(map[string]interface{})
@@ -2070,6 +2617,9 @@ func (m *NodeMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *NodeMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(node.FieldXyflowID) {
+		fields = append(fields, node.FieldXyflowID)
+	}
 	if m.FieldCleared(node.FieldData) {
 		fields = append(fields, node.FieldData)
 	}
@@ -2087,6 +2637,9 @@ func (m *NodeMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *NodeMutation) ClearField(name string) error {
 	switch name {
+	case node.FieldXyflowID:
+		m.ClearXyflowID()
+		return nil
 	case node.FieldData:
 		m.ClearData()
 		return nil
@@ -2100,6 +2653,9 @@ func (m *NodeMutation) ResetField(name string) error {
 	switch name {
 	case node.FieldType:
 		m.ResetType()
+		return nil
+	case node.FieldXyflowID:
+		m.ResetXyflowID()
 		return nil
 	case node.FieldData:
 		m.ResetData()

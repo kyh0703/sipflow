@@ -16,6 +16,8 @@ const (
 	FieldID = "id"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
+	// FieldXyflowID holds the string denoting the xyflow_id field in the database.
+	FieldXyflowID = "xyflow_id"
 	// FieldData holds the string denoting the data field in the database.
 	FieldData = "data"
 	// FieldPositionX holds the string denoting the position_x field in the database.
@@ -59,6 +61,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldType,
+	FieldXyflowID,
 	FieldData,
 	FieldPositionX,
 	FieldPositionY,
@@ -89,6 +92,8 @@ func ValidColumn(column string) bool {
 var (
 	// TypeValidator is a validator for the "type" field. It is called by the builders before save.
 	TypeValidator func(string) error
+	// DefaultXyflowID holds the default value on creation for the "xyflow_id" field.
+	DefaultXyflowID string
 	// DefaultPositionX holds the default value on creation for the "position_x" field.
 	DefaultPositionX float64
 	// DefaultPositionY holds the default value on creation for the "position_y" field.
@@ -108,6 +113,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByType orders the results by the type field.
 func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
+}
+
+// ByXyflowID orders the results by the xyflow_id field.
+func ByXyflowID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldXyflowID, opts...).ToFunc()
 }
 
 // ByPositionX orders the results by the position_x field.

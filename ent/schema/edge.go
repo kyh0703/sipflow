@@ -16,12 +16,20 @@ type Edge struct {
 // Fields of the Edge.
 func (Edge) Fields() []ent.Field {
 	return []ent.Field{
+		field.String("xyflow_id").
+			Optional().
+			Default(""),
+		field.String("type").
+			Optional().
+			Default(""),
 		field.String("source_handle").
 			Optional().
 			Default(""),
 		field.String("target_handle").
 			Optional().
 			Default(""),
+		field.JSON("data", map[string]interface{}{}).
+			Optional(),
 		field.Time("created_at").
 			Immutable().
 			Default(time.Now),

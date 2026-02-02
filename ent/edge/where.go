@@ -55,6 +55,16 @@ func IDLTE(id int) predicate.Edge {
 	return predicate.Edge(sql.FieldLTE(FieldID, id))
 }
 
+// XyflowID applies equality check predicate on the "xyflow_id" field. It's identical to XyflowIDEQ.
+func XyflowID(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldEQ(FieldXyflowID, v))
+}
+
+// Type applies equality check predicate on the "type" field. It's identical to TypeEQ.
+func Type(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldEQ(FieldType, v))
+}
+
 // SourceHandle applies equality check predicate on the "source_handle" field. It's identical to SourceHandleEQ.
 func SourceHandle(v string) predicate.Edge {
 	return predicate.Edge(sql.FieldEQ(FieldSourceHandle, v))
@@ -68,6 +78,156 @@ func TargetHandle(v string) predicate.Edge {
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Edge {
 	return predicate.Edge(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// XyflowIDEQ applies the EQ predicate on the "xyflow_id" field.
+func XyflowIDEQ(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldEQ(FieldXyflowID, v))
+}
+
+// XyflowIDNEQ applies the NEQ predicate on the "xyflow_id" field.
+func XyflowIDNEQ(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldNEQ(FieldXyflowID, v))
+}
+
+// XyflowIDIn applies the In predicate on the "xyflow_id" field.
+func XyflowIDIn(vs ...string) predicate.Edge {
+	return predicate.Edge(sql.FieldIn(FieldXyflowID, vs...))
+}
+
+// XyflowIDNotIn applies the NotIn predicate on the "xyflow_id" field.
+func XyflowIDNotIn(vs ...string) predicate.Edge {
+	return predicate.Edge(sql.FieldNotIn(FieldXyflowID, vs...))
+}
+
+// XyflowIDGT applies the GT predicate on the "xyflow_id" field.
+func XyflowIDGT(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldGT(FieldXyflowID, v))
+}
+
+// XyflowIDGTE applies the GTE predicate on the "xyflow_id" field.
+func XyflowIDGTE(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldGTE(FieldXyflowID, v))
+}
+
+// XyflowIDLT applies the LT predicate on the "xyflow_id" field.
+func XyflowIDLT(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldLT(FieldXyflowID, v))
+}
+
+// XyflowIDLTE applies the LTE predicate on the "xyflow_id" field.
+func XyflowIDLTE(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldLTE(FieldXyflowID, v))
+}
+
+// XyflowIDContains applies the Contains predicate on the "xyflow_id" field.
+func XyflowIDContains(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldContains(FieldXyflowID, v))
+}
+
+// XyflowIDHasPrefix applies the HasPrefix predicate on the "xyflow_id" field.
+func XyflowIDHasPrefix(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldHasPrefix(FieldXyflowID, v))
+}
+
+// XyflowIDHasSuffix applies the HasSuffix predicate on the "xyflow_id" field.
+func XyflowIDHasSuffix(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldHasSuffix(FieldXyflowID, v))
+}
+
+// XyflowIDIsNil applies the IsNil predicate on the "xyflow_id" field.
+func XyflowIDIsNil() predicate.Edge {
+	return predicate.Edge(sql.FieldIsNull(FieldXyflowID))
+}
+
+// XyflowIDNotNil applies the NotNil predicate on the "xyflow_id" field.
+func XyflowIDNotNil() predicate.Edge {
+	return predicate.Edge(sql.FieldNotNull(FieldXyflowID))
+}
+
+// XyflowIDEqualFold applies the EqualFold predicate on the "xyflow_id" field.
+func XyflowIDEqualFold(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldEqualFold(FieldXyflowID, v))
+}
+
+// XyflowIDContainsFold applies the ContainsFold predicate on the "xyflow_id" field.
+func XyflowIDContainsFold(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldContainsFold(FieldXyflowID, v))
+}
+
+// TypeEQ applies the EQ predicate on the "type" field.
+func TypeEQ(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldEQ(FieldType, v))
+}
+
+// TypeNEQ applies the NEQ predicate on the "type" field.
+func TypeNEQ(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldNEQ(FieldType, v))
+}
+
+// TypeIn applies the In predicate on the "type" field.
+func TypeIn(vs ...string) predicate.Edge {
+	return predicate.Edge(sql.FieldIn(FieldType, vs...))
+}
+
+// TypeNotIn applies the NotIn predicate on the "type" field.
+func TypeNotIn(vs ...string) predicate.Edge {
+	return predicate.Edge(sql.FieldNotIn(FieldType, vs...))
+}
+
+// TypeGT applies the GT predicate on the "type" field.
+func TypeGT(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldGT(FieldType, v))
+}
+
+// TypeGTE applies the GTE predicate on the "type" field.
+func TypeGTE(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldGTE(FieldType, v))
+}
+
+// TypeLT applies the LT predicate on the "type" field.
+func TypeLT(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldLT(FieldType, v))
+}
+
+// TypeLTE applies the LTE predicate on the "type" field.
+func TypeLTE(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldLTE(FieldType, v))
+}
+
+// TypeContains applies the Contains predicate on the "type" field.
+func TypeContains(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldContains(FieldType, v))
+}
+
+// TypeHasPrefix applies the HasPrefix predicate on the "type" field.
+func TypeHasPrefix(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldHasPrefix(FieldType, v))
+}
+
+// TypeHasSuffix applies the HasSuffix predicate on the "type" field.
+func TypeHasSuffix(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldHasSuffix(FieldType, v))
+}
+
+// TypeIsNil applies the IsNil predicate on the "type" field.
+func TypeIsNil() predicate.Edge {
+	return predicate.Edge(sql.FieldIsNull(FieldType))
+}
+
+// TypeNotNil applies the NotNil predicate on the "type" field.
+func TypeNotNil() predicate.Edge {
+	return predicate.Edge(sql.FieldNotNull(FieldType))
+}
+
+// TypeEqualFold applies the EqualFold predicate on the "type" field.
+func TypeEqualFold(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldEqualFold(FieldType, v))
+}
+
+// TypeContainsFold applies the ContainsFold predicate on the "type" field.
+func TypeContainsFold(v string) predicate.Edge {
+	return predicate.Edge(sql.FieldContainsFold(FieldType, v))
 }
 
 // SourceHandleEQ applies the EQ predicate on the "source_handle" field.
@@ -218,6 +378,16 @@ func TargetHandleEqualFold(v string) predicate.Edge {
 // TargetHandleContainsFold applies the ContainsFold predicate on the "target_handle" field.
 func TargetHandleContainsFold(v string) predicate.Edge {
 	return predicate.Edge(sql.FieldContainsFold(FieldTargetHandle, v))
+}
+
+// DataIsNil applies the IsNil predicate on the "data" field.
+func DataIsNil() predicate.Edge {
+	return predicate.Edge(sql.FieldIsNull(FieldData))
+}
+
+// DataNotNil applies the NotNil predicate on the "data" field.
+func DataNotNil() predicate.Edge {
+	return predicate.Edge(sql.FieldNotNull(FieldData))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

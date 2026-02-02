@@ -22,6 +22,34 @@ type EdgeCreate struct {
 	hooks    []Hook
 }
 
+// SetXyflowID sets the "xyflow_id" field.
+func (_c *EdgeCreate) SetXyflowID(v string) *EdgeCreate {
+	_c.mutation.SetXyflowID(v)
+	return _c
+}
+
+// SetNillableXyflowID sets the "xyflow_id" field if the given value is not nil.
+func (_c *EdgeCreate) SetNillableXyflowID(v *string) *EdgeCreate {
+	if v != nil {
+		_c.SetXyflowID(*v)
+	}
+	return _c
+}
+
+// SetType sets the "type" field.
+func (_c *EdgeCreate) SetType(v string) *EdgeCreate {
+	_c.mutation.SetType(v)
+	return _c
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (_c *EdgeCreate) SetNillableType(v *string) *EdgeCreate {
+	if v != nil {
+		_c.SetType(*v)
+	}
+	return _c
+}
+
 // SetSourceHandle sets the "source_handle" field.
 func (_c *EdgeCreate) SetSourceHandle(v string) *EdgeCreate {
 	_c.mutation.SetSourceHandle(v)
@@ -47,6 +75,12 @@ func (_c *EdgeCreate) SetNillableTargetHandle(v *string) *EdgeCreate {
 	if v != nil {
 		_c.SetTargetHandle(*v)
 	}
+	return _c
+}
+
+// SetData sets the "data" field.
+func (_c *EdgeCreate) SetData(v map[string]interface{}) *EdgeCreate {
+	_c.mutation.SetData(v)
 	return _c
 }
 
@@ -132,6 +166,14 @@ func (_c *EdgeCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *EdgeCreate) defaults() {
+	if _, ok := _c.mutation.XyflowID(); !ok {
+		v := edge.DefaultXyflowID
+		_c.mutation.SetXyflowID(v)
+	}
+	if _, ok := _c.mutation.GetType(); !ok {
+		v := edge.DefaultType
+		_c.mutation.SetType(v)
+	}
 	if _, ok := _c.mutation.SourceHandle(); !ok {
 		v := edge.DefaultSourceHandle
 		_c.mutation.SetSourceHandle(v)
@@ -186,6 +228,14 @@ func (_c *EdgeCreate) createSpec() (*Edge, *sqlgraph.CreateSpec) {
 		_node = &Edge{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(edge.Table, sqlgraph.NewFieldSpec(edge.FieldID, field.TypeInt))
 	)
+	if value, ok := _c.mutation.XyflowID(); ok {
+		_spec.SetField(edge.FieldXyflowID, field.TypeString, value)
+		_node.XyflowID = value
+	}
+	if value, ok := _c.mutation.GetType(); ok {
+		_spec.SetField(edge.FieldType, field.TypeString, value)
+		_node.Type = value
+	}
 	if value, ok := _c.mutation.SourceHandle(); ok {
 		_spec.SetField(edge.FieldSourceHandle, field.TypeString, value)
 		_node.SourceHandle = value
@@ -193,6 +243,10 @@ func (_c *EdgeCreate) createSpec() (*Edge, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.TargetHandle(); ok {
 		_spec.SetField(edge.FieldTargetHandle, field.TypeString, value)
 		_node.TargetHandle = value
+	}
+	if value, ok := _c.mutation.Data(); ok {
+		_spec.SetField(edge.FieldData, field.TypeJSON, value)
+		_node.Data = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(edge.FieldCreatedAt, field.TypeTime, value)

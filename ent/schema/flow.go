@@ -21,6 +21,12 @@ func (Flow) Fields() []ent.Field {
 		field.String("description").
 			Optional().
 			Default(""),
+		field.Float("viewport_x").
+			Default(0),
+		field.Float("viewport_y").
+			Default(0),
+		field.Float("viewport_zoom").
+			Default(1),
 		field.Time("created_at").
 			Immutable().
 			Default(time.Now),

@@ -65,6 +65,21 @@ func Description(v string) predicate.Flow {
 	return predicate.Flow(sql.FieldEQ(FieldDescription, v))
 }
 
+// ViewportX applies equality check predicate on the "viewport_x" field. It's identical to ViewportXEQ.
+func ViewportX(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldEQ(FieldViewportX, v))
+}
+
+// ViewportY applies equality check predicate on the "viewport_y" field. It's identical to ViewportYEQ.
+func ViewportY(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldEQ(FieldViewportY, v))
+}
+
+// ViewportZoom applies equality check predicate on the "viewport_zoom" field. It's identical to ViewportZoomEQ.
+func ViewportZoom(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldEQ(FieldViewportZoom, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Flow {
 	return predicate.Flow(sql.FieldEQ(FieldCreatedAt, v))
@@ -213,6 +228,126 @@ func DescriptionEqualFold(v string) predicate.Flow {
 // DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
 func DescriptionContainsFold(v string) predicate.Flow {
 	return predicate.Flow(sql.FieldContainsFold(FieldDescription, v))
+}
+
+// ViewportXEQ applies the EQ predicate on the "viewport_x" field.
+func ViewportXEQ(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldEQ(FieldViewportX, v))
+}
+
+// ViewportXNEQ applies the NEQ predicate on the "viewport_x" field.
+func ViewportXNEQ(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldNEQ(FieldViewportX, v))
+}
+
+// ViewportXIn applies the In predicate on the "viewport_x" field.
+func ViewportXIn(vs ...float64) predicate.Flow {
+	return predicate.Flow(sql.FieldIn(FieldViewportX, vs...))
+}
+
+// ViewportXNotIn applies the NotIn predicate on the "viewport_x" field.
+func ViewportXNotIn(vs ...float64) predicate.Flow {
+	return predicate.Flow(sql.FieldNotIn(FieldViewportX, vs...))
+}
+
+// ViewportXGT applies the GT predicate on the "viewport_x" field.
+func ViewportXGT(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldGT(FieldViewportX, v))
+}
+
+// ViewportXGTE applies the GTE predicate on the "viewport_x" field.
+func ViewportXGTE(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldGTE(FieldViewportX, v))
+}
+
+// ViewportXLT applies the LT predicate on the "viewport_x" field.
+func ViewportXLT(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldLT(FieldViewportX, v))
+}
+
+// ViewportXLTE applies the LTE predicate on the "viewport_x" field.
+func ViewportXLTE(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldLTE(FieldViewportX, v))
+}
+
+// ViewportYEQ applies the EQ predicate on the "viewport_y" field.
+func ViewportYEQ(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldEQ(FieldViewportY, v))
+}
+
+// ViewportYNEQ applies the NEQ predicate on the "viewport_y" field.
+func ViewportYNEQ(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldNEQ(FieldViewportY, v))
+}
+
+// ViewportYIn applies the In predicate on the "viewport_y" field.
+func ViewportYIn(vs ...float64) predicate.Flow {
+	return predicate.Flow(sql.FieldIn(FieldViewportY, vs...))
+}
+
+// ViewportYNotIn applies the NotIn predicate on the "viewport_y" field.
+func ViewportYNotIn(vs ...float64) predicate.Flow {
+	return predicate.Flow(sql.FieldNotIn(FieldViewportY, vs...))
+}
+
+// ViewportYGT applies the GT predicate on the "viewport_y" field.
+func ViewportYGT(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldGT(FieldViewportY, v))
+}
+
+// ViewportYGTE applies the GTE predicate on the "viewport_y" field.
+func ViewportYGTE(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldGTE(FieldViewportY, v))
+}
+
+// ViewportYLT applies the LT predicate on the "viewport_y" field.
+func ViewportYLT(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldLT(FieldViewportY, v))
+}
+
+// ViewportYLTE applies the LTE predicate on the "viewport_y" field.
+func ViewportYLTE(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldLTE(FieldViewportY, v))
+}
+
+// ViewportZoomEQ applies the EQ predicate on the "viewport_zoom" field.
+func ViewportZoomEQ(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldEQ(FieldViewportZoom, v))
+}
+
+// ViewportZoomNEQ applies the NEQ predicate on the "viewport_zoom" field.
+func ViewportZoomNEQ(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldNEQ(FieldViewportZoom, v))
+}
+
+// ViewportZoomIn applies the In predicate on the "viewport_zoom" field.
+func ViewportZoomIn(vs ...float64) predicate.Flow {
+	return predicate.Flow(sql.FieldIn(FieldViewportZoom, vs...))
+}
+
+// ViewportZoomNotIn applies the NotIn predicate on the "viewport_zoom" field.
+func ViewportZoomNotIn(vs ...float64) predicate.Flow {
+	return predicate.Flow(sql.FieldNotIn(FieldViewportZoom, vs...))
+}
+
+// ViewportZoomGT applies the GT predicate on the "viewport_zoom" field.
+func ViewportZoomGT(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldGT(FieldViewportZoom, v))
+}
+
+// ViewportZoomGTE applies the GTE predicate on the "viewport_zoom" field.
+func ViewportZoomGTE(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldGTE(FieldViewportZoom, v))
+}
+
+// ViewportZoomLT applies the LT predicate on the "viewport_zoom" field.
+func ViewportZoomLT(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldLT(FieldViewportZoom, v))
+}
+
+// ViewportZoomLTE applies the LTE predicate on the "viewport_zoom" field.
+func ViewportZoomLTE(v float64) predicate.Flow {
+	return predicate.Flow(sql.FieldLTE(FieldViewportZoom, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

@@ -64,6 +64,69 @@ func (_u *FlowUpdate) ClearDescription() *FlowUpdate {
 	return _u
 }
 
+// SetViewportX sets the "viewport_x" field.
+func (_u *FlowUpdate) SetViewportX(v float64) *FlowUpdate {
+	_u.mutation.ResetViewportX()
+	_u.mutation.SetViewportX(v)
+	return _u
+}
+
+// SetNillableViewportX sets the "viewport_x" field if the given value is not nil.
+func (_u *FlowUpdate) SetNillableViewportX(v *float64) *FlowUpdate {
+	if v != nil {
+		_u.SetViewportX(*v)
+	}
+	return _u
+}
+
+// AddViewportX adds value to the "viewport_x" field.
+func (_u *FlowUpdate) AddViewportX(v float64) *FlowUpdate {
+	_u.mutation.AddViewportX(v)
+	return _u
+}
+
+// SetViewportY sets the "viewport_y" field.
+func (_u *FlowUpdate) SetViewportY(v float64) *FlowUpdate {
+	_u.mutation.ResetViewportY()
+	_u.mutation.SetViewportY(v)
+	return _u
+}
+
+// SetNillableViewportY sets the "viewport_y" field if the given value is not nil.
+func (_u *FlowUpdate) SetNillableViewportY(v *float64) *FlowUpdate {
+	if v != nil {
+		_u.SetViewportY(*v)
+	}
+	return _u
+}
+
+// AddViewportY adds value to the "viewport_y" field.
+func (_u *FlowUpdate) AddViewportY(v float64) *FlowUpdate {
+	_u.mutation.AddViewportY(v)
+	return _u
+}
+
+// SetViewportZoom sets the "viewport_zoom" field.
+func (_u *FlowUpdate) SetViewportZoom(v float64) *FlowUpdate {
+	_u.mutation.ResetViewportZoom()
+	_u.mutation.SetViewportZoom(v)
+	return _u
+}
+
+// SetNillableViewportZoom sets the "viewport_zoom" field if the given value is not nil.
+func (_u *FlowUpdate) SetNillableViewportZoom(v *float64) *FlowUpdate {
+	if v != nil {
+		_u.SetViewportZoom(*v)
+	}
+	return _u
+}
+
+// AddViewportZoom adds value to the "viewport_zoom" field.
+func (_u *FlowUpdate) AddViewportZoom(v float64) *FlowUpdate {
+	_u.mutation.AddViewportZoom(v)
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *FlowUpdate) SetUpdatedAt(v time.Time) *FlowUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -214,6 +277,24 @@ func (_u *FlowUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(flow.FieldDescription, field.TypeString)
 	}
+	if value, ok := _u.mutation.ViewportX(); ok {
+		_spec.SetField(flow.FieldViewportX, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedViewportX(); ok {
+		_spec.AddField(flow.FieldViewportX, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.ViewportY(); ok {
+		_spec.SetField(flow.FieldViewportY, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedViewportY(); ok {
+		_spec.AddField(flow.FieldViewportY, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.ViewportZoom(); ok {
+		_spec.SetField(flow.FieldViewportZoom, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedViewportZoom(); ok {
+		_spec.AddField(flow.FieldViewportZoom, field.TypeFloat64, value)
+	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(flow.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -358,6 +439,69 @@ func (_u *FlowUpdateOne) SetNillableDescription(v *string) *FlowUpdateOne {
 // ClearDescription clears the value of the "description" field.
 func (_u *FlowUpdateOne) ClearDescription() *FlowUpdateOne {
 	_u.mutation.ClearDescription()
+	return _u
+}
+
+// SetViewportX sets the "viewport_x" field.
+func (_u *FlowUpdateOne) SetViewportX(v float64) *FlowUpdateOne {
+	_u.mutation.ResetViewportX()
+	_u.mutation.SetViewportX(v)
+	return _u
+}
+
+// SetNillableViewportX sets the "viewport_x" field if the given value is not nil.
+func (_u *FlowUpdateOne) SetNillableViewportX(v *float64) *FlowUpdateOne {
+	if v != nil {
+		_u.SetViewportX(*v)
+	}
+	return _u
+}
+
+// AddViewportX adds value to the "viewport_x" field.
+func (_u *FlowUpdateOne) AddViewportX(v float64) *FlowUpdateOne {
+	_u.mutation.AddViewportX(v)
+	return _u
+}
+
+// SetViewportY sets the "viewport_y" field.
+func (_u *FlowUpdateOne) SetViewportY(v float64) *FlowUpdateOne {
+	_u.mutation.ResetViewportY()
+	_u.mutation.SetViewportY(v)
+	return _u
+}
+
+// SetNillableViewportY sets the "viewport_y" field if the given value is not nil.
+func (_u *FlowUpdateOne) SetNillableViewportY(v *float64) *FlowUpdateOne {
+	if v != nil {
+		_u.SetViewportY(*v)
+	}
+	return _u
+}
+
+// AddViewportY adds value to the "viewport_y" field.
+func (_u *FlowUpdateOne) AddViewportY(v float64) *FlowUpdateOne {
+	_u.mutation.AddViewportY(v)
+	return _u
+}
+
+// SetViewportZoom sets the "viewport_zoom" field.
+func (_u *FlowUpdateOne) SetViewportZoom(v float64) *FlowUpdateOne {
+	_u.mutation.ResetViewportZoom()
+	_u.mutation.SetViewportZoom(v)
+	return _u
+}
+
+// SetNillableViewportZoom sets the "viewport_zoom" field if the given value is not nil.
+func (_u *FlowUpdateOne) SetNillableViewportZoom(v *float64) *FlowUpdateOne {
+	if v != nil {
+		_u.SetViewportZoom(*v)
+	}
+	return _u
+}
+
+// AddViewportZoom adds value to the "viewport_zoom" field.
+func (_u *FlowUpdateOne) AddViewportZoom(v float64) *FlowUpdateOne {
+	_u.mutation.AddViewportZoom(v)
 	return _u
 }
 
@@ -540,6 +684,24 @@ func (_u *FlowUpdateOne) sqlSave(ctx context.Context) (_node *Flow, err error) {
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(flow.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.ViewportX(); ok {
+		_spec.SetField(flow.FieldViewportX, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedViewportX(); ok {
+		_spec.AddField(flow.FieldViewportX, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.ViewportY(); ok {
+		_spec.SetField(flow.FieldViewportY, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedViewportY(); ok {
+		_spec.AddField(flow.FieldViewportY, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.ViewportZoom(); ok {
+		_spec.SetField(flow.FieldViewportZoom, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedViewportZoom(); ok {
+		_spec.AddField(flow.FieldViewportZoom, field.TypeFloat64, value)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(flow.FieldUpdatedAt, field.TypeTime, value)

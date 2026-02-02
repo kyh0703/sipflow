@@ -18,6 +18,9 @@ func (Node) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("type").
 			NotEmpty(),
+		field.String("xyflow_id").
+			Optional().
+			Default(""),
 		field.JSON("data", map[string]interface{}{}).
 			Optional(),
 		field.Float("position_x").

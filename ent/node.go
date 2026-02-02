@@ -21,6 +21,8 @@ type Node struct {
 	ID int `json:"id,omitempty"`
 	// Type holds the value of the "type" field.
 	Type string `json:"type,omitempty"`
+	// XyflowID holds the value of the "xyflow_id" field.
+	XyflowID string `json:"xyflow_id,omitempty"`
 	// Data holds the value of the "data" field.
 	Data map[string]interface{} `json:"data,omitempty"`
 	// PositionX holds the value of the "position_x" field.
@@ -89,7 +91,7 @@ func (*Node) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case node.FieldID:
 			values[i] = new(sql.NullInt64)
-		case node.FieldType:
+		case node.FieldType, node.FieldXyflowID:
 			values[i] = new(sql.NullString)
 		case node.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -121,6 +123,12 @@ func (_m *Node) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
 				_m.Type = value.String
+			}
+		case node.FieldXyflowID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field xyflow_id", values[i])
+			} else if value.Valid {
+				_m.XyflowID = value.String
 			}
 		case node.FieldData:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -208,6 +216,9 @@ func (_m *Node) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("type=")
 	builder.WriteString(_m.Type)
+	builder.WriteString(", ")
+	builder.WriteString("xyflow_id=")
+	builder.WriteString(_m.XyflowID)
 	builder.WriteString(", ")
 	builder.WriteString("data=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Data))

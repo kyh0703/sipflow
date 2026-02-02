@@ -16,16 +16,24 @@ import (
 func init() {
 	edgeFields := schema.Edge{}.Fields()
 	_ = edgeFields
+	// edgeDescXyflowID is the schema descriptor for xyflow_id field.
+	edgeDescXyflowID := edgeFields[0].Descriptor()
+	// edge.DefaultXyflowID holds the default value on creation for the xyflow_id field.
+	edge.DefaultXyflowID = edgeDescXyflowID.Default.(string)
+	// edgeDescType is the schema descriptor for type field.
+	edgeDescType := edgeFields[1].Descriptor()
+	// edge.DefaultType holds the default value on creation for the type field.
+	edge.DefaultType = edgeDescType.Default.(string)
 	// edgeDescSourceHandle is the schema descriptor for source_handle field.
-	edgeDescSourceHandle := edgeFields[0].Descriptor()
+	edgeDescSourceHandle := edgeFields[2].Descriptor()
 	// edge.DefaultSourceHandle holds the default value on creation for the source_handle field.
 	edge.DefaultSourceHandle = edgeDescSourceHandle.Default.(string)
 	// edgeDescTargetHandle is the schema descriptor for target_handle field.
-	edgeDescTargetHandle := edgeFields[1].Descriptor()
+	edgeDescTargetHandle := edgeFields[3].Descriptor()
 	// edge.DefaultTargetHandle holds the default value on creation for the target_handle field.
 	edge.DefaultTargetHandle = edgeDescTargetHandle.Default.(string)
 	// edgeDescCreatedAt is the schema descriptor for created_at field.
-	edgeDescCreatedAt := edgeFields[2].Descriptor()
+	edgeDescCreatedAt := edgeFields[5].Descriptor()
 	// edge.DefaultCreatedAt holds the default value on creation for the created_at field.
 	edge.DefaultCreatedAt = edgeDescCreatedAt.Default.(func() time.Time)
 	flowFields := schema.Flow{}.Fields()
@@ -38,12 +46,24 @@ func init() {
 	flowDescDescription := flowFields[1].Descriptor()
 	// flow.DefaultDescription holds the default value on creation for the description field.
 	flow.DefaultDescription = flowDescDescription.Default.(string)
+	// flowDescViewportX is the schema descriptor for viewport_x field.
+	flowDescViewportX := flowFields[2].Descriptor()
+	// flow.DefaultViewportX holds the default value on creation for the viewport_x field.
+	flow.DefaultViewportX = flowDescViewportX.Default.(float64)
+	// flowDescViewportY is the schema descriptor for viewport_y field.
+	flowDescViewportY := flowFields[3].Descriptor()
+	// flow.DefaultViewportY holds the default value on creation for the viewport_y field.
+	flow.DefaultViewportY = flowDescViewportY.Default.(float64)
+	// flowDescViewportZoom is the schema descriptor for viewport_zoom field.
+	flowDescViewportZoom := flowFields[4].Descriptor()
+	// flow.DefaultViewportZoom holds the default value on creation for the viewport_zoom field.
+	flow.DefaultViewportZoom = flowDescViewportZoom.Default.(float64)
 	// flowDescCreatedAt is the schema descriptor for created_at field.
-	flowDescCreatedAt := flowFields[2].Descriptor()
+	flowDescCreatedAt := flowFields[5].Descriptor()
 	// flow.DefaultCreatedAt holds the default value on creation for the created_at field.
 	flow.DefaultCreatedAt = flowDescCreatedAt.Default.(func() time.Time)
 	// flowDescUpdatedAt is the schema descriptor for updated_at field.
-	flowDescUpdatedAt := flowFields[3].Descriptor()
+	flowDescUpdatedAt := flowFields[6].Descriptor()
 	// flow.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	flow.DefaultUpdatedAt = flowDescUpdatedAt.Default.(func() time.Time)
 	// flow.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -54,16 +74,20 @@ func init() {
 	nodeDescType := nodeFields[0].Descriptor()
 	// node.TypeValidator is a validator for the "type" field. It is called by the builders before save.
 	node.TypeValidator = nodeDescType.Validators[0].(func(string) error)
+	// nodeDescXyflowID is the schema descriptor for xyflow_id field.
+	nodeDescXyflowID := nodeFields[1].Descriptor()
+	// node.DefaultXyflowID holds the default value on creation for the xyflow_id field.
+	node.DefaultXyflowID = nodeDescXyflowID.Default.(string)
 	// nodeDescPositionX is the schema descriptor for position_x field.
-	nodeDescPositionX := nodeFields[2].Descriptor()
+	nodeDescPositionX := nodeFields[3].Descriptor()
 	// node.DefaultPositionX holds the default value on creation for the position_x field.
 	node.DefaultPositionX = nodeDescPositionX.Default.(float64)
 	// nodeDescPositionY is the schema descriptor for position_y field.
-	nodeDescPositionY := nodeFields[3].Descriptor()
+	nodeDescPositionY := nodeFields[4].Descriptor()
 	// node.DefaultPositionY holds the default value on creation for the position_y field.
 	node.DefaultPositionY = nodeDescPositionY.Default.(float64)
 	// nodeDescCreatedAt is the schema descriptor for created_at field.
-	nodeDescCreatedAt := nodeFields[4].Descriptor()
+	nodeDescCreatedAt := nodeFields[5].Descriptor()
 	// node.DefaultCreatedAt holds the default value on creation for the created_at field.
 	node.DefaultCreatedAt = nodeDescCreatedAt.Default.(func() time.Time)
 }

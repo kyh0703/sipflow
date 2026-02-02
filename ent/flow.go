@@ -21,6 +21,12 @@ type Flow struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description string `json:"description,omitempty"`
+	// ViewportX holds the value of the "viewport_x" field.
+	ViewportX float64 `json:"viewport_x,omitempty"`
+	// ViewportY holds the value of the "viewport_y" field.
+	ViewportY float64 `json:"viewport_y,omitempty"`
+	// ViewportZoom holds the value of the "viewport_zoom" field.
+	ViewportZoom float64 `json:"viewport_zoom,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -65,6 +71,8 @@ func (*Flow) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case flow.FieldViewportX, flow.FieldViewportY, flow.FieldViewportZoom:
+			values[i] = new(sql.NullFloat64)
 		case flow.FieldID:
 			values[i] = new(sql.NullInt64)
 		case flow.FieldName, flow.FieldDescription:
@@ -103,6 +111,24 @@ func (_m *Flow) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
 				_m.Description = value.String
+			}
+		case flow.FieldViewportX:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field viewport_x", values[i])
+			} else if value.Valid {
+				_m.ViewportX = value.Float64
+			}
+		case flow.FieldViewportY:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field viewport_y", values[i])
+			} else if value.Valid {
+				_m.ViewportY = value.Float64
+			}
+		case flow.FieldViewportZoom:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field viewport_zoom", values[i])
+			} else if value.Valid {
+				_m.ViewportZoom = value.Float64
 			}
 		case flow.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -167,6 +193,15 @@ func (_m *Flow) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("description=")
 	builder.WriteString(_m.Description)
+	builder.WriteString(", ")
+	builder.WriteString("viewport_x=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ViewportX))
+	builder.WriteString(", ")
+	builder.WriteString("viewport_y=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ViewportY))
+	builder.WriteString(", ")
+	builder.WriteString("viewport_zoom=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ViewportZoom))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

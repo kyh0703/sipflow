@@ -11,8 +11,11 @@ var (
 	// EdgesColumns holds the columns for the "edges" table.
 	EdgesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "xyflow_id", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "type", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "source_handle", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "target_handle", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "data", Type: field.TypeJSON, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "flow_edges", Type: field.TypeInt},
 		{Name: "source_node_id", Type: field.TypeInt},
@@ -26,19 +29,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "edges_flows_edges",
-				Columns:    []*schema.Column{EdgesColumns[4]},
+				Columns:    []*schema.Column{EdgesColumns[7]},
 				RefColumns: []*schema.Column{FlowsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "edges_nodes_outgoing_edges",
-				Columns:    []*schema.Column{EdgesColumns[5]},
+				Columns:    []*schema.Column{EdgesColumns[8]},
 				RefColumns: []*schema.Column{NodesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "edges_nodes_incoming_edges",
-				Columns:    []*schema.Column{EdgesColumns[6]},
+				Columns:    []*schema.Column{EdgesColumns[9]},
 				RefColumns: []*schema.Column{NodesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -49,6 +52,9 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "viewport_x", Type: field.TypeFloat64, Default: 0},
+		{Name: "viewport_y", Type: field.TypeFloat64, Default: 0},
+		{Name: "viewport_zoom", Type: field.TypeFloat64, Default: 1},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 	}
@@ -62,6 +68,7 @@ var (
 	NodesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "type", Type: field.TypeString},
+		{Name: "xyflow_id", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "data", Type: field.TypeJSON, Nullable: true},
 		{Name: "position_x", Type: field.TypeFloat64, Default: 0},
 		{Name: "position_y", Type: field.TypeFloat64, Default: 0},
@@ -76,7 +83,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "nodes_flows_nodes",
-				Columns:    []*schema.Column{NodesColumns[6]},
+				Columns:    []*schema.Column{NodesColumns[7]},
 				RefColumns: []*schema.Column{FlowsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},

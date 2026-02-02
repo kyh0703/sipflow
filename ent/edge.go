@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"sipflow/ent/edge"
 	"sipflow/ent/flow"
@@ -19,10 +20,16 @@ type Edge struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// XyflowID holds the value of the "xyflow_id" field.
+	XyflowID string `json:"xyflow_id,omitempty"`
+	// Type holds the value of the "type" field.
+	Type string `json:"type,omitempty"`
 	// SourceHandle holds the value of the "source_handle" field.
 	SourceHandle string `json:"source_handle,omitempty"`
 	// TargetHandle holds the value of the "target_handle" field.
 	TargetHandle string `json:"target_handle,omitempty"`
+	// Data holds the value of the "data" field.
+	Data map[string]interface{} `json:"data,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -85,9 +92,11 @@ func (*Edge) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case edge.FieldData:
+			values[i] = new([]byte)
 		case edge.FieldID:
 			values[i] = new(sql.NullInt64)
-		case edge.FieldSourceHandle, edge.FieldTargetHandle:
+		case edge.FieldXyflowID, edge.FieldType, edge.FieldSourceHandle, edge.FieldTargetHandle:
 			values[i] = new(sql.NullString)
 		case edge.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -118,6 +127,18 @@ func (_m *Edge) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
+		case edge.FieldXyflowID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field xyflow_id", values[i])
+			} else if value.Valid {
+				_m.XyflowID = value.String
+			}
+		case edge.FieldType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field type", values[i])
+			} else if value.Valid {
+				_m.Type = value.String
+			}
 		case edge.FieldSourceHandle:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field source_handle", values[i])
@@ -129,6 +150,14 @@ func (_m *Edge) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field target_handle", values[i])
 			} else if value.Valid {
 				_m.TargetHandle = value.String
+			}
+		case edge.FieldData:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field data", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Data); err != nil {
+					return fmt.Errorf("unmarshal field data: %w", err)
+				}
 			}
 		case edge.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -208,11 +237,20 @@ func (_m *Edge) String() string {
 	var builder strings.Builder
 	builder.WriteString("Edge(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("xyflow_id=")
+	builder.WriteString(_m.XyflowID)
+	builder.WriteString(", ")
+	builder.WriteString("type=")
+	builder.WriteString(_m.Type)
+	builder.WriteString(", ")
 	builder.WriteString("source_handle=")
 	builder.WriteString(_m.SourceHandle)
 	builder.WriteString(", ")
 	builder.WriteString("target_handle=")
 	builder.WriteString(_m.TargetHandle)
+	builder.WriteString(", ")
+	builder.WriteString("data=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Data))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

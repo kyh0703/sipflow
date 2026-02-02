@@ -60,6 +60,11 @@ func Type(v string) predicate.Node {
 	return predicate.Node(sql.FieldEQ(FieldType, v))
 }
 
+// XyflowID applies equality check predicate on the "xyflow_id" field. It's identical to XyflowIDEQ.
+func XyflowID(v string) predicate.Node {
+	return predicate.Node(sql.FieldEQ(FieldXyflowID, v))
+}
+
 // PositionX applies equality check predicate on the "position_x" field. It's identical to PositionXEQ.
 func PositionX(v float64) predicate.Node {
 	return predicate.Node(sql.FieldEQ(FieldPositionX, v))
@@ -138,6 +143,81 @@ func TypeEqualFold(v string) predicate.Node {
 // TypeContainsFold applies the ContainsFold predicate on the "type" field.
 func TypeContainsFold(v string) predicate.Node {
 	return predicate.Node(sql.FieldContainsFold(FieldType, v))
+}
+
+// XyflowIDEQ applies the EQ predicate on the "xyflow_id" field.
+func XyflowIDEQ(v string) predicate.Node {
+	return predicate.Node(sql.FieldEQ(FieldXyflowID, v))
+}
+
+// XyflowIDNEQ applies the NEQ predicate on the "xyflow_id" field.
+func XyflowIDNEQ(v string) predicate.Node {
+	return predicate.Node(sql.FieldNEQ(FieldXyflowID, v))
+}
+
+// XyflowIDIn applies the In predicate on the "xyflow_id" field.
+func XyflowIDIn(vs ...string) predicate.Node {
+	return predicate.Node(sql.FieldIn(FieldXyflowID, vs...))
+}
+
+// XyflowIDNotIn applies the NotIn predicate on the "xyflow_id" field.
+func XyflowIDNotIn(vs ...string) predicate.Node {
+	return predicate.Node(sql.FieldNotIn(FieldXyflowID, vs...))
+}
+
+// XyflowIDGT applies the GT predicate on the "xyflow_id" field.
+func XyflowIDGT(v string) predicate.Node {
+	return predicate.Node(sql.FieldGT(FieldXyflowID, v))
+}
+
+// XyflowIDGTE applies the GTE predicate on the "xyflow_id" field.
+func XyflowIDGTE(v string) predicate.Node {
+	return predicate.Node(sql.FieldGTE(FieldXyflowID, v))
+}
+
+// XyflowIDLT applies the LT predicate on the "xyflow_id" field.
+func XyflowIDLT(v string) predicate.Node {
+	return predicate.Node(sql.FieldLT(FieldXyflowID, v))
+}
+
+// XyflowIDLTE applies the LTE predicate on the "xyflow_id" field.
+func XyflowIDLTE(v string) predicate.Node {
+	return predicate.Node(sql.FieldLTE(FieldXyflowID, v))
+}
+
+// XyflowIDContains applies the Contains predicate on the "xyflow_id" field.
+func XyflowIDContains(v string) predicate.Node {
+	return predicate.Node(sql.FieldContains(FieldXyflowID, v))
+}
+
+// XyflowIDHasPrefix applies the HasPrefix predicate on the "xyflow_id" field.
+func XyflowIDHasPrefix(v string) predicate.Node {
+	return predicate.Node(sql.FieldHasPrefix(FieldXyflowID, v))
+}
+
+// XyflowIDHasSuffix applies the HasSuffix predicate on the "xyflow_id" field.
+func XyflowIDHasSuffix(v string) predicate.Node {
+	return predicate.Node(sql.FieldHasSuffix(FieldXyflowID, v))
+}
+
+// XyflowIDIsNil applies the IsNil predicate on the "xyflow_id" field.
+func XyflowIDIsNil() predicate.Node {
+	return predicate.Node(sql.FieldIsNull(FieldXyflowID))
+}
+
+// XyflowIDNotNil applies the NotNil predicate on the "xyflow_id" field.
+func XyflowIDNotNil() predicate.Node {
+	return predicate.Node(sql.FieldNotNull(FieldXyflowID))
+}
+
+// XyflowIDEqualFold applies the EqualFold predicate on the "xyflow_id" field.
+func XyflowIDEqualFold(v string) predicate.Node {
+	return predicate.Node(sql.FieldEqualFold(FieldXyflowID, v))
+}
+
+// XyflowIDContainsFold applies the ContainsFold predicate on the "xyflow_id" field.
+func XyflowIDContainsFold(v string) predicate.Node {
+	return predicate.Node(sql.FieldContainsFold(FieldXyflowID, v))
 }
 
 // DataIsNil applies the IsNil predicate on the "data" field.

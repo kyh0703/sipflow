@@ -42,6 +42,48 @@ func (_c *FlowCreate) SetNillableDescription(v *string) *FlowCreate {
 	return _c
 }
 
+// SetViewportX sets the "viewport_x" field.
+func (_c *FlowCreate) SetViewportX(v float64) *FlowCreate {
+	_c.mutation.SetViewportX(v)
+	return _c
+}
+
+// SetNillableViewportX sets the "viewport_x" field if the given value is not nil.
+func (_c *FlowCreate) SetNillableViewportX(v *float64) *FlowCreate {
+	if v != nil {
+		_c.SetViewportX(*v)
+	}
+	return _c
+}
+
+// SetViewportY sets the "viewport_y" field.
+func (_c *FlowCreate) SetViewportY(v float64) *FlowCreate {
+	_c.mutation.SetViewportY(v)
+	return _c
+}
+
+// SetNillableViewportY sets the "viewport_y" field if the given value is not nil.
+func (_c *FlowCreate) SetNillableViewportY(v *float64) *FlowCreate {
+	if v != nil {
+		_c.SetViewportY(*v)
+	}
+	return _c
+}
+
+// SetViewportZoom sets the "viewport_zoom" field.
+func (_c *FlowCreate) SetViewportZoom(v float64) *FlowCreate {
+	_c.mutation.SetViewportZoom(v)
+	return _c
+}
+
+// SetNillableViewportZoom sets the "viewport_zoom" field if the given value is not nil.
+func (_c *FlowCreate) SetNillableViewportZoom(v *float64) *FlowCreate {
+	if v != nil {
+		_c.SetViewportZoom(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *FlowCreate) SetCreatedAt(v time.Time) *FlowCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -139,6 +181,18 @@ func (_c *FlowCreate) defaults() {
 		v := flow.DefaultDescription
 		_c.mutation.SetDescription(v)
 	}
+	if _, ok := _c.mutation.ViewportX(); !ok {
+		v := flow.DefaultViewportX
+		_c.mutation.SetViewportX(v)
+	}
+	if _, ok := _c.mutation.ViewportY(); !ok {
+		v := flow.DefaultViewportY
+		_c.mutation.SetViewportY(v)
+	}
+	if _, ok := _c.mutation.ViewportZoom(); !ok {
+		v := flow.DefaultViewportZoom
+		_c.mutation.SetViewportZoom(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := flow.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -158,6 +212,15 @@ func (_c *FlowCreate) check() error {
 		if err := flow.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Flow.name": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.ViewportX(); !ok {
+		return &ValidationError{Name: "viewport_x", err: errors.New(`ent: missing required field "Flow.viewport_x"`)}
+	}
+	if _, ok := _c.mutation.ViewportY(); !ok {
+		return &ValidationError{Name: "viewport_y", err: errors.New(`ent: missing required field "Flow.viewport_y"`)}
+	}
+	if _, ok := _c.mutation.ViewportZoom(); !ok {
+		return &ValidationError{Name: "viewport_zoom", err: errors.New(`ent: missing required field "Flow.viewport_zoom"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Flow.created_at"`)}
@@ -198,6 +261,18 @@ func (_c *FlowCreate) createSpec() (*Flow, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(flow.FieldDescription, field.TypeString, value)
 		_node.Description = value
+	}
+	if value, ok := _c.mutation.ViewportX(); ok {
+		_spec.SetField(flow.FieldViewportX, field.TypeFloat64, value)
+		_node.ViewportX = value
+	}
+	if value, ok := _c.mutation.ViewportY(); ok {
+		_spec.SetField(flow.FieldViewportY, field.TypeFloat64, value)
+		_node.ViewportY = value
+	}
+	if value, ok := _c.mutation.ViewportZoom(); ok {
+		_spec.SetField(flow.FieldViewportZoom, field.TypeFloat64, value)
+		_node.ViewportZoom = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(flow.FieldCreatedAt, field.TypeTime, value)

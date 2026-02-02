@@ -28,6 +28,20 @@ func (_c *NodeCreate) SetType(v string) *NodeCreate {
 	return _c
 }
 
+// SetXyflowID sets the "xyflow_id" field.
+func (_c *NodeCreate) SetXyflowID(v string) *NodeCreate {
+	_c.mutation.SetXyflowID(v)
+	return _c
+}
+
+// SetNillableXyflowID sets the "xyflow_id" field if the given value is not nil.
+func (_c *NodeCreate) SetNillableXyflowID(v *string) *NodeCreate {
+	if v != nil {
+		_c.SetXyflowID(*v)
+	}
+	return _c
+}
+
 // SetData sets the "data" field.
 func (_c *NodeCreate) SetData(v map[string]interface{}) *NodeCreate {
 	_c.mutation.SetData(v)
@@ -152,6 +166,10 @@ func (_c *NodeCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *NodeCreate) defaults() {
+	if _, ok := _c.mutation.XyflowID(); !ok {
+		v := node.DefaultXyflowID
+		_c.mutation.SetXyflowID(v)
+	}
 	if _, ok := _c.mutation.PositionX(); !ok {
 		v := node.DefaultPositionX
 		_c.mutation.SetPositionX(v)
@@ -217,6 +235,10 @@ func (_c *NodeCreate) createSpec() (*Node, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(node.FieldType, field.TypeString, value)
 		_node.Type = value
+	}
+	if value, ok := _c.mutation.XyflowID(); ok {
+		_spec.SetField(node.FieldXyflowID, field.TypeString, value)
+		_node.XyflowID = value
 	}
 	if value, ok := _c.mutation.Data(); ok {
 		_spec.SetField(node.FieldData, field.TypeJSON, value)

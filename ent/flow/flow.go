@@ -18,6 +18,12 @@ const (
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
+	// FieldViewportX holds the string denoting the viewport_x field in the database.
+	FieldViewportX = "viewport_x"
+	// FieldViewportY holds the string denoting the viewport_y field in the database.
+	FieldViewportY = "viewport_y"
+	// FieldViewportZoom holds the string denoting the viewport_zoom field in the database.
+	FieldViewportZoom = "viewport_zoom"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -49,6 +55,9 @@ var Columns = []string{
 	FieldID,
 	FieldName,
 	FieldDescription,
+	FieldViewportX,
+	FieldViewportY,
+	FieldViewportZoom,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -68,6 +77,12 @@ var (
 	NameValidator func(string) error
 	// DefaultDescription holds the default value on creation for the "description" field.
 	DefaultDescription string
+	// DefaultViewportX holds the default value on creation for the "viewport_x" field.
+	DefaultViewportX float64
+	// DefaultViewportY holds the default value on creation for the "viewport_y" field.
+	DefaultViewportY float64
+	// DefaultViewportZoom holds the default value on creation for the "viewport_zoom" field.
+	DefaultViewportZoom float64
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -92,6 +107,21 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 // ByDescription orders the results by the description field.
 func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+}
+
+// ByViewportX orders the results by the viewport_x field.
+func ByViewportX(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldViewportX, opts...).ToFunc()
+}
+
+// ByViewportY orders the results by the viewport_y field.
+func ByViewportY(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldViewportY, opts...).ToFunc()
+}
+
+// ByViewportZoom orders the results by the viewport_zoom field.
+func ByViewportZoom(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldViewportZoom, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

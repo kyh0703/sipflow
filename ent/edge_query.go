@@ -370,12 +370,12 @@ func (_q *EdgeQuery) WithTargetNode(opts ...func(*NodeQuery)) *EdgeQuery {
 // Example:
 //
 //	var v []struct {
-//		SourceHandle string `json:"source_handle,omitempty"`
+//		XyflowID string `json:"xyflow_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Edge.Query().
-//		GroupBy(edge.FieldSourceHandle).
+//		GroupBy(edge.FieldXyflowID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *EdgeQuery) GroupBy(field string, fields ...string) *EdgeGroupBy {
@@ -393,11 +393,11 @@ func (_q *EdgeQuery) GroupBy(field string, fields ...string) *EdgeGroupBy {
 // Example:
 //
 //	var v []struct {
-//		SourceHandle string `json:"source_handle,omitempty"`
+//		XyflowID string `json:"xyflow_id,omitempty"`
 //	}
 //
 //	client.Edge.Query().
-//		Select(edge.FieldSourceHandle).
+//		Select(edge.FieldXyflowID).
 //		Scan(ctx, &v)
 func (_q *EdgeQuery) Select(fields ...string) *EdgeSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

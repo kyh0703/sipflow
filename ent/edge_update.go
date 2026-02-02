@@ -29,6 +29,46 @@ func (_u *EdgeUpdate) Where(ps ...predicate.Edge) *EdgeUpdate {
 	return _u
 }
 
+// SetXyflowID sets the "xyflow_id" field.
+func (_u *EdgeUpdate) SetXyflowID(v string) *EdgeUpdate {
+	_u.mutation.SetXyflowID(v)
+	return _u
+}
+
+// SetNillableXyflowID sets the "xyflow_id" field if the given value is not nil.
+func (_u *EdgeUpdate) SetNillableXyflowID(v *string) *EdgeUpdate {
+	if v != nil {
+		_u.SetXyflowID(*v)
+	}
+	return _u
+}
+
+// ClearXyflowID clears the value of the "xyflow_id" field.
+func (_u *EdgeUpdate) ClearXyflowID() *EdgeUpdate {
+	_u.mutation.ClearXyflowID()
+	return _u
+}
+
+// SetType sets the "type" field.
+func (_u *EdgeUpdate) SetType(v string) *EdgeUpdate {
+	_u.mutation.SetType(v)
+	return _u
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (_u *EdgeUpdate) SetNillableType(v *string) *EdgeUpdate {
+	if v != nil {
+		_u.SetType(*v)
+	}
+	return _u
+}
+
+// ClearType clears the value of the "type" field.
+func (_u *EdgeUpdate) ClearType() *EdgeUpdate {
+	_u.mutation.ClearType()
+	return _u
+}
+
 // SetSourceHandle sets the "source_handle" field.
 func (_u *EdgeUpdate) SetSourceHandle(v string) *EdgeUpdate {
 	_u.mutation.SetSourceHandle(v)
@@ -66,6 +106,18 @@ func (_u *EdgeUpdate) SetNillableTargetHandle(v *string) *EdgeUpdate {
 // ClearTargetHandle clears the value of the "target_handle" field.
 func (_u *EdgeUpdate) ClearTargetHandle() *EdgeUpdate {
 	_u.mutation.ClearTargetHandle()
+	return _u
+}
+
+// SetData sets the "data" field.
+func (_u *EdgeUpdate) SetData(v map[string]interface{}) *EdgeUpdate {
+	_u.mutation.SetData(v)
+	return _u
+}
+
+// ClearData clears the value of the "data" field.
+func (_u *EdgeUpdate) ClearData() *EdgeUpdate {
+	_u.mutation.ClearData()
 	return _u
 }
 
@@ -178,6 +230,18 @@ func (_u *EdgeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
+	if value, ok := _u.mutation.XyflowID(); ok {
+		_spec.SetField(edge.FieldXyflowID, field.TypeString, value)
+	}
+	if _u.mutation.XyflowIDCleared() {
+		_spec.ClearField(edge.FieldXyflowID, field.TypeString)
+	}
+	if value, ok := _u.mutation.GetType(); ok {
+		_spec.SetField(edge.FieldType, field.TypeString, value)
+	}
+	if _u.mutation.TypeCleared() {
+		_spec.ClearField(edge.FieldType, field.TypeString)
+	}
 	if value, ok := _u.mutation.SourceHandle(); ok {
 		_spec.SetField(edge.FieldSourceHandle, field.TypeString, value)
 	}
@@ -189,6 +253,12 @@ func (_u *EdgeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.TargetHandleCleared() {
 		_spec.ClearField(edge.FieldTargetHandle, field.TypeString)
+	}
+	if value, ok := _u.mutation.Data(); ok {
+		_spec.SetField(edge.FieldData, field.TypeJSON, value)
+	}
+	if _u.mutation.DataCleared() {
+		_spec.ClearField(edge.FieldData, field.TypeJSON)
 	}
 	if _u.mutation.FlowCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -297,6 +367,46 @@ type EdgeUpdateOne struct {
 	mutation *EdgeMutation
 }
 
+// SetXyflowID sets the "xyflow_id" field.
+func (_u *EdgeUpdateOne) SetXyflowID(v string) *EdgeUpdateOne {
+	_u.mutation.SetXyflowID(v)
+	return _u
+}
+
+// SetNillableXyflowID sets the "xyflow_id" field if the given value is not nil.
+func (_u *EdgeUpdateOne) SetNillableXyflowID(v *string) *EdgeUpdateOne {
+	if v != nil {
+		_u.SetXyflowID(*v)
+	}
+	return _u
+}
+
+// ClearXyflowID clears the value of the "xyflow_id" field.
+func (_u *EdgeUpdateOne) ClearXyflowID() *EdgeUpdateOne {
+	_u.mutation.ClearXyflowID()
+	return _u
+}
+
+// SetType sets the "type" field.
+func (_u *EdgeUpdateOne) SetType(v string) *EdgeUpdateOne {
+	_u.mutation.SetType(v)
+	return _u
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (_u *EdgeUpdateOne) SetNillableType(v *string) *EdgeUpdateOne {
+	if v != nil {
+		_u.SetType(*v)
+	}
+	return _u
+}
+
+// ClearType clears the value of the "type" field.
+func (_u *EdgeUpdateOne) ClearType() *EdgeUpdateOne {
+	_u.mutation.ClearType()
+	return _u
+}
+
 // SetSourceHandle sets the "source_handle" field.
 func (_u *EdgeUpdateOne) SetSourceHandle(v string) *EdgeUpdateOne {
 	_u.mutation.SetSourceHandle(v)
@@ -334,6 +444,18 @@ func (_u *EdgeUpdateOne) SetNillableTargetHandle(v *string) *EdgeUpdateOne {
 // ClearTargetHandle clears the value of the "target_handle" field.
 func (_u *EdgeUpdateOne) ClearTargetHandle() *EdgeUpdateOne {
 	_u.mutation.ClearTargetHandle()
+	return _u
+}
+
+// SetData sets the "data" field.
+func (_u *EdgeUpdateOne) SetData(v map[string]interface{}) *EdgeUpdateOne {
+	_u.mutation.SetData(v)
+	return _u
+}
+
+// ClearData clears the value of the "data" field.
+func (_u *EdgeUpdateOne) ClearData() *EdgeUpdateOne {
+	_u.mutation.ClearData()
 	return _u
 }
 
@@ -476,6 +598,18 @@ func (_u *EdgeUpdateOne) sqlSave(ctx context.Context) (_node *Edge, err error) {
 			}
 		}
 	}
+	if value, ok := _u.mutation.XyflowID(); ok {
+		_spec.SetField(edge.FieldXyflowID, field.TypeString, value)
+	}
+	if _u.mutation.XyflowIDCleared() {
+		_spec.ClearField(edge.FieldXyflowID, field.TypeString)
+	}
+	if value, ok := _u.mutation.GetType(); ok {
+		_spec.SetField(edge.FieldType, field.TypeString, value)
+	}
+	if _u.mutation.TypeCleared() {
+		_spec.ClearField(edge.FieldType, field.TypeString)
+	}
 	if value, ok := _u.mutation.SourceHandle(); ok {
 		_spec.SetField(edge.FieldSourceHandle, field.TypeString, value)
 	}
@@ -487,6 +621,12 @@ func (_u *EdgeUpdateOne) sqlSave(ctx context.Context) (_node *Edge, err error) {
 	}
 	if _u.mutation.TargetHandleCleared() {
 		_spec.ClearField(edge.FieldTargetHandle, field.TypeString)
+	}
+	if value, ok := _u.mutation.Data(); ok {
+		_spec.SetField(edge.FieldData, field.TypeJSON, value)
+	}
+	if _u.mutation.DataCleared() {
+		_spec.ClearField(edge.FieldData, field.TypeJSON)
 	}
 	if _u.mutation.FlowCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -43,6 +43,26 @@ func (_u *NodeUpdate) SetNillableType(v *string) *NodeUpdate {
 	return _u
 }
 
+// SetXyflowID sets the "xyflow_id" field.
+func (_u *NodeUpdate) SetXyflowID(v string) *NodeUpdate {
+	_u.mutation.SetXyflowID(v)
+	return _u
+}
+
+// SetNillableXyflowID sets the "xyflow_id" field if the given value is not nil.
+func (_u *NodeUpdate) SetNillableXyflowID(v *string) *NodeUpdate {
+	if v != nil {
+		_u.SetXyflowID(*v)
+	}
+	return _u
+}
+
+// ClearXyflowID clears the value of the "xyflow_id" field.
+func (_u *NodeUpdate) ClearXyflowID() *NodeUpdate {
+	_u.mutation.ClearXyflowID()
+	return _u
+}
+
 // SetData sets the "data" field.
 func (_u *NodeUpdate) SetData(v map[string]interface{}) *NodeUpdate {
 	_u.mutation.SetData(v)
@@ -246,6 +266,12 @@ func (_u *NodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.GetType(); ok {
 		_spec.SetField(node.FieldType, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.XyflowID(); ok {
+		_spec.SetField(node.FieldXyflowID, field.TypeString, value)
+	}
+	if _u.mutation.XyflowIDCleared() {
+		_spec.ClearField(node.FieldXyflowID, field.TypeString)
+	}
 	if value, ok := _u.mutation.Data(); ok {
 		_spec.SetField(node.FieldData, field.TypeJSON, value)
 	}
@@ -414,6 +440,26 @@ func (_u *NodeUpdateOne) SetNillableType(v *string) *NodeUpdateOne {
 	if v != nil {
 		_u.SetType(*v)
 	}
+	return _u
+}
+
+// SetXyflowID sets the "xyflow_id" field.
+func (_u *NodeUpdateOne) SetXyflowID(v string) *NodeUpdateOne {
+	_u.mutation.SetXyflowID(v)
+	return _u
+}
+
+// SetNillableXyflowID sets the "xyflow_id" field if the given value is not nil.
+func (_u *NodeUpdateOne) SetNillableXyflowID(v *string) *NodeUpdateOne {
+	if v != nil {
+		_u.SetXyflowID(*v)
+	}
+	return _u
+}
+
+// ClearXyflowID clears the value of the "xyflow_id" field.
+func (_u *NodeUpdateOne) ClearXyflowID() *NodeUpdateOne {
+	_u.mutation.ClearXyflowID()
 	return _u
 }
 
@@ -649,6 +695,12 @@ func (_u *NodeUpdateOne) sqlSave(ctx context.Context) (_node *Node, err error) {
 	}
 	if value, ok := _u.mutation.GetType(); ok {
 		_spec.SetField(node.FieldType, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.XyflowID(); ok {
+		_spec.SetField(node.FieldXyflowID, field.TypeString, value)
+	}
+	if _u.mutation.XyflowIDCleared() {
+		_spec.ClearField(node.FieldXyflowID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Data(); ok {
 		_spec.SetField(node.FieldData, field.TypeJSON, value)
