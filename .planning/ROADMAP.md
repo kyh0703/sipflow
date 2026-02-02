@@ -62,7 +62,7 @@ Plans:
 - [x] 02-04-PLAN.md — Edge validation with visual warnings, end-to-end human verification
 
 ### Phase 3: Flow Persistence
-**Goal**: Users can save designed flows to SQLite and reload them across sessions, enabling scenario reuse and iteration.
+**Goal**: Users can save designed flows to project-based .sipflow files and reload them across sessions, with multiple flows per project and native File menu integration.
 **Depends on**: Phase 2
 **Requirements**: FLOW-05
 **Success Criteria** (what must be TRUE):
@@ -71,9 +71,12 @@ Plans:
   3. User can list all saved flows with metadata (name, created date, last modified)
   4. User can delete flows from storage
   5. SQLite write operations complete without "database is locked" errors under normal usage
-**Plans**: TBD
+**Plans**: 3 plans
 
-Plans: (to be created during planning)
+Plans:
+- [ ] 03-01-PLAN.md — Ent schema update (viewport fields), ProjectService with runtime DB switching, Wails native File menu
+- [ ] 03-02-PLAN.md — Transactional SaveFlow, LoadFlow with full xyflow state, ListFlows/DeleteFlow CRUD
+- [ ] 03-03-PLAN.md — Frontend projectStore, flow list sidebar, save/load wiring, dirty state tracking, human verification
 
 ### Phase 4: SIP Infrastructure
 **Goal**: Application can connect to external SIP servers and manage SIP User Agent lifecycle through diago library, establishing foundation for SIP signaling.
@@ -178,7 +181,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 |-------|----------------|--------|-----------|
 | 1. Foundation & Project Structure | 4/4 | ✅ Complete | 2026-02-01 |
 | 2. Visual Flow Designer | 4/4 | ✅ Complete | 2026-02-01 |
-| 3. Flow Persistence | 0/TBD | Not started | - |
+| 3. Flow Persistence | 0/3 | In progress | - |
 | 4. SIP Infrastructure | 0/TBD | Not started | - |
 | 5. Basic SIP Commands | 0/TBD | Not started | - |
 | 6. Execution Engine | 0/TBD | Not started | - |
@@ -189,4 +192,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 ---
 *Roadmap created: 2026-02-01*
-*Last updated: 2026-02-01 (Phase 2 complete)*
+*Last updated: 2026-02-02 (Phase 3 planned)*
