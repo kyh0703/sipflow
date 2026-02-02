@@ -218,3 +218,76 @@ func TestDestroyAll_NoGoroutineLeak(t *testing.T) {
 	mgr.DestroyAll()
 	time.Sleep(100 * time.Millisecond)
 }
+
+func TestGetDiago_Existing(t *testing.T) {
+	defer goleak.VerifyNone(t,
+		goleak.IgnoreAnyFunction("internal/poll.runtime_pollWait"),
+	)
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	mgr := NewUAManager(logger)
+	defer func() {
+		mgr.DestroyAll()
+		time.Sleep(100 * time.Millisecond)
+	}()
+
+	cfg := defaultTestConfig()
+	if err := mgr.CreateUA("node-1", cfg); err != nil {
+		t.Fatalf("CreateUA should succeed: %v", err)
+	}
+
+	dg, err := mgr.GetDiago("node-1")
+	if err != nil {
+		t.Fatalf("GetDiago should succeed: %v", err)
+	}
+	if dg == nil {
+		t.Fatal("GetDiago should return non-nil *diago.Diago")
+	}
+}
+
+func TestGetDiago_Nonexistent(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	mgr := NewUAManager(logger)
+
+	_, err := mgr.GetDiago("nonexistent")
+	if err == nil {
+		t.Fatal("GetDiago with nonexistent nodeID should return error")
+	}
+}
+
+func TestGetDiago_Functional(t *testing.T) {
+	defer goleak.VerifyNone(t,
+		goleak.IgnoreAnyFunction("internal/poll.runtime_pollWait"),
+	)
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	mgr := NewUAManager(logger)
+	defer func() {
+		mgr.DestroyAll()
+		time.Sleep(100 * time.Millisecond)
+	}()
+
+	cfg := defaultTestConfig()
+	if err := mgr.CreateUA("node-1", cfg); err != nil {
+		t.Fatalf("CreateUA(node-1) should succeed: %v", err)
+	}
+	if err := mgr.CreateUA("node-2", cfg); err != nil {
+		t.Fatalf("CreateUA(node-2) should succeed: %v", err)
+	}
+
+	dg1, err := mgr.GetDiago("node-1")
+	if err != nil {
+		t.Fatalf("GetDiago(node-1) should succeed: %v", err)
+	}
+	dg2, err := mgr.GetDiago("node-2")
+	if err != nil {
+		t.Fatalf("GetDiago(node-2) should succeed: %v", err)
+	}
+
+	if dg1 == nil || dg2 == nil {
+		t.Fatal("both GetDiago calls should return non-nil")
+	}
+	if dg1 == dg2 {
+		t.Fatal("GetDiago should return distinct instances per node")
+	}
+}
