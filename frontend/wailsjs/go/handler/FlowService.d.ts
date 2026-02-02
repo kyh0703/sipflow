@@ -3,15 +3,15 @@
 import {handler} from '../models';
 import {ent} from '../models';
 
-export function CreateFlow(arg1:string,arg2:string):Promise<handler.Response_sipflow_ent_Flow_>;
+export function CreateFlow(arg1:string,arg2:string):Promise<handler.Response__sipflow_ent_Flow_>;
 
 export function DeleteFlow(arg1:number):Promise<handler.Response_bool_>;
 
-export function GetFlow(arg1:number):Promise<handler.Response_sipflow_ent_Flow_>;
+export function GetFlow(arg1:number):Promise<handler.Response__sipflow_ent_Flow_>;
 
-export function ListFlows():Promise<handler.Response_FlowMeta_>;
+export function ListFlows():Promise<handler.Response___sipflow_internal_handler_FlowMeta_>;
 
-export function LoadFlow(arg1:number):Promise<handler.Response_FlowState_>;
+export function LoadFlow(arg1:number):Promise<handler.Response__sipflow_internal_handler_FlowState_>;
 
 export function SaveFlow(arg1:handler.SaveFlowRequest):Promise<handler.Response_int_>;
 

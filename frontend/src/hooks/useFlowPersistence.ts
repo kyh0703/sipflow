@@ -4,6 +4,7 @@ import { useFlowStore } from '@/stores/flowStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { flowService, isSuccess } from '@/services/flowService'
 import type { FlowNodeData, FlowEdgeData } from '@/services/flowService'
+import { handler } from '../../wailsjs/go/models'
 
 /**
  * Convert xyflow Node[] to backend FlowNodeData[]
@@ -87,15 +88,17 @@ export function useFlowPersistence() {
     const flowName = currentFlow?.name || 'Untitled Flow'
 
     try {
-      const response = await flowService.saveFlow({
-        flowId: currentFlowId || 0,
-        name: flowName,
-        nodes: nodesToBackend(nodes),
-        edges: edgesToBackend(edges),
-        viewportX: viewport.x,
-        viewportY: viewport.y,
-        viewportZoom: viewport.zoom,
-      })
+      const response = await flowService.saveFlow(
+        handler.SaveFlowRequest.createFrom({
+          flowId: currentFlowId || 0,
+          name: flowName,
+          nodes: nodesToBackend(nodes),
+          edges: edgesToBackend(edges),
+          viewportX: viewport.x,
+          viewportY: viewport.y,
+          viewportZoom: viewport.zoom,
+        })
+      )
 
       if (isSuccess(response)) {
         // Update currentFlowId if this was a new flow

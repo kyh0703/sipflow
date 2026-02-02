@@ -31,7 +31,7 @@ export const flowService = {
    * List all flows as lightweight metadata ordered by updated_at descending
    * @returns Promise with Response containing FlowMeta array or error
    */
-  async listFlows(): Promise<handler.Response_FlowMeta_> {
+  async listFlows(): Promise<handler.Response___sipflow_internal_handler_FlowMeta_> {
     return FlowServiceBindings.ListFlows()
   },
 
@@ -58,7 +58,7 @@ export const flowService = {
    * @param id - Flow ID
    * @returns Promise with Response containing FlowState or error
    */
-  async loadFlow(id: number): Promise<handler.Response_FlowState_> {
+  async loadFlow(id: number): Promise<handler.Response__sipflow_internal_handler_FlowState_> {
     return FlowServiceBindings.LoadFlow(id)
   },
 
