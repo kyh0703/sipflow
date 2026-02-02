@@ -29,6 +29,7 @@ type UAStatus struct {
 type managedUA struct {
 	dg     *diago.Diago
 	ua     *sipgo.UserAgent
+	ctx    context.Context
 	cancel context.CancelFunc
 	cfg    UAConfig
 }
@@ -79,7 +80,7 @@ func (m *UAManager) CreateUA(nodeID string, cfg UAConfig) error {
 	}
 
 	// Create context for lifecycle management
-	_, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 
 	// Create diago instance wrapping the sipgo UA
 	dg := diago.NewDiago(ua,
@@ -91,9 +92,16 @@ func (m *UAManager) CreateUA(nodeID string, cfg UAConfig) error {
 		diago.WithLogger(m.logger),
 	)
 
+	// Start ServeBackground for transport listener readiness (required before Invite)
+	if err := dg.ServeBackground(ctx, func(d *diago.DialogServerSession) {}); err != nil {
+		cancel()
+		return fmt.Errorf("failed to start ServeBackground for node %s: %w", nodeID, err)
+	}
+
 	m.agents[nodeID] = &managedUA{
 		dg:     dg,
 		ua:     ua,
+		ctx:    ctx,
 		cancel: cancel,
 		cfg:    cfg,
 	}
