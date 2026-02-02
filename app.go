@@ -13,16 +13,20 @@ type App struct {
 	ctx            context.Context
 	eventEmitter   *handler.EventEmitter
 	flowService    *handler.FlowService
+	sipService     *handler.SIPService
 	projectService *handler.ProjectService
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
+	emitter := handler.NewEventEmitter()
 	flowService := handler.NewFlowService(nil) // Will be set during startup
+	sipService := handler.NewSIPService(emitter)
 	return &App{
-		eventEmitter:   handler.NewEventEmitter(),
+		eventEmitter:   emitter,
 		flowService:    flowService,
-		projectService: handler.NewProjectService(flowService),
+		sipService:     sipService,
+		projectService: handler.NewProjectService(flowService, sipService),
 	}
 }
 

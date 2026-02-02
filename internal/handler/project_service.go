@@ -19,13 +19,15 @@ type ProjectService struct {
 	entClient   *ent.Client
 	currentPath string
 	flowService *FlowService
+	sipService  *SIPService
 	mu          sync.Mutex
 }
 
 // NewProjectService creates a new ProjectService instance
-func NewProjectService(flowService *FlowService) *ProjectService {
+func NewProjectService(flowService *FlowService, sipService *SIPService) *ProjectService {
 	return &ProjectService{
 		flowService: flowService,
+		sipService:  sipService,
 	}
 }
 
@@ -113,8 +115,9 @@ func (s *ProjectService) CloseProject() Response[bool] {
 	// Clear current path
 	s.currentPath = ""
 
-	// Clear FlowService's ent client
+	// Clear service ent clients
 	s.flowService.setEntClient(nil)
+	s.sipService.setEntClient(nil)
 
 	// Emit project:closed event
 	runtime.EventsEmit(s.ctx, "project:closed", map[string]interface{}{})
@@ -250,8 +253,9 @@ func (s *ProjectService) openDatabase(path string) error {
 	s.entClient = client
 	s.currentPath = path
 
-	// Update FlowService's ent client
+	// Update service ent clients
 	s.flowService.setEntClient(client)
+	s.sipService.setEntClient(client)
 
 	return nil
 }
