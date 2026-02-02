@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** 그린 플로우가 실제 SIP 통신으로 실행되어야 한다. 디자인과 실행이 하나로 연결되는 것이 핵심.
-**Current focus:** Phase 3 - Flow Persistence
+**Current focus:** Phase 4 - SIP Infrastructure
 
 ## Current Position
 
-Phase: 3 of 10 (Flow Persistence)
-Plan: 2 of 4
+Phase: 4 of 10 (SIP Infrastructure)
+Plan: 2 of 3
 Status: In progress
-Last activity: 2026-02-02 — Completed 03-02-PLAN.md
+Last activity: 2026-02-02 — Completed 04-02-PLAN.md
 
-Progress: [████░░░░░░] 37%
+Progress: [████░░░░░░] 45%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: 2.9 min
-- Total execution time: ~0.48 hours
+- Total plans completed: 12
+- Average duration: 2.8 min
+- Total execution time: ~0.56 hours
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: [████░░░░░░] 37%
 |-------|-------|-------|----------|
 | 01-foundation-project-structure | 4 | ~14 min | ~3.5 min |
 | 02-visual-flow-designer | 4 | ~14 min | ~3.5 min |
-| 03-flow-persistence | 2 | ~5 min | ~2.5 min |
+| 03-flow-persistence | 3 | ~10 min | ~3.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-03 (2min), 02-04 (5min), 03-01 (3min), 03-02 (2min)
+- Last 5 plans: 02-04 (5min), 03-01 (3min), 03-02 (2min), 03-03 (5min), 04-01 (3min)
 - Trend: Stable (consistent execution speed)
 
 *Updated after each plan completion*
@@ -86,6 +86,13 @@ Recent decisions affecting current work:
 - 03-02: ListFlows returns FlowMeta (not ent.Flow) for clean frontend consumption
 - 03-02: LoadFlow eager-loads source/target nodes on edges for xyflow_id resolution
 - 03-02: All FlowService methods guard nil entClient with NO_PROJECT error
+- 03-03: useFlowPersistence hook centralizes save/load conversion (must be inside ReactFlowProvider)
+- 03-03: Cross-store dirty tracking via useProjectStore.getState().actions.markDirty()
+- 03-03: Project lifecycle events (project:opened/created/closed) drive frontend state
+- 04-01: SIPService follows FlowService pattern (entClient guard, Response[T] generic)
+- 04-01: SIPServer password field uses ent Sensitive() to omit from serialization
+- 04-01: SIPService receives EventEmitter for future SIP event emission
+- 04-01: ProjectService manages sipService entClient lifecycle alongside flowService
 
 ### Pending Todos
 
@@ -94,7 +101,6 @@ None yet.
 ### Blockers/Concerns
 
 **From Research:**
-- Phase 1: Must define xyflow nodeTypes outside component to prevent performance collapse
 - Phase 4: Limited diago production documentation - may need API exploration
 - Phase 8: Blind/Attended Transfer RFCs (5589, 3515) are complex - needs protocol research
 - Phase 10: sipgo proxy patterns have limited documentation beyond examples
@@ -105,14 +111,15 @@ None yet.
 - ✅ 01-02: Event handshake protocol implemented on frontend side (frontend:ready)
 - ✅ 01-03: Event handshake protocol completed on backend side (backend:ready emission)
 - ✅ 02-01: Module-level nodeTypes/edgeTypes defined to prevent performance collapse
+- ✅ 03-03: Wails binding issues resolved (unexport SetEntClient, fix type names)
 
 ## Session Continuity
 
-Last session: 2026-02-02 05:13 UTC
-Stopped at: Completed 03-02-PLAN.md (Flow Save/Load Operations)
+Last session: 2026-02-02
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None
-Next: 03-03-PLAN.md (Frontend Integration)
+Next: 04-02-PLAN.md (UAManager with goroutine-safe lifecycle)
 
 ---
 *State initialized: 2026-02-01*
-*Last updated: 2026-02-02 05:13 UTC*
+*Last updated: 2026-02-02*
