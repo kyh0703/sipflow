@@ -9,6 +9,8 @@ import {
   XCircle,
   PhoneMissed,
   Radio,
+  Plus,
+  Trash2,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -17,7 +19,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { Button } from '@/components/ui/button'
 import { useFlowStore } from '@/stores/flowStore'
+import { useProjectStore } from '@/stores/projectStore'
+import { useFlowPersistence } from '@/hooks/useFlowPersistence'
+import { flowService, isSuccess } from '@/services/flowService'
 
 interface NodeItem {
   type: string
@@ -77,6 +83,12 @@ const nodeCategories: { title: string; items: NodeItem[] }[] = [
 
 export function LeftSidebar() {
   const sidebarOpen = useFlowStore((s) => s.sidebarOpen)
+  const projectPath = useProjectStore((s) => s.projectPath)
+  const flows = useProjectStore((s) => s.flows)
+  const currentFlowId = useProjectStore((s) => s.currentFlowId)
+  const projectActions = useProjectStore((s) => s.actions)
+  const flowActions = useFlowStore((s) => s.actions)
+  const { switchFlow } = useFlowPersistence()
 
   if (!sidebarOpen) {
     return null
@@ -93,9 +105,110 @@ export function LeftSidebar() {
     event.dataTransfer.effectAllowed = 'move'
   }
 
+  const handleNewFlow = async () => {
+    if (!projectPath) return
+
+    try {
+      const response = await flowService.createFlow('New Flow')
+      if (isSuccess(response) && response.data?.id) {
+        await projectActions.refreshFlowList()
+        await switchFlow(response.data.id)
+      } else {
+        console.error('Failed to create flow:', response.error)
+      }
+    } catch (error) {
+      console.error('Failed to create flow:', error)
+    }
+  }
+
+  const handleDeleteFlow = async (flowId: number, flowName: string) => {
+    const confirmed = window.confirm(
+      `Delete flow "${flowName}"? This cannot be undone.`
+    )
+    if (!confirmed) return
+
+    try {
+      const response = await flowService.deleteFlow(flowId)
+      if (isSuccess(response)) {
+        // If deleted flow was the current flow, clear canvas
+        if (currentFlowId === flowId) {
+          flowActions.setNodes([])
+          flowActions.setEdges([])
+          projectActions.setCurrentFlowId(null)
+          projectActions.markClean()
+        }
+        await projectActions.refreshFlowList()
+      } else {
+        console.error('Failed to delete flow:', response.error)
+      }
+    } catch (error) {
+      console.error('Failed to delete flow:', error)
+    }
+  }
+
   return (
     <div className="w-60 border-r bg-background h-full overflow-y-auto">
       <div className="p-4">
+        {/* Flow List Section */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-semibold text-lg">Flows</h2>
+            {projectPath && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={handleNewFlow}
+                title="New Flow"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+
+          {!projectPath ? (
+            <p className="text-sm text-muted-foreground">
+              No project open. Use File &gt; New or File &gt; Open.
+            </p>
+          ) : flows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No flows yet. Click + to create one.
+            </p>
+          ) : (
+            <div className="space-y-1">
+              {flows.map((flow) => (
+                <div
+                  key={flow.id}
+                  className={`group flex items-center justify-between px-2 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${
+                    currentFlowId === flow.id
+                      ? 'bg-accent text-accent-foreground'
+                      : 'hover:bg-muted'
+                  }`}
+                  onClick={() => switchFlow(flow.id)}
+                >
+                  <span className="truncate flex-1">{flow.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteFlow(flow.id, flow.name)
+                    }}
+                    title="Delete flow"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Separator */}
+        <div className="border-t my-3" />
+
+        {/* Node Palette Section */}
         <h2 className="font-semibold text-lg mb-4">Node Palette</h2>
         <Accordion
           type="multiple"
