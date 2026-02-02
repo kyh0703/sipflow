@@ -114,7 +114,7 @@ func (s *ProjectService) CloseProject() Response[bool] {
 	s.currentPath = ""
 
 	// Clear FlowService's ent client
-	s.flowService.SetEntClient(nil)
+	s.flowService.setEntClient(nil)
 
 	// Emit project:closed event
 	runtime.EventsEmit(s.ctx, "project:closed", map[string]interface{}{})
@@ -251,7 +251,7 @@ func (s *ProjectService) openDatabase(path string) error {
 	s.currentPath = path
 
 	// Update FlowService's ent client
-	s.flowService.SetEntClient(client)
+	s.flowService.setEntClient(client)
 
 	return nil
 }

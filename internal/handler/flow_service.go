@@ -24,8 +24,8 @@ func NewFlowService(client *ent.Client) *FlowService {
 	}
 }
 
-// SetEntClient updates the ent client (called during app startup)
-func (s *FlowService) SetEntClient(client *ent.Client) {
+// setEntClient updates the ent client (unexported to prevent Wails binding)
+func (s *FlowService) setEntClient(client *ent.Client) {
 	s.entClient = client
 }
 

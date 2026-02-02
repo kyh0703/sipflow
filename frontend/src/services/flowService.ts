@@ -1,5 +1,5 @@
 import * as FlowServiceBindings from '../../wailsjs/go/handler/FlowService'
-import type { ent, handler } from '../../wailsjs/go/models'
+import type { handler } from '../../wailsjs/go/models'
 
 /**
  * Flow service wrapper providing typed access to backend FlowService
@@ -94,8 +94,6 @@ export function isError<T>(
 /**
  * Re-export types for convenience
  */
-export type Flow = ent.Flow
-export type FlowEdges = ent.FlowEdges
 export type FlowMeta = handler.FlowMeta
 export type FlowState = handler.FlowState
 export type FlowNodeData = handler.FlowNodeData
