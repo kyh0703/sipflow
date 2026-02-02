@@ -9,6 +9,12 @@ export function DeleteFlow(arg1:number):Promise<handler.Response_bool_>;
 
 export function GetFlow(arg1:number):Promise<handler.Response_sipflow_ent_Flow_>;
 
-export function ListFlows():Promise<handler.Response___sipflow_ent_Flow_>;
+export function ListFlows():Promise<handler.Response_FlowMeta_>;
+
+export function LoadFlow(arg1:number):Promise<handler.Response_FlowState_>;
+
+export function SaveFlow(arg1:handler.SaveFlowRequest):Promise<handler.Response_int_>;
 
 export function SetEntClient(arg1:ent.Client):Promise<void>;
+
+export function UpdateFlowName(arg1:number,arg2:string):Promise<handler.Response_bool_>;

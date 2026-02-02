@@ -59,6 +59,7 @@ interface FlowState {
   edges: Edge[]
   selectedNodeId: string | null
   sidebarOpen: boolean
+  viewport: { x: number; y: number; zoom: number }
 
   // Actions grouped in object to keep references stable (prevents re-renders)
   actions: {
@@ -77,6 +78,7 @@ interface FlowState {
     setEdges: (edges: Edge[]) => void
     setSelectedNode: (nodeId: string | null) => void
     toggleSidebar: () => void
+    setViewport: (viewport: { x: number; y: number; zoom: number }) => void
   }
 }
 
@@ -96,6 +98,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   edges: [],
   selectedNodeId: null,
   sidebarOpen: true,
+  viewport: { x: 0, y: 0, zoom: 1 },
 
   actions: {
     // React Flow change handlers - use xyflow utilities for drag, select, delete
@@ -185,5 +188,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       set((state) => ({
         sidebarOpen: !state.sidebarOpen,
       })),
+
+    setViewport: (viewport) => set({ viewport }),
   },
 }))

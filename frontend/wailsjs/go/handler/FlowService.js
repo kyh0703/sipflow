@@ -18,6 +18,18 @@ export function ListFlows() {
   return window['go']['handler']['FlowService']['ListFlows']();
 }
 
+export function LoadFlow(arg1) {
+  return window['go']['handler']['FlowService']['LoadFlow'](arg1);
+}
+
+export function SaveFlow(arg1) {
+  return window['go']['handler']['FlowService']['SaveFlow'](arg1);
+}
+
 export function SetEntClient(arg1) {
   return window['go']['handler']['FlowService']['SetEntClient'](arg1);
+}
+
+export function UpdateFlowName(arg1, arg2) {
+  return window['go']['handler']['FlowService']['UpdateFlowName'](arg1, arg2);
 }

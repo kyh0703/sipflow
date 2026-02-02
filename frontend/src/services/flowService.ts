@@ -28,10 +28,10 @@ export const flowService = {
   },
 
   /**
-   * List all flows ordered by updated_at descending
-   * @returns Promise with Response containing Flow array or error
+   * List all flows as lightweight metadata ordered by updated_at descending
+   * @returns Promise with Response containing FlowMeta array or error
    */
-  async listFlows(): Promise<handler.Response____sipflow_ent_Flow_> {
+  async listFlows(): Promise<handler.Response_FlowMeta_> {
     return FlowServiceBindings.ListFlows()
   },
 
@@ -42,6 +42,34 @@ export const flowService = {
    */
   async deleteFlow(id: number): Promise<handler.Response_bool_> {
     return FlowServiceBindings.DeleteFlow(id)
+  },
+
+  /**
+   * Save complete xyflow canvas state (nodes, edges, viewport) atomically
+   * @param req - SaveFlowRequest with flowId (0 for new), name, nodes, edges, viewport
+   * @returns Promise with Response containing flow ID or error
+   */
+  async saveFlow(req: handler.SaveFlowRequest): Promise<handler.Response_int_> {
+    return FlowServiceBindings.SaveFlow(req)
+  },
+
+  /**
+   * Load complete xyflow-compatible canvas state for a flow
+   * @param id - Flow ID
+   * @returns Promise with Response containing FlowState or error
+   */
+  async loadFlow(id: number): Promise<handler.Response_FlowState_> {
+    return FlowServiceBindings.LoadFlow(id)
+  },
+
+  /**
+   * Update the name of an existing flow
+   * @param id - Flow ID
+   * @param name - New flow name
+   * @returns Promise with Response containing boolean success or error
+   */
+  async updateFlowName(id: number, name: string): Promise<handler.Response_bool_> {
+    return FlowServiceBindings.UpdateFlowName(id, name)
   },
 }
 
@@ -64,7 +92,12 @@ export function isError<T>(
 }
 
 /**
- * Re-export Flow type for convenience
+ * Re-export types for convenience
  */
 export type Flow = ent.Flow
 export type FlowEdges = ent.FlowEdges
+export type FlowMeta = handler.FlowMeta
+export type FlowState = handler.FlowState
+export type FlowNodeData = handler.FlowNodeData
+export type FlowEdgeData = handler.FlowEdgeData
+export type SaveFlowRequest = handler.SaveFlowRequest
