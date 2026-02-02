@@ -169,6 +169,19 @@ func (m *UAManager) ListActive() []UAStatus {
 	return statuses
 }
 
+// GetDiago returns the *diago.Diago instance for the given node ID.
+// Returns error if nodeID is not found.
+func (m *UAManager) GetDiago(nodeID string) (*diago.Diago, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	managed, exists := m.agents[nodeID]
+	if !exists {
+		return nil, fmt.Errorf("UA not found for node %s", nodeID)
+	}
+	return managed.dg, nil
+}
+
 // destroyManagedUA cancels the context and closes the UA.
 func (m *UAManager) destroyManagedUA(managed *managedUA) {
 	managed.cancel()
