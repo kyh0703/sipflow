@@ -105,9 +105,12 @@ Plans:
   3. User can execute Cancel command node to abort outgoing call before answer
   4. SIP message trace shows correct RFC 3261 compliant messages
   5. Commands handle SIP server responses correctly (200 OK, 180 Ringing, 4xx/5xx errors)
-**Plans**: TBD
+**Plans**: 3 plans
 
-Plans: (to be created during planning)
+Plans:
+- [ ] 05-01-PLAN.md — TDD SessionManager (call tracking) + UAManager.GetDiago() extension
+- [ ] 05-02-PLAN.md — MakeCall/Bye/Cancel SIPService methods, ServeBackground integration
+- [ ] 05-03-PLAN.md — Frontend sipStore, call state display in trace panel, Wails binding wiring, human verification
 
 ### Phase 6: Execution Engine
 **Goal**: Designed flows execute as real SIP signaling with deterministic order, real-time visual feedback, and observable results - delivering the core value proposition.
@@ -186,7 +189,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 2. Visual Flow Designer | 4/4 | ✅ Complete | 2026-02-01 |
 | 3. Flow Persistence | 3/3 | ✅ Complete | 2026-02-02 |
 | 4. SIP Infrastructure | 3/3 | ✅ Complete | 2026-02-02 |
-| 5. Basic SIP Commands | 0/TBD | Not started | - |
+| 5. Basic SIP Commands | 0/3 | Not started | - |
 | 6. Execution Engine | 0/TBD | Not started | - |
 | 7. Advanced Call Control | 0/TBD | Not started | - |
 | 8. Call Transfer | 0/TBD | Not started | - |
@@ -195,4 +198,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 ---
 *Roadmap created: 2026-02-01*
-*Last updated: 2026-02-02 (Phase 4 complete)*
+*Last updated: 2026-02-02 (Phase 5 planned)*
