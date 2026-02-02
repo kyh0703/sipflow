@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** 그린 플로우가 실제 SIP 통신으로 실행되어야 한다. 디자인과 실행이 하나로 연결되는 것이 핵심.
-**Current focus:** Phase 2 - Visual Flow Designer
+**Current focus:** Phase 3 - Flow Persistence
 
 ## Current Position
 
-Phase: 2 of 10 (Visual Flow Designer)
-Plan: 4 of 4
-Status: Phase complete ✓
-Last activity: 2026-02-01 — Completed 02-04-PLAN.md (human-verify approved)
+Phase: 3 of 10 (Flow Persistence)
+Plan: 1 of 4
+Status: In progress
+Last activity: 2026-02-02 — Completed 03-01-PLAN.md
 
-Progress: [███░░░░░░░] 30%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 9
 - Average duration: 3.0 min
-- Total execution time: ~0.40 hours
+- Total execution time: ~0.45 hours
 
 **By Phase:**
 
@@ -29,9 +29,10 @@ Progress: [███░░░░░░░] 30%
 |-------|-------|-------|----------|
 | 01-foundation-project-structure | 4 | ~14 min | ~3.5 min |
 | 02-visual-flow-designer | 4 | ~14 min | ~3.5 min |
+| 03-flow-persistence | 1 | ~3 min | ~3.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (3min), 02-02 (4min), 02-03 (2min), 02-04 (5min)
+- Last 5 plans: 02-02 (4min), 02-03 (2min), 02-04 (5min), 03-01 (3min)
 - Trend: Stable (consistent execution speed)
 
 *Updated after each plan completion*
@@ -76,6 +77,11 @@ Recent decisions affecting current work:
 - 02-04: Implement validSequences map for edge validation (sipInstance->command, command->event|command, event->command)
 - 02-04: Allow all connections but mark invalid ones with red color instead of blocking
 - 02-04: Phase 2 complete and verified - ready for Phase 3 Flow Persistence
+- 03-01: Viewport persistence included as quality-of-life feature (restoring exact canvas position improves UX)
+- 03-01: All project lifecycle events emitted from ProjectService (consistent pattern)
+- 03-01: menu:save is the only event from main.go (requires frontend canvas state)
+- 03-01: App starts with no database open - user must create/open a project
+- 03-01: Close previous ent client before opening new one to prevent "database is locked" errors
 
 ### Pending Todos
 
@@ -98,11 +104,11 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-01 14:33 UTC
-Stopped at: Completed 02-04-PLAN.md (Phase 2 complete ✓)
+Last session: 2026-02-02 04:47 UTC
+Stopped at: Completed 03-01-PLAN.md (Flow Persistence Infrastructure)
 Resume file: None
-Next: Phase 3 - Flow Persistence
+Next: 03-02-PLAN.md (Backend Save/Load Handlers)
 
 ---
 *State initialized: 2026-02-01*
-*Last updated: 2026-02-01 14:33 UTC*
+*Last updated: 2026-02-02 04:47 UTC*
