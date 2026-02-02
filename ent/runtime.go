@@ -7,6 +7,7 @@ import (
 	"sipflow/ent/flow"
 	"sipflow/ent/node"
 	"sipflow/ent/schema"
+	"sipflow/ent/sipserver"
 	"time"
 )
 
@@ -90,4 +91,40 @@ func init() {
 	nodeDescCreatedAt := nodeFields[5].Descriptor()
 	// node.DefaultCreatedAt holds the default value on creation for the created_at field.
 	node.DefaultCreatedAt = nodeDescCreatedAt.Default.(func() time.Time)
+	sipserverFields := schema.SIPServer{}.Fields()
+	_ = sipserverFields
+	// sipserverDescName is the schema descriptor for name field.
+	sipserverDescName := sipserverFields[0].Descriptor()
+	// sipserver.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	sipserver.NameValidator = sipserverDescName.Validators[0].(func(string) error)
+	// sipserverDescAddress is the schema descriptor for address field.
+	sipserverDescAddress := sipserverFields[1].Descriptor()
+	// sipserver.AddressValidator is a validator for the "address" field. It is called by the builders before save.
+	sipserver.AddressValidator = sipserverDescAddress.Validators[0].(func(string) error)
+	// sipserverDescPort is the schema descriptor for port field.
+	sipserverDescPort := sipserverFields[2].Descriptor()
+	// sipserver.DefaultPort holds the default value on creation for the port field.
+	sipserver.DefaultPort = sipserverDescPort.Default.(int)
+	// sipserverDescTransport is the schema descriptor for transport field.
+	sipserverDescTransport := sipserverFields[3].Descriptor()
+	// sipserver.DefaultTransport holds the default value on creation for the transport field.
+	sipserver.DefaultTransport = sipserverDescTransport.Default.(string)
+	// sipserverDescUsername is the schema descriptor for username field.
+	sipserverDescUsername := sipserverFields[4].Descriptor()
+	// sipserver.DefaultUsername holds the default value on creation for the username field.
+	sipserver.DefaultUsername = sipserverDescUsername.Default.(string)
+	// sipserverDescPassword is the schema descriptor for password field.
+	sipserverDescPassword := sipserverFields[5].Descriptor()
+	// sipserver.DefaultPassword holds the default value on creation for the password field.
+	sipserver.DefaultPassword = sipserverDescPassword.Default.(string)
+	// sipserverDescCreatedAt is the schema descriptor for created_at field.
+	sipserverDescCreatedAt := sipserverFields[6].Descriptor()
+	// sipserver.DefaultCreatedAt holds the default value on creation for the created_at field.
+	sipserver.DefaultCreatedAt = sipserverDescCreatedAt.Default.(func() time.Time)
+	// sipserverDescUpdatedAt is the schema descriptor for updated_at field.
+	sipserverDescUpdatedAt := sipserverFields[7].Descriptor()
+	// sipserver.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	sipserver.DefaultUpdatedAt = sipserverDescUpdatedAt.Default.(func() time.Time)
+	// sipserver.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	sipserver.UpdateDefaultUpdatedAt = sipserverDescUpdatedAt.UpdateDefault.(func() time.Time)
 }

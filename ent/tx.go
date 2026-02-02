@@ -18,6 +18,8 @@ type Tx struct {
 	Flow *FlowClient
 	// Node is the client for interacting with the Node builders.
 	Node *NodeClient
+	// SIPServer is the client for interacting with the SIPServer builders.
+	SIPServer *SIPServerClient
 
 	// lazily loaded.
 	client     *Client
@@ -152,6 +154,7 @@ func (tx *Tx) init() {
 	tx.Edge = NewEdgeClient(tx.config)
 	tx.Flow = NewFlowClient(tx.config)
 	tx.Node = NewNodeClient(tx.config)
+	tx.SIPServer = NewSIPServerClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

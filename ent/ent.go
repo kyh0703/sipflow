@@ -10,6 +10,7 @@ import (
 	"sipflow/ent/edge"
 	"sipflow/ent/flow"
 	"sipflow/ent/node"
+	"sipflow/ent/sipserver"
 	"sync"
 
 	"entgo.io/ent"
@@ -75,9 +76,10 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			edge.Table: edge.ValidColumn,
-			flow.Table: flow.ValidColumn,
-			node.Table: node.ValidColumn,
+			edge.Table:      edge.ValidColumn,
+			flow.Table:      flow.ValidColumn,
+			node.Table:      node.ValidColumn,
+			sipserver.Table: sipserver.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

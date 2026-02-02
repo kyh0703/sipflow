@@ -89,11 +89,30 @@ var (
 			},
 		},
 	}
+	// SipServersColumns holds the columns for the "sip_servers" table.
+	SipServersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "address", Type: field.TypeString},
+		{Name: "port", Type: field.TypeInt, Default: 5060},
+		{Name: "transport", Type: field.TypeString, Default: "UDP"},
+		{Name: "username", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "password", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// SipServersTable holds the schema information for the "sip_servers" table.
+	SipServersTable = &schema.Table{
+		Name:       "sip_servers",
+		Columns:    SipServersColumns,
+		PrimaryKey: []*schema.Column{SipServersColumns[0]},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		EdgesTable,
 		FlowsTable,
 		NodesTable,
+		SipServersTable,
 	}
 )
 

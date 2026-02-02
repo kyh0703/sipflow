@@ -14,3 +14,6 @@ type Flow func(*sql.Selector)
 
 // Node is the predicate function for node builders.
 type Node func(*sql.Selector)
+
+// SIPServer is the predicate function for sipserver builders.
+type SIPServer func(*sql.Selector)
