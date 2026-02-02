@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation & Project Structure** - Wails project skeleton, SQLite schema, Go-React bindings
 - [x] **Phase 2: Visual Flow Designer** - xyflow canvas with SIP/Command/Event nodes
 - [x] **Phase 3: Flow Persistence** - Save and load flows from SQLite
-- [ ] **Phase 4: SIP Infrastructure** - External server config, UA lifecycle management
+- [x] **Phase 4: SIP Infrastructure** - External server config, UA lifecycle management
 - [ ] **Phase 5: Basic SIP Commands** - MakeCall, Bye, Cancel implementation
 - [ ] **Phase 6: Execution Engine** - Topological sort, real-time visualization, event-driven execution
 - [ ] **Phase 7: Advanced Call Control** - Hold and Retrieve commands
@@ -91,9 +91,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — SIPServer ent schema, SIPService CRUD handler, diago dependency, Wails wiring
-- [ ] 04-02-PLAN.md — UAManager with TDD (create/destroy/track diago UAs, goleak verified), SIP trace logger
-- [ ] 04-03-PLAN.md — Wire UAManager into SIPService, replace mock serverStore, SIP trace panel, human verification
+- [x] 04-01-PLAN.md — SIPServer ent schema, SIPService CRUD handler, diago dependency, Wails wiring
+- [x] 04-02-PLAN.md — UAManager with TDD (create/destroy/track diago UAs, goleak verified), SIP trace logger
+- [x] 04-03-PLAN.md — Wire UAManager into SIPService, replace mock serverStore, SIP trace panel, human verification
 
 ### Phase 5: Basic SIP Commands
 **Goal**: Users can execute basic SIP call operations (make call, hang up, cancel) through flow execution, validating SIP integration works end-to-end.
@@ -185,7 +185,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 1. Foundation & Project Structure | 4/4 | ✅ Complete | 2026-02-01 |
 | 2. Visual Flow Designer | 4/4 | ✅ Complete | 2026-02-01 |
 | 3. Flow Persistence | 3/3 | ✅ Complete | 2026-02-02 |
-| 4. SIP Infrastructure | 0/3 | Not started | - |
+| 4. SIP Infrastructure | 3/3 | ✅ Complete | 2026-02-02 |
 | 5. Basic SIP Commands | 0/TBD | Not started | - |
 | 6. Execution Engine | 0/TBD | Not started | - |
 | 7. Advanced Call Control | 0/TBD | Not started | - |
@@ -195,4 +195,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 ---
 *Roadmap created: 2026-02-01*
-*Last updated: 2026-02-02 (Phase 4 planned)*
+*Last updated: 2026-02-02 (Phase 4 complete)*

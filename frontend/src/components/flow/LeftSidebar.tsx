@@ -20,6 +20,14 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { Badge } from '@/components/ui/badge'
 import { useFlowStore } from '@/stores/flowStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useFlowPersistence } from '@/hooks/useFlowPersistence'
@@ -130,7 +138,6 @@ export function LeftSidebar() {
     try {
       const response = await flowService.deleteFlow(flowId)
       if (isSuccess(response)) {
-        // If deleted flow was the current flow, clear canvas
         if (currentFlowId === flowId) {
           flowActions.setNodes([])
           flowActions.setEdges([])
@@ -147,35 +154,46 @@ export function LeftSidebar() {
   }
 
   return (
-    <div className="w-60 border-r bg-background h-full overflow-y-auto">
-      <div className="p-4">
-        {/* Flow List Section */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-semibold text-lg">Flows</h2>
+    <div className="w-60 border-r bg-background h-full flex flex-col">
+      {/* Flow List Section */}
+      <div className="p-3">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold tracking-tight">Flows</h2>
+          <div className="flex items-center gap-1">
             {projectPath && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={handleNewFlow}
-                title="New Flow"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
+              <>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  {flows.length}
+                </Badge>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={handleNewFlow}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">New Flow</TooltipContent>
+                </Tooltip>
+              </>
             )}
           </div>
+        </div>
 
-          {!projectPath ? (
-            <p className="text-sm text-muted-foreground">
-              No project open. Use File &gt; New or File &gt; Open.
-            </p>
-          ) : flows.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No flows yet. Click + to create one.
-            </p>
-          ) : (
-            <div className="space-y-1">
+        {!projectPath ? (
+          <p className="text-xs text-muted-foreground px-1">
+            No project open. Use File &gt; New or File &gt; Open.
+          </p>
+        ) : flows.length === 0 ? (
+          <p className="text-xs text-muted-foreground px-1">
+            No flows yet. Click + to create one.
+          </p>
+        ) : (
+          <ScrollArea className="max-h-[200px]">
+            <div className="space-y-0.5">
               {flows.map((flow) => (
                 <div
                   key={flow.id}
@@ -186,62 +204,80 @@ export function LeftSidebar() {
                   }`}
                   onClick={() => switchFlow(flow.id)}
                 >
-                  <span className="truncate flex-1">{flow.name}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteFlow(flow.id, flow.name)
-                    }}
-                    title="Delete flow"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                  </Button>
+                  <span className="truncate flex-1 text-xs">{flow.name}</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteFlow(flow.id, flow.name)
+                        }}
+                      >
+                        <Trash2 className="w-3 h-3 text-destructive" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Delete flow</TooltipContent>
+                  </Tooltip>
                 </div>
               ))}
             </div>
-          )}
-        </div>
-
-        {/* Separator */}
-        <div className="border-t my-3" />
-
-        {/* Node Palette Section */}
-        <h2 className="font-semibold text-lg mb-4">Node Palette</h2>
-        <Accordion
-          type="multiple"
-          defaultValue={['SIP Instance', 'Commands', 'Events']}
-          className="space-y-2"
-        >
-          {nodeCategories.map((category) => (
-            <AccordionItem key={category.title} value={category.title}>
-              <AccordionTrigger className="text-sm font-medium">
-                {category.title}
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  {category.items.map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <div
-                        key={item.command}
-                        draggable
-                        onDragStart={(event) => onDragStart(event, item)}
-                        className="flex flex-col items-center gap-1 p-3 border border-dashed rounded-lg cursor-grab hover:bg-muted active:cursor-grabbing transition-colors"
-                      >
-                        <Icon className="w-5 h-5" />
-                        <span className="text-xs text-center">{item.label}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+          </ScrollArea>
+        )}
       </div>
+
+      <Separator />
+
+      {/* Node Palette Section */}
+      <ScrollArea className="flex-1">
+        <div className="p-3">
+          <h2 className="text-sm font-semibold tracking-tight mb-2">Node Palette</h2>
+          <Accordion
+            type="multiple"
+            defaultValue={['SIP Instance', 'Commands', 'Events']}
+            className="space-y-1"
+          >
+            {nodeCategories.map((category) => (
+              <AccordionItem key={category.title} value={category.title} className="border-b-0">
+                <AccordionTrigger className="text-xs font-medium py-1.5 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    {category.title}
+                    <Badge variant="outline" className="text-[10px] px-1 py-0 font-normal">
+                      {category.items.length}
+                    </Badge>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pb-1">
+                  <div className="grid grid-cols-2 gap-1.5 pt-1">
+                    {category.items.map((item) => {
+                      const Icon = item.icon
+                      return (
+                        <Tooltip key={item.command}>
+                          <TooltipTrigger asChild>
+                            <div
+                              draggable
+                              onDragStart={(event) => onDragStart(event, item)}
+                              className="flex flex-col items-center gap-1 p-2 border border-dashed rounded-md cursor-grab hover:bg-accent hover:border-accent-foreground/20 active:cursor-grabbing transition-colors"
+                            >
+                              <Icon className="w-4 h-4" />
+                              <span className="text-[10px] text-center leading-tight">{item.label}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">
+                            Drag to canvas
+                          </TooltipContent>
+                        </Tooltip>
+                      )
+                    })}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      </ScrollArea>
     </div>
   )
 }

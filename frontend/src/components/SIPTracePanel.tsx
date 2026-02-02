@@ -1,6 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Terminal, Power, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
 import * as SIPServiceBindings from '../../wailsjs/go/handler/SIPService'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { Toggle } from '@/components/ui/toggle'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 
 interface SIPTraceEntry {
   time: string
@@ -10,6 +26,13 @@ interface SIPTraceEntry {
 }
 
 const MAX_ENTRIES = 500
+
+const levelVariant: Record<string, 'destructive' | 'secondary' | 'default' | 'outline'> = {
+  ERROR: 'destructive',
+  WARN: 'secondary',
+  INFO: 'default',
+  DEBUG: 'outline',
+}
 
 /**
  * SIPTracePanel displays real-time SIP protocol trace messages.
@@ -47,104 +70,122 @@ export function SIPTracePanel() {
     }
   }, [])
 
-  const handleToggleTrace = useCallback(async () => {
-    const newValue = !traceEnabled
+  const handleToggleTrace = useCallback(async (pressed: boolean) => {
     try {
-      const response = await SIPServiceBindings.SetSIPTrace(newValue)
+      const response = await SIPServiceBindings.SetSIPTrace(pressed)
       if (response.success) {
-        setTraceEnabled(newValue)
+        setTraceEnabled(pressed)
       }
     } catch (error) {
       console.error('Failed to toggle SIP trace:', error)
     }
-  }, [traceEnabled])
+  }, [])
 
   const handleClear = useCallback(() => {
     setEntries([])
   }, [])
 
-  const getLevelColor = (level: string): string => {
-    switch (level) {
-      case 'ERROR':
-        return 'text-red-400'
-      case 'WARN':
-        return 'text-yellow-400'
-      case 'INFO':
-        return 'text-green-400'
-      case 'DEBUG':
-        return 'text-gray-400'
-      default:
-        return 'text-green-400'
-    }
-  }
-
   return (
-    <div className="border-t border-gray-700">
-      {/* Toggle bar */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3 py-1.5 bg-gray-800 text-gray-300 text-xs hover:bg-gray-750 cursor-pointer"
-      >
-        <span className="font-medium">SIP Trace</span>
-        <div className="flex items-center gap-2">
-          {entries.length > 0 && (
-            <span className="text-gray-500">{entries.length} messages</span>
-          )}
-          <span>{isOpen ? '\u25BC' : '\u25B2'}</span>
-        </div>
-      </button>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <div className="border-t bg-background">
+        {/* Toggle bar */}
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer">
+            <div className="flex items-center gap-2">
+              <Terminal className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium">SIP Trace</span>
+              {traceEnabled && (
+                <Badge variant="default" className="text-[10px] px-1.5 py-0 h-4">
+                  LIVE
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {entries.length > 0 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                  {entries.length}
+                </Badge>
+              )}
+              {isOpen ? (
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+              ) : (
+                <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
+              )}
+            </div>
+          </button>
+        </CollapsibleTrigger>
 
-      {/* Panel content */}
-      {isOpen && (
-        <div className="bg-gray-900">
+        {/* Panel content */}
+        <CollapsibleContent>
+          <Separator />
           {/* Toolbar */}
-          <div className="flex items-center gap-2 px-3 py-1 border-b border-gray-700">
-            <button
-              onClick={handleToggleTrace}
-              className={`px-2 py-0.5 text-xs rounded ${
-                traceEnabled
-                  ? 'bg-green-700 text-green-100'
-                  : 'bg-gray-700 text-gray-300'
-              }`}
-            >
-              {traceEnabled ? 'Trace ON' : 'Trace OFF'}
-            </button>
-            <button
-              onClick={handleClear}
-              className="px-2 py-0.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600"
-            >
-              Clear
-            </button>
+          <div className="flex items-center gap-1 px-2 py-1 bg-muted/30">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Toggle
+                  variant="outline"
+                  size="sm"
+                  pressed={traceEnabled}
+                  onPressedChange={handleToggleTrace}
+                  className="h-6 px-2 data-[state=on]:bg-green-600 data-[state=on]:text-white"
+                >
+                  <Power className="w-3 h-3" />
+                  <span className="text-[10px]">{traceEnabled ? 'ON' : 'OFF'}</span>
+                </Toggle>
+              </TooltipTrigger>
+              <TooltipContent>Toggle SIP trace capture</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2"
+                  onClick={handleClear}
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span className="text-[10px]">Clear</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Clear trace log</TooltipContent>
+            </Tooltip>
           </div>
+
+          <Separator />
 
           {/* Trace output */}
-          <div
-            ref={scrollRef}
-            className="h-[200px] overflow-y-auto font-mono text-xs p-2"
-          >
-            {entries.length === 0 ? (
-              <div className="text-gray-600 text-center py-4">
-                {traceEnabled
-                  ? 'Waiting for SIP trace messages...'
-                  : 'Enable SIP trace to see protocol messages'}
-              </div>
-            ) : (
-              entries.map((entry, i) => (
-                <div key={i} className="leading-5">
-                  <span className="text-gray-500">{entry.time}</span>{' '}
-                  <span className={getLevelColor(entry.level)}>
-                    [{entry.level}]
-                  </span>{' '}
-                  {entry.nodeID && (
-                    <span className="text-blue-400">[{entry.nodeID}]</span>
-                  )}{' '}
-                  <span className="text-green-400">{entry.message}</span>
+          <ScrollArea className="h-[200px]">
+            <div ref={scrollRef} className="font-mono text-xs p-2 bg-muted/10">
+              {entries.length === 0 ? (
+                <div className="text-muted-foreground text-center py-8">
+                  {traceEnabled
+                    ? 'Waiting for SIP trace messages...'
+                    : 'Enable SIP trace to see protocol messages'}
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+              ) : (
+                entries.map((entry, i) => (
+                  <div key={i} className="leading-5 hover:bg-muted/30 px-1 rounded-sm">
+                    <span className="text-muted-foreground">{entry.time}</span>{' '}
+                    <Badge
+                      variant={levelVariant[entry.level] || 'outline'}
+                      className="text-[9px] px-1 py-0 h-3.5 font-mono"
+                    >
+                      {entry.level}
+                    </Badge>{' '}
+                    {entry.nodeID && (
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 font-mono">
+                        {entry.nodeID}
+                      </Badge>
+                    )}{' '}
+                    <span className="text-foreground">{entry.message}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   )
 }

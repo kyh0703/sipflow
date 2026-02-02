@@ -1,5 +1,12 @@
 import { PanelLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useFlowStore } from '@/stores/flowStore'
 import { useProjectStore } from '@/stores/projectStore'
 
@@ -29,51 +36,62 @@ export function Header({ connectionState = 'connecting', errorMessage = '' }: He
   const currentFlow = flows.find((f) => f.id === currentFlowId)
   const flowName = currentFlow?.name
 
-  // Build title: "ProjectName - FlowName *" or "SIPFlow"
+  // Build title: "ProjectName - FlowName" or "SIPFlow"
   let title = 'SIPFlow'
   if (projectName) {
     title = projectName
     if (flowName) {
       title += ` - ${flowName}`
     }
-    if (isDirty) {
-      title += ' *'
-    }
   }
 
   return (
     <header className="fixed top-0 w-full h-14 border-b flex items-center justify-between px-4 z-10 bg-background">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebar}
-          title="Toggle sidebar"
-        >
-          <PanelLeft className="w-5 h-5" />
-        </Button>
-        <h1 className="text-xl font-semibold">
+      <div className="flex items-center gap-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
+            >
+              <PanelLeft className="w-5 h-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Toggle sidebar</TooltipContent>
+        </Tooltip>
+
+        <Separator orientation="vertical" className="h-6" />
+
+        <h1 className="text-sm font-semibold">
           {title}
         </h1>
+
+        {isDirty && (
+          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+            Unsaved
+          </Badge>
+        )}
       </div>
+
       <div className="flex items-center gap-2">
         {connectionState === 'connecting' && (
-          <>
-            <div className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse" />
-            <span className="text-sm opacity-60">Connecting...</span>
-          </>
+          <Badge variant="outline" className="gap-1.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse" />
+            <span className="text-[10px]">Connecting</span>
+          </Badge>
         )}
         {connectionState === 'connected' && (
-          <>
-            <div className="h-2 w-2 rounded-full bg-green-500" />
-            <span className="text-sm opacity-60">Connected</span>
-          </>
+          <Badge variant="outline" className="gap-1.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
+            <span className="text-[10px]">Connected</span>
+          </Badge>
         )}
         {connectionState === 'error' && (
-          <>
-            <div className="h-2 w-2 rounded-full bg-red-500" />
-            <span className="text-sm text-red-500">Error: {errorMessage}</span>
-          </>
+          <Badge variant="destructive" className="gap-1.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-white" />
+            <span className="text-[10px]">Error: {errorMessage}</span>
+          </Badge>
         )}
       </div>
     </header>
