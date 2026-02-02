@@ -1,81 +1,5 @@
 export namespace ent {
 	
-	export class NodeClient {
-	
-	
-	    static createFrom(source: any = {}) {
-	        return new NodeClient(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	
-	    }
-	}
-	export class FlowClient {
-	
-	
-	    static createFrom(source: any = {}) {
-	        return new FlowClient(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	
-	    }
-	}
-	export class EdgeClient {
-	
-	
-	    static createFrom(source: any = {}) {
-	        return new EdgeClient(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	
-	    }
-	}
-	export class Client {
-	    // Go type: migrate
-	    Schema?: any;
-	    // Go type: EdgeClient
-	    Edge?: any;
-	    // Go type: FlowClient
-	    Flow?: any;
-	    // Go type: NodeClient
-	    Node?: any;
-	
-	    static createFrom(source: any = {}) {
-	        return new Client(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.Schema = this.convertValues(source["Schema"], null);
-	        this.Edge = this.convertValues(source["Edge"], null);
-	        this.Flow = this.convertValues(source["Flow"], null);
-	        this.Node = this.convertValues(source["Node"], null);
-	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
-	}
 	export class NodeEdges {
 	    flow?: Flow;
 	    outgoing_edges?: Edge[];
@@ -318,11 +242,80 @@ export namespace ent {
 	
 	
 	
+	
+	export class SIPServer {
+	    id?: number;
+	    name?: string;
+	    address?: string;
+	    port?: number;
+	    transport?: string;
+	    username?: string;
+	    // Go type: time
+	    created_at?: any;
+	    // Go type: time
+	    updated_at?: any;
+	
+	    static createFrom(source: any = {}) {
+	        return new SIPServer(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.address = source["address"];
+	        this.port = source["port"];
+	        this.transport = source["transport"];
+	        this.username = source["username"];
+	        this.created_at = this.convertValues(source["created_at"], null);
+	        this.updated_at = this.convertValues(source["updated_at"], null);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 
 }
 
 export namespace handler {
 	
+	export class CreateServerRequest {
+	    name: string;
+	    address: string;
+	    port: number;
+	    transport: string;
+	    username: string;
+	    password: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CreateServerRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.address = source["address"];
+	        this.port = source["port"];
+	        this.transport = source["transport"];
+	        this.username = source["username"];
+	        this.password = source["password"];
+	    }
+	}
 	export class Error {
 	    code: string;
 	    message: string;
@@ -475,6 +468,40 @@ export namespace handler {
 		    return a;
 		}
 	}
+	export class Response__sipflow_ent_SIPServer_ {
+	    success: boolean;
+	    data?: ent.SIPServer;
+	    error?: Error;
+	
+	    static createFrom(source: any = {}) {
+	        return new Response__sipflow_ent_SIPServer_(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.data = this.convertValues(source["data"], ent.SIPServer);
+	        this.error = this.convertValues(source["error"], Error);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class Response__sipflow_internal_handler_FlowState_ {
 	    success: boolean;
 	    data?: FlowState;
@@ -509,6 +536,40 @@ export namespace handler {
 		    return a;
 		}
 	}
+	export class Response___map_string_interface____ {
+	    success: boolean;
+	    data?: any[];
+	    error?: Error;
+	
+	    static createFrom(source: any = {}) {
+	        return new Response___map_string_interface____(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.data = source["data"];
+	        this.error = this.convertValues(source["error"], Error);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class Response___sipflow_internal_handler_FlowMeta_ {
 	    success: boolean;
 	    data?: FlowMeta[];
@@ -522,6 +583,60 @@ export namespace handler {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.success = source["success"];
 	        this.data = this.convertValues(source["data"], FlowMeta);
+	        this.error = this.convertValues(source["error"], Error);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class SIPServerMeta {
+	    id: number;
+	    name: string;
+	    address: string;
+	    port: number;
+	    transport: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SIPServerMeta(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.address = source["address"];
+	        this.port = source["port"];
+	        this.transport = source["transport"];
+	    }
+	}
+	export class Response___sipflow_internal_handler_SIPServerMeta_ {
+	    success: boolean;
+	    data?: SIPServerMeta[];
+	    error?: Error;
+	
+	    static createFrom(source: any = {}) {
+	        return new Response___sipflow_internal_handler_SIPServerMeta_(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.data = this.convertValues(source["data"], SIPServerMeta);
 	        this.error = this.convertValues(source["error"], Error);
 	    }
 	
@@ -611,6 +726,40 @@ export namespace handler {
 		    return a;
 		}
 	}
+	export class Response_map_string_interface____ {
+	    success: boolean;
+	    data?: Record<string, any>;
+	    error?: Error;
+	
+	    static createFrom(source: any = {}) {
+	        return new Response_map_string_interface____(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.data = source["data"];
+	        this.error = this.convertValues(source["error"], Error);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class Response_string_ {
 	    success: boolean;
 	    data?: string;
@@ -645,6 +794,7 @@ export namespace handler {
 		    return a;
 		}
 	}
+	
 	export class SaveFlowRequest {
 	    flowId: number;
 	    name: string;
@@ -686,6 +836,30 @@ export namespace handler {
 		    }
 		    return a;
 		}
+	}
+	export class UpdateServerRequest {
+	    id: number;
+	    name: string;
+	    address: string;
+	    port: number;
+	    transport: string;
+	    username: string;
+	    password: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new UpdateServerRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.address = source["address"];
+	        this.port = source["port"];
+	        this.transport = source["transport"];
+	        this.username = source["username"];
+	        this.password = source["password"];
+	    }
 	}
 
 }

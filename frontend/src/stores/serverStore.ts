@@ -1,11 +1,13 @@
 import { create } from 'zustand'
+import * as SIPServiceBindings from '../../wailsjs/go/handler/SIPService'
+import type { handler } from '../../wailsjs/go/models'
 
 /**
  * SIP Server configuration
  * Represents a pre-registered SIP server that SIP Instance nodes can connect to
  */
 export interface SIPServer {
-  id: string
+  id: number
   name: string
   address: string
   port: number
@@ -20,66 +22,100 @@ interface ServerState {
 
   // Actions grouped in object to keep references stable
   actions: {
-    addServer: (server: SIPServer) => void
-    removeServer: (serverId: string) => void
-    updateServer: (serverId: string, updates: Partial<SIPServer>) => void
+    fetchServers: () => Promise<void>
+    createServer: (req: handler.CreateServerRequest) => Promise<number | null>
+    updateServer: (req: handler.UpdateServerRequest) => Promise<boolean>
+    deleteServer: (id: number) => Promise<boolean>
+    reset: () => void
+  }
+}
+
+/**
+ * Convert SIPServerMeta from backend to frontend SIPServer
+ */
+function toSIPServer(meta: handler.SIPServerMeta): SIPServer {
+  return {
+    id: meta.id,
+    name: meta.name,
+    address: meta.address,
+    port: meta.port,
+    transport: meta.transport as 'UDP' | 'TCP' | 'TLS',
   }
 }
 
 /**
  * Zustand store for SIP server management
  *
- * This store provides mock server data for SIP Instance node configuration.
- * Full server management UI will be implemented in Phase 4 (Settings).
+ * Connects to backend SIPService via Wails bindings.
+ * Servers are persisted in the project SQLite database.
  *
  * Usage:
  * ```tsx
  * const servers = useServerStore(state => state.servers)
- * const addServer = useServerStore(state => state.actions.addServer)
+ * const { fetchServers } = useServerStore(state => state.actions)
  * ```
  */
 export const useServerStore = create<ServerState>((set) => ({
-  // Mock server data for development
-  servers: [
-    {
-      id: 'srv-1',
-      name: 'Dev Server',
-      address: '192.168.1.100',
-      port: 5060,
-      transport: 'UDP',
-    },
-    {
-      id: 'srv-2',
-      name: 'Staging Server',
-      address: '10.0.0.50',
-      port: 5060,
-      transport: 'TCP',
-    },
-    {
-      id: 'srv-3',
-      name: 'Production Server',
-      address: 'sip.example.com',
-      port: 5061,
-      transport: 'TLS',
-    },
-  ],
+  servers: [],
 
   actions: {
-    addServer: (server) =>
-      set((state) => ({
-        servers: [...state.servers, server],
-      })),
+    fetchServers: async () => {
+      try {
+        const response = await SIPServiceBindings.ListServers()
+        if (response.success && response.data) {
+          set({ servers: response.data.map(toSIPServer) })
+        }
+      } catch (error) {
+        console.error('Failed to fetch servers:', error)
+      }
+    },
 
-    removeServer: (serverId) =>
-      set((state) => ({
-        servers: state.servers.filter((s) => s.id !== serverId),
-      })),
+    createServer: async (req: handler.CreateServerRequest) => {
+      try {
+        const response = await SIPServiceBindings.CreateServer(req)
+        if (response.success && response.data) {
+          // Re-fetch list to get consistent state
+          await useServerStore.getState().actions.fetchServers()
+          return response.data.id ?? null
+        }
+        console.error('Failed to create server:', response.error?.message)
+        return null
+      } catch (error) {
+        console.error('Failed to create server:', error)
+        return null
+      }
+    },
 
-    updateServer: (serverId, updates) =>
-      set((state) => ({
-        servers: state.servers.map((s) =>
-          s.id === serverId ? { ...s, ...updates } : s
-        ),
-      })),
+    updateServer: async (req: handler.UpdateServerRequest) => {
+      try {
+        const response = await SIPServiceBindings.UpdateServer(req)
+        if (response.success) {
+          await useServerStore.getState().actions.fetchServers()
+          return true
+        }
+        console.error('Failed to update server:', response.error?.message)
+        return false
+      } catch (error) {
+        console.error('Failed to update server:', error)
+        return false
+      }
+    },
+
+    deleteServer: async (id: number) => {
+      try {
+        const response = await SIPServiceBindings.DeleteServer(id)
+        if (response.success) {
+          await useServerStore.getState().actions.fetchServers()
+          return true
+        }
+        console.error('Failed to delete server:', response.error?.message)
+        return false
+      } catch (error) {
+        console.error('Failed to delete server:', error)
+        return false
+      }
+    },
+
+    reset: () => set({ servers: [] }),
   },
 }))

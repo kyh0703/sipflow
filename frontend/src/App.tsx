@@ -4,10 +4,12 @@ import { Header } from './components/layout/Header'
 import { LeftSidebar } from './components/flow/LeftSidebar'
 import { FlowCanvas } from './components/flow/FlowCanvas'
 import { PropertyPanel } from './components/flow/PropertyPanel'
+import { SIPTracePanel } from './components/SIPTracePanel'
 import { initializeEventHandshake } from './services/eventService'
 import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime'
 import { useProjectStore } from './stores/projectStore'
 import { useFlowStore } from './stores/flowStore'
+import { useServerStore } from './stores/serverStore'
 import { useFlowPersistence } from './hooks/useFlowPersistence'
 import './App.css'
 
@@ -22,6 +24,7 @@ function AppContent() {
   const { saveCurrentFlow } = useFlowPersistence()
   const projectActions = useProjectStore((s) => s.actions)
   const flowActions = useFlowStore((s) => s.actions)
+  const serverActions = useServerStore((s) => s.actions)
 
   useEffect(() => {
     async function initialize() {
@@ -47,6 +50,7 @@ function AppContent() {
       projectActions.markClean()
       flowActions.setNodes([])
       flowActions.setEdges([])
+      serverActions.fetchServers()
     }
 
     const handleProjectCreated = (data: { path: string }) => {
@@ -56,12 +60,14 @@ function AppContent() {
       projectActions.markClean()
       flowActions.setNodes([])
       flowActions.setEdges([])
+      serverActions.reset()
     }
 
     const handleProjectClosed = () => {
       projectActions.reset()
       flowActions.setNodes([])
       flowActions.setEdges([])
+      serverActions.reset()
     }
 
     const handleMenuSave = () => {
@@ -79,7 +85,7 @@ function AppContent() {
       EventsOff('project:closed')
       EventsOff('menu:save')
     }
-  }, [projectActions, flowActions, saveCurrentFlow])
+  }, [projectActions, flowActions, serverActions, saveCurrentFlow])
 
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col">
@@ -91,6 +97,7 @@ function AppContent() {
         <LeftSidebar />
         <FlowCanvas />
       </div>
+      <SIPTracePanel />
       <PropertyPanel />
     </div>
   )
