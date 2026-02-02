@@ -3,22 +3,28 @@ package handler
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"sipflow/ent"
 	"sipflow/ent/sipserver"
+	"sipflow/internal/infra/sip"
+
+	sipgosip "github.com/emiago/sipgo/sip"
 )
 
-// SIPService handles SIP server configuration CRUD for Wails binding
+// SIPService handles SIP server configuration CRUD and UA lifecycle for Wails binding
 type SIPService struct {
 	entClient *ent.Client
 	emitter   *EventEmitter
+	uaManager *sip.UAManager
 }
 
 // NewSIPService creates a new SIPService instance
-func NewSIPService(emitter *EventEmitter) *SIPService {
+func NewSIPService(emitter *EventEmitter, uaManager *sip.UAManager) *SIPService {
 	return &SIPService{
-		emitter: emitter,
+		emitter:   emitter,
+		uaManager: uaManager,
 	}
 }
 
@@ -194,5 +200,82 @@ func (s *SIPService) DeleteServer(id int) Response[bool] {
 		return Failure[bool]("DELETE_ERROR", fmt.Sprintf("Failed to delete server: %v", err))
 	}
 
+	return Success(true)
+}
+
+// StartUA creates and starts a SIP User Agent for a given flow node
+func (s *SIPService) StartUA(nodeID string, serverID int) Response[bool] {
+	if s.entClient == nil {
+		return Failure[bool]("NO_PROJECT", "No project is open")
+	}
+
+	ctx := context.Background()
+	srv, err := s.entClient.SIPServer.Get(ctx, serverID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return Failure[bool]("NOT_FOUND", fmt.Sprintf("Server with ID %d not found", serverID))
+		}
+		return Failure[bool]("QUERY_ERROR", fmt.Sprintf("Failed to get server: %v", err))
+	}
+
+	cfg := sip.UAConfig{
+		DisplayName: "SIPFlow/1.0",
+		Transport:   strings.ToLower(srv.Transport),
+		BindHost:    "0.0.0.0",
+		BindPort:    0,
+	}
+
+	if err := s.uaManager.CreateUA(nodeID, cfg); err != nil {
+		return Failure[bool]("UA_ERROR", fmt.Sprintf("Failed to start UA: %v", err))
+	}
+
+	return Success(true)
+}
+
+// StopUA destroys a SIP User Agent for a given flow node
+func (s *SIPService) StopUA(nodeID string) Response[bool] {
+	if err := s.uaManager.DestroyUA(nodeID); err != nil {
+		return Failure[bool]("UA_ERROR", fmt.Sprintf("Failed to stop UA: %v", err))
+	}
+	return Success(true)
+}
+
+// StopAllUAs destroys all active SIP User Agents
+func (s *SIPService) StopAllUAs() Response[bool] {
+	s.uaManager.DestroyAll()
+	return Success(true)
+}
+
+// GetUAStatus returns the status of a specific UA
+func (s *SIPService) GetUAStatus(nodeID string) Response[map[string]interface{}] {
+	status, found := s.uaManager.GetStatus(nodeID)
+	if !found {
+		return Failure[map[string]interface{}]("NOT_FOUND", fmt.Sprintf("UA not found for node %s", nodeID))
+	}
+
+	return Success(map[string]interface{}{
+		"nodeID":    status.NodeID,
+		"transport": status.Transport,
+		"active":    status.Active,
+	})
+}
+
+// ListUAStatuses returns the status of all active UAs
+func (s *SIPService) ListUAStatuses() Response[[]map[string]interface{}] {
+	statuses := s.uaManager.ListActive()
+	result := make([]map[string]interface{}, len(statuses))
+	for i, status := range statuses {
+		result[i] = map[string]interface{}{
+			"nodeID":    status.NodeID,
+			"transport": status.Transport,
+			"active":    status.Active,
+		}
+	}
+	return Success(result)
+}
+
+// SetSIPTrace enables or disables SIP protocol trace logging
+func (s *SIPService) SetSIPTrace(enabled bool) Response[bool] {
+	sipgosip.SIPDebug = enabled
 	return Success(true)
 }

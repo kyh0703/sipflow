@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
+	"os"
 
 	"sipflow/internal/handler"
+	"sipflow/internal/infra/sip"
 )
 
 // App struct
@@ -20,8 +23,24 @@ type App struct {
 // NewApp creates a new App application struct
 func NewApp() *App {
 	emitter := handler.NewEventEmitter()
+
+	// Create SIP trace handler that forwards logs to frontend
+	innerHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})
+	traceHandler := sip.NewSIPTraceHandler(innerHandler, func(entry sip.SIPTraceEntry) {
+		emitter.Emit("sip:trace", map[string]interface{}{
+			"time":    entry.Time.Format("15:04:05.000"),
+			"level":   entry.Level,
+			"message": entry.Message,
+			"nodeID":  entry.NodeID,
+		})
+	})
+	sipLogger := slog.New(traceHandler)
+
+	// Create UA manager with trace-enabled logger
+	uaManager := sip.NewUAManager(sipLogger)
+
 	flowService := handler.NewFlowService(nil) // Will be set during startup
-	sipService := handler.NewSIPService(emitter)
+	sipService := handler.NewSIPService(emitter, uaManager)
 	return &App{
 		eventEmitter:   emitter,
 		flowService:    flowService,
@@ -48,6 +67,8 @@ func (a *App) startup(ctx context.Context) {
 
 // shutdown is called when the app is closing
 func (a *App) shutdown(ctx context.Context) {
+	// Stop all active SIP UAs before closing project
+	a.sipService.StopAllUAs()
 	// Close project if one is open
 	a.projectService.CloseProject()
 }
