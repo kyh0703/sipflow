@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** 그린 플로우가 실제 SIP 통신으로 실행되어야 한다. 디자인과 실행이 하나로 연결되는 것이 핵심.
-**Current focus:** Phase 4 - SIP Infrastructure
+**Current focus:** Phase 4 - SIP Infrastructure (COMPLETE)
 
 ## Current Position
 
 Phase: 4 of 10 (SIP Infrastructure)
-Plan: 2 of 3
-Status: In progress
-Last activity: 2026-02-02 — Completed 04-02-PLAN.md
+Plan: 3 of 3
+Status: Phase complete
+Last activity: 2026-02-02 -- Completed 04-03-PLAN.md
 
-Progress: [████░░░░░░] 45%
+Progress: [████░░░░░░] 47%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
-- Average duration: 2.8 min
-- Total execution time: ~0.60 hours
+- Total plans completed: 14
+- Average duration: 2.9 min
+- Total execution time: ~0.67 hours
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: [████░░░░░░] 45%
 | 01-foundation-project-structure | 4 | ~14 min | ~3.5 min |
 | 02-visual-flow-designer | 4 | ~14 min | ~3.5 min |
 | 03-flow-persistence | 3 | ~10 min | ~3.3 min |
+| 04-sip-infrastructure | 3 | ~13 min | ~4.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (3min), 03-02 (2min), 03-03 (5min), 04-01 (3min), 04-02 (3min)
-- Trend: Stable (consistent execution speed)
+- Last 5 plans: 03-02 (2min), 03-03 (5min), 04-01 (3min), 04-02 (3min), 04-03 (7min)
+- Trend: Stable (04-03 longer due to checkpoint pause)
 
 *Updated after each plan completion*
 
@@ -54,7 +55,7 @@ Recent decisions affecting current work:
 - 01-01: Store database in user config directory
 - 01-01: Use ent auto-increment integer IDs instead of UUIDs
 - 01-02: Use Zustand actions object pattern to keep references stable and prevent re-renders
-- 01-02: Implement event handshake protocol (frontend:ready → backend:ready) to prevent race conditions
+- 01-02: Implement event handshake protocol (frontend:ready -> backend:ready) to prevent race conditions
 - 01-02: Use EventsOff in useEffect cleanup instead of cancel function (Wails v2 API)
 - 01-02: Upgrade Vite to v5 for Tailwind CSS v4 compatibility
 - 01-02: Use Tailwind CSS v4 @theme directive instead of v3 @layer approach
@@ -97,6 +98,11 @@ Recent decisions affecting current work:
 - 04-02: Context-based lifecycle with cancel + ua.Close() for clean teardown
 - 04-02: Direct callback invocation in SIPTraceHandler (no buffering/channels)
 - 04-02: goleak.IgnoreAnyFunction for internal/poll.runtime_pollWait in goroutine leak tests
+- 04-03: UAManager injected into SIPService via constructor (dependency injection)
+- 04-03: SIPTraceHandler callback emits structured map to frontend via EventEmitter
+- 04-03: sipgo SIPDebug toggled directly for protocol-level trace control
+- 04-03: Server ID changed from string to number across frontend (matches ent int PK)
+- 04-03: SIPTracePanel as collapsible bottom bar (hidden by default, terminal-style)
 
 ### Pending Todos
 
@@ -105,7 +111,6 @@ None yet.
 ### Blockers/Concerns
 
 **From Research:**
-- Phase 4: Limited diago production documentation - may need API exploration
 - Phase 8: Blind/Attended Transfer RFCs (5589, 3515) are complex - needs protocol research
 - Phase 10: sipgo proxy patterns have limited documentation beyond examples
 
@@ -116,13 +121,14 @@ None yet.
 - ✅ 01-03: Event handshake protocol completed on backend side (backend:ready emission)
 - ✅ 02-01: Module-level nodeTypes/edgeTypes defined to prevent performance collapse
 - ✅ 03-03: Wails binding issues resolved (unexport SetEntClient, fix type names)
+- ✅ 04-03: Phase 4 diago integration complete - API exploration sufficient
 
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Completed 04-02-PLAN.md
+Stopped at: Completed 04-03-PLAN.md (Phase 4 complete)
 Resume file: None
-Next: 04-03-PLAN.md (SIP Engine wiring)
+Next: Phase 5 - Basic Call
 
 ---
 *State initialized: 2026-02-01*
