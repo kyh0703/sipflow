@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 5 of 10 (Basic SIP Commands)
-Plan: 0 of TBD
-Status: Ready to plan
-Last activity: 2026-02-02 — Phase 4 complete, UI enhanced with shadcn components
+Plan: 1 of 3
+Status: In progress
+Last activity: 2026-02-02 — Completed 05-01-PLAN.md
 
-Progress: [████░░░░░░] 47%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
-- Average duration: 2.9 min
-- Total execution time: ~0.67 hours
+- Total plans completed: 15
+- Average duration: 2.8 min
+- Total execution time: ~0.70 hours
 
 **By Phase:**
 
@@ -32,10 +32,11 @@ Progress: [████░░░░░░] 47%
 | 02-visual-flow-designer | 4 | ~14 min | ~3.5 min |
 | 03-flow-persistence | 3 | ~10 min | ~3.3 min |
 | 04-sip-infrastructure | 3 | ~13 min | ~4.3 min |
+| 05-basic-sip-commands | 1 | ~2 min | ~2 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (2min), 03-03 (5min), 04-01 (3min), 04-02 (3min), 04-03 (7min)
-- Trend: Stable (04-03 longer due to checkpoint pause)
+- Last 5 plans: 03-03 (5min), 04-01 (3min), 04-02 (3min), 04-03 (7min), 05-01 (2min)
+- Trend: Fast (05-01 TDD pure Go, no UI)
 
 *Updated after each plan completion*
 
@@ -104,6 +105,9 @@ Recent decisions affecting current work:
 - 04-03: sipgo SIPDebug toggled directly for protocol-level trace control
 - 04-03: Server ID changed from string to number across frontend (matches ent int PK)
 - 04-03: SIPTracePanel as collapsible bottom bar (hidden by default, terminal-style)
+- 05-01: SessionManager uses simple map with RWMutex (no sync.Map) for explicit locking control
+- 05-01: ActiveSession.Dialog typed as *diago.DialogClientSession for MakeCall/Bye/Cancel usage
+- 05-01: GetByNodeID returns first match (sufficient for one-call-per-UA guard)
 
 ### Pending Todos
 
@@ -127,9 +131,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Phase 4 complete + UI shadcn enhancement
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None
-Next: Phase 5 - Basic SIP Commands (plan-phase 5)
+Next: 05-02-PLAN.md (MakeCall/Bye/Cancel commands)
 
 ---
 *State initialized: 2026-02-01*
