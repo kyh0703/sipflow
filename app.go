@@ -39,8 +39,10 @@ func NewApp() *App {
 	// Create UA manager with trace-enabled logger
 	uaManager := sip.NewUAManager(sipLogger)
 
+	sessionManager := sip.NewSessionManager(sipLogger)
+
 	flowService := handler.NewFlowService(nil) // Will be set during startup
-	sipService := handler.NewSIPService(emitter, uaManager)
+	sipService := handler.NewSIPService(emitter, uaManager, sessionManager)
 	return &App{
 		eventEmitter:   emitter,
 		flowService:    flowService,

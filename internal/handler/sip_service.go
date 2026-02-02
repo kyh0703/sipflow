@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -10,21 +11,25 @@ import (
 	"sipflow/ent/sipserver"
 	"sipflow/internal/infra/sip"
 
+	"github.com/emiago/diago"
+	"github.com/emiago/sipgo"
 	sipgosip "github.com/emiago/sipgo/sip"
 )
 
 // SIPService handles SIP server configuration CRUD and UA lifecycle for Wails binding
 type SIPService struct {
-	entClient *ent.Client
-	emitter   *EventEmitter
-	uaManager *sip.UAManager
+	entClient      *ent.Client
+	emitter        *EventEmitter
+	uaManager      *sip.UAManager
+	sessionManager *sip.SessionManager
 }
 
 // NewSIPService creates a new SIPService instance
-func NewSIPService(emitter *EventEmitter, uaManager *sip.UAManager) *SIPService {
+func NewSIPService(emitter *EventEmitter, uaManager *sip.UAManager, sessionManager *sip.SessionManager) *SIPService {
 	return &SIPService{
-		emitter:   emitter,
-		uaManager: uaManager,
+		emitter:        emitter,
+		uaManager:      uaManager,
+		sessionManager: sessionManager,
 	}
 }
 
@@ -277,5 +282,169 @@ func (s *SIPService) ListUAStatuses() Response[[]map[string]interface{}] {
 // SetSIPTrace enables or disables SIP protocol trace logging
 func (s *SIPService) SetSIPTrace(enabled bool) Response[bool] {
 	sipgosip.SIPDebug = enabled
+	return Success(true)
+}
+
+// MakeCall initiates a SIP INVITE to the target URI via the UA associated with nodeID.
+// Returns the callID immediately; the INVITE runs asynchronously in a goroutine.
+func (s *SIPService) MakeCall(nodeID, targetURI string) Response[string] {
+	if s.entClient == nil {
+		return Failure[string]("NO_PROJECT", "No project is open")
+	}
+
+	if s.sessionManager.HasActiveCall(nodeID) {
+		return Failure[string]("CALL_ACTIVE", fmt.Sprintf("Node %s already has an active call", nodeID))
+	}
+
+	dg, err := s.uaManager.GetDiago(nodeID)
+	if err != nil {
+		return Failure[string]("UA_NOT_FOUND", fmt.Sprintf("UA not found for node %s", nodeID))
+	}
+
+	var recipient sipgosip.Uri
+	if err := sipgosip.ParseUri("sip:"+targetURI, &recipient); err != nil {
+		return Failure[string]("INVALID_URI", fmt.Sprintf("Failed to parse target URI: %v", err))
+	}
+
+	callID := fmt.Sprintf("%s-%d", nodeID, time.Now().UnixNano())
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	session := &sip.ActiveSession{
+		Cancel: cancel,
+		NodeID: nodeID,
+		State:  sip.CallStateDialing,
+	}
+	s.sessionManager.Add(callID, session)
+
+	s.emitter.Emit("sip:callState", map[string]interface{}{
+		"callID": callID,
+		"nodeID": nodeID,
+		"state":  string(sip.CallStateDialing),
+	})
+
+	go s.runInvite(ctx, dg, recipient, callID, nodeID, session)
+
+	return Success(callID)
+}
+
+// runInvite executes the SIP INVITE in a goroutine and manages call lifecycle.
+func (s *SIPService) runInvite(ctx context.Context, dg *diago.Diago, recipient sipgosip.Uri, callID, nodeID string, session *sip.ActiveSession) {
+	defer s.sessionManager.Remove(callID)
+
+	opts := diago.InviteOptions{
+		OnResponse: func(res *sipgosip.Response) error {
+			if res.StatusCode == 180 {
+				session.State = sip.CallStateRinging
+				s.emitter.Emit("sip:callState", map[string]interface{}{
+					"callID": callID,
+					"nodeID": nodeID,
+					"state":  "ringing",
+				})
+			} else if res.StatusCode >= 100 && res.StatusCode < 200 {
+				s.emitter.Emit("sip:callState", map[string]interface{}{
+					"callID":     callID,
+					"nodeID":     nodeID,
+					"state":      "progress",
+					"statusCode": res.StatusCode,
+					"reason":     res.Reason,
+				})
+			}
+			return nil
+		},
+	}
+
+	dialog, err := dg.Invite(ctx, recipient, opts)
+	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			session.State = sip.CallStateFailed
+			s.emitter.Emit("sip:callState", map[string]interface{}{
+				"callID": callID,
+				"nodeID": nodeID,
+				"state":  "cancelled",
+			})
+		} else {
+			var errResp sipgo.ErrDialogResponse
+			if errors.As(err, &errResp) {
+				session.State = sip.CallStateFailed
+				s.emitter.Emit("sip:callState", map[string]interface{}{
+					"callID":     callID,
+					"nodeID":     nodeID,
+					"state":      "failed",
+					"statusCode": errResp.Res.StatusCode,
+					"reason":     errResp.Res.Reason,
+				})
+			} else {
+				session.State = sip.CallStateFailed
+				s.emitter.Emit("sip:callState", map[string]interface{}{
+					"callID":     callID,
+					"nodeID":     nodeID,
+					"state":      "failed",
+					"statusCode": 0,
+					"reason":     err.Error(),
+				})
+			}
+		}
+		return
+	}
+
+	session.Dialog = dialog
+	session.State = sip.CallStateEstablished
+	s.emitter.Emit("sip:callState", map[string]interface{}{
+		"callID": callID,
+		"nodeID": nodeID,
+		"state":  "established",
+	})
+
+	// Wait for dialog to end (remote BYE or local hangup)
+	<-dialog.Context().Done()
+
+	session.State = sip.CallStateTerminated
+	s.emitter.Emit("sip:callState", map[string]interface{}{
+		"callID": callID,
+		"nodeID": nodeID,
+		"state":  "terminated",
+	})
+
+	_ = dialog.Close()
+}
+
+// Bye sends a BYE request to terminate an established call.
+func (s *SIPService) Bye(callID string) Response[bool] {
+	session, found := s.sessionManager.Get(callID)
+	if !found {
+		return Failure[bool]("SESSION_NOT_FOUND", fmt.Sprintf("Session %s not found", callID))
+	}
+
+	if session.State != sip.CallStateEstablished {
+		return Failure[bool]("INVALID_STATE", fmt.Sprintf("Cannot send BYE in state %s", session.State))
+	}
+
+	if session.Dialog == nil {
+		return Failure[bool]("NO_DIALOG", "Session has no active dialog")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := session.Dialog.Hangup(ctx); err != nil {
+		return Failure[bool]("BYE_ERROR", fmt.Sprintf("Failed to send BYE: %v", err))
+	}
+
+	return Success(true)
+}
+
+// Cancel cancels an outgoing call that is still dialing or ringing.
+func (s *SIPService) Cancel(callID string) Response[bool] {
+	session, found := s.sessionManager.Get(callID)
+	if !found {
+		return Failure[bool]("SESSION_NOT_FOUND", fmt.Sprintf("Session %s not found", callID))
+	}
+
+	if session.State != sip.CallStateDialing && session.State != sip.CallStateRinging {
+		return Failure[bool]("INVALID_STATE", fmt.Sprintf("Cannot cancel in state %s", session.State))
+	}
+
+	session.Cancel()
 	return Success(true)
 }
