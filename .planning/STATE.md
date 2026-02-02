@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 5 of 10 (Basic SIP Commands)
-Plan: 2 of 3
-Status: In progress
-Last activity: 2026-02-02 — Completed 05-02-PLAN.md
+Plan: 3 of 3
+Status: Phase complete
+Last activity: 2026-02-02 — Completed 05-03-PLAN.md
 
-Progress: [████████░░] 53%
+Progress: [█████████░] 57%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
-- Average duration: 2.8 min
-- Total execution time: ~0.74 hours
+- Total plans completed: 17
+- Average duration: 2.7 min
+- Total execution time: ~0.77 hours
 
 **By Phase:**
 
@@ -32,11 +32,11 @@ Progress: [████████░░] 53%
 | 02-visual-flow-designer | 4 | ~14 min | ~3.5 min |
 | 03-flow-persistence | 3 | ~10 min | ~3.3 min |
 | 04-sip-infrastructure | 3 | ~13 min | ~4.3 min |
-| 05-basic-sip-commands | 2 | ~4.5 min | ~2.3 min |
+| 05-basic-sip-commands | 3 | ~6.5 min | ~2.2 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-01 (3min), 04-02 (3min), 04-03 (7min), 05-01 (2min), 05-02 (2.5min)
-- Trend: Fast (05-02 SIP commands, pure Go)
+- Last 5 plans: 04-02 (3min), 04-03 (7min), 05-01 (2min), 05-02 (2.5min), 05-03 (2min)
+- Trend: Fast (05-03 frontend sipStore + trace panel)
 
 *Updated after each plan completion*
 
@@ -111,6 +111,8 @@ Recent decisions affecting current work:
 - 05-02: ServeBackground called in CreateUA with no-op handler (outbound-only Phase 5)
 - 05-02: Simple callID format (nodeID-timestamp) sufficient for single-user desktop app
 - 05-02: MakeCall returns callID immediately; INVITE runs async in goroutine
+- 05-03: Dual EventsOn for callState (panel local entries + store global state)
+- 05-03: formatTime() for callState entries (backend trace includes time; callState needs frontend timestamp)
 
 ### Pending Todos
 
@@ -134,9 +136,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Completed 05-02-PLAN.md
+Stopped at: Completed 05-03-PLAN.md (Phase 5 complete)
 Resume file: None
-Next: 05-03-PLAN.md (Frontend SIP controls)
+Next: Phase 6 (SIP Event Nodes)
 
 ---
 *State initialized: 2026-02-01*
