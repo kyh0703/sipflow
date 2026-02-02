@@ -19,9 +19,9 @@ Progress: [████░░░░░░] 45%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 13
 - Average duration: 2.8 min
-- Total execution time: ~0.56 hours
+- Total execution time: ~0.60 hours
 
 **By Phase:**
 
@@ -32,7 +32,7 @@ Progress: [████░░░░░░] 45%
 | 03-flow-persistence | 3 | ~10 min | ~3.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-04 (5min), 03-01 (3min), 03-02 (2min), 03-03 (5min), 04-01 (3min)
+- Last 5 plans: 03-01 (3min), 03-02 (2min), 03-03 (5min), 04-01 (3min), 04-02 (3min)
 - Trend: Stable (consistent execution speed)
 
 *Updated after each plan completion*
@@ -93,6 +93,10 @@ Recent decisions affecting current work:
 - 04-01: SIPServer password field uses ent Sensitive() to omit from serialization
 - 04-01: SIPService receives EventEmitter for future SIP event emission
 - 04-01: ProjectService manages sipService entClient lifecycle alongside flowService
+- 04-02: Use sipgo.NewUA() + diago.NewDiago(ua, opts...) wrapper pattern (diago.NewUA doesn't exist)
+- 04-02: Context-based lifecycle with cancel + ua.Close() for clean teardown
+- 04-02: Direct callback invocation in SIPTraceHandler (no buffering/channels)
+- 04-02: goleak.IgnoreAnyFunction for internal/poll.runtime_pollWait in goroutine leak tests
 
 ### Pending Todos
 
@@ -116,9 +120,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Completed 04-01-PLAN.md
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
-Next: 04-02-PLAN.md (UAManager with goroutine-safe lifecycle)
+Next: 04-03-PLAN.md (SIP Engine wiring)
 
 ---
 *State initialized: 2026-02-01*
