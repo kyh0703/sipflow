@@ -10,6 +10,15 @@ import {
   addEdge as addEdgeUtil,
 } from '@xyflow/react'
 import type { SIPFlowNode, SIPFlowEdge } from '@/types/nodes'
+import { useProjectStore } from '@/stores/projectStore'
+
+/**
+ * Mark project as dirty (unsaved changes).
+ * Uses getState() pattern for cross-store communication (non-component context).
+ */
+function markDirty() {
+  useProjectStore.getState().actions.markDirty()
+}
 
 /**
  * Valid connection sequences based on node types
@@ -102,15 +111,31 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 
   actions: {
     // React Flow change handlers - use xyflow utilities for drag, select, delete
-    onNodesChange: (changes) =>
+    onNodesChange: (changes) => {
       set((state) => ({
         nodes: applyNodeChanges(changes, state.nodes),
-      })),
+      }))
+      // Mark dirty for user-initiated changes (drag, delete, resize)
+      // Filter out selection-only changes to avoid false dirty
+      const hasMutatingChange = changes.some(
+        (c) => c.type !== 'select'
+      )
+      if (hasMutatingChange) {
+        markDirty()
+      }
+    },
 
-    onEdgesChange: (changes) =>
+    onEdgesChange: (changes) => {
       set((state) => ({
         edges: applyEdgeChanges(changes, state.edges),
-      })),
+      }))
+      const hasMutatingChange = changes.some(
+        (c) => c.type !== 'select'
+      )
+      if (hasMutatingChange) {
+        markDirty()
+      }
+    },
 
     onConnect: (connection) =>
       set((state) => {
@@ -142,16 +167,19 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           return edge
         })
 
+        markDirty()
         return { edges: updatedEdges }
       }),
 
-    // Manual node/edge manipulation (for programmatic changes)
-    addNode: (node) =>
+    // Manual node/edge manipulation (mark dirty for user-initiated changes)
+    addNode: (node) => {
       set((state) => ({
         nodes: [...state.nodes, node],
-      })),
+      }))
+      markDirty()
+    },
 
-    removeNode: (nodeId) =>
+    removeNode: (nodeId) => {
       set((state) => ({
         nodes: state.nodes.filter((n) => n.id !== nodeId),
         edges: state.edges.filter(
@@ -159,24 +187,32 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         ),
         selectedNodeId:
           state.selectedNodeId === nodeId ? null : state.selectedNodeId,
-      })),
+      }))
+      markDirty()
+    },
 
-    updateNodeData: (nodeId, data) =>
+    updateNodeData: (nodeId, data) => {
       set((state) => ({
         nodes: state.nodes.map((n) =>
           n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n
         ),
-      })),
+      }))
+      markDirty()
+    },
 
-    addEdge: (edge) =>
+    addEdge: (edge) => {
       set((state) => ({
         edges: [...state.edges, edge],
-      })),
+      }))
+      markDirty()
+    },
 
-    removeEdge: (edgeId) =>
+    removeEdge: (edgeId) => {
       set((state) => ({
         edges: state.edges.filter((e) => e.id !== edgeId),
-      })),
+      }))
+      markDirty()
+    },
 
     setNodes: (nodes) => set({ nodes }),
 

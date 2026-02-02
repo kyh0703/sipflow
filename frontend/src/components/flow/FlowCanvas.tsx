@@ -6,6 +6,7 @@ import {
   MiniMap,
   useReactFlow,
   type Node,
+  type Viewport,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { nodeTypes } from './nodes'
@@ -15,8 +16,12 @@ import { useFlowStore } from '@/stores/flowStore'
 export function FlowCanvas() {
   const nodes = useFlowStore((s) => s.nodes)
   const edges = useFlowStore((s) => s.edges)
-  const { onNodesChange, onEdgesChange, onConnect, addNode, setSelectedNode } = useFlowStore((s) => s.actions)
+  const { onNodesChange, onEdgesChange, onConnect, addNode, setSelectedNode, setViewport } = useFlowStore((s) => s.actions)
   const { screenToFlowPosition } = useReactFlow()
+
+  const onMoveEnd = useCallback((_event: any, viewport: Viewport) => {
+    setViewport(viewport)
+  }, [setViewport])
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
@@ -112,6 +117,7 @@ export function FlowCanvas() {
         onConnect={onConnect}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
+        onMoveEnd={onMoveEnd}
         onDragOver={onDragOver}
         onDrop={onDrop}
         nodeTypes={nodeTypes}
