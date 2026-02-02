@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 5 of 10 (Basic SIP Commands)
-Plan: 1 of 3
+Plan: 2 of 3
 Status: In progress
-Last activity: 2026-02-02 — Completed 05-01-PLAN.md
+Last activity: 2026-02-02 — Completed 05-02-PLAN.md
 
-Progress: [█████░░░░░] 50%
+Progress: [████████░░] 53%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
+- Total plans completed: 16
 - Average duration: 2.8 min
-- Total execution time: ~0.70 hours
+- Total execution time: ~0.74 hours
 
 **By Phase:**
 
@@ -32,11 +32,11 @@ Progress: [█████░░░░░] 50%
 | 02-visual-flow-designer | 4 | ~14 min | ~3.5 min |
 | 03-flow-persistence | 3 | ~10 min | ~3.3 min |
 | 04-sip-infrastructure | 3 | ~13 min | ~4.3 min |
-| 05-basic-sip-commands | 1 | ~2 min | ~2 min |
+| 05-basic-sip-commands | 2 | ~4.5 min | ~2.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-03 (5min), 04-01 (3min), 04-02 (3min), 04-03 (7min), 05-01 (2min)
-- Trend: Fast (05-01 TDD pure Go, no UI)
+- Last 5 plans: 04-01 (3min), 04-02 (3min), 04-03 (7min), 05-01 (2min), 05-02 (2.5min)
+- Trend: Fast (05-02 SIP commands, pure Go)
 
 *Updated after each plan completion*
 
@@ -108,6 +108,9 @@ Recent decisions affecting current work:
 - 05-01: SessionManager uses simple map with RWMutex (no sync.Map) for explicit locking control
 - 05-01: ActiveSession.Dialog typed as *diago.DialogClientSession for MakeCall/Bye/Cancel usage
 - 05-01: GetByNodeID returns first match (sufficient for one-call-per-UA guard)
+- 05-02: ServeBackground called in CreateUA with no-op handler (outbound-only Phase 5)
+- 05-02: Simple callID format (nodeID-timestamp) sufficient for single-user desktop app
+- 05-02: MakeCall returns callID immediately; INVITE runs async in goroutine
 
 ### Pending Todos
 
@@ -131,9 +134,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Completed 05-01-PLAN.md
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
-Next: 05-02-PLAN.md (MakeCall/Bye/Cancel commands)
+Next: 05-03-PLAN.md (Frontend SIP controls)
 
 ---
 *State initialized: 2026-02-01*
