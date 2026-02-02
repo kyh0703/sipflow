@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"sipflow/ent"
 	"sipflow/ent/edge"
@@ -285,10 +286,10 @@ func (s *FlowService) GetFlow(id int) Response[*ent.Flow] {
 	return Success(f)
 }
 
-// ListFlows retrieves all flows ordered by updated_at descending
-func (s *FlowService) ListFlows() Response[[]*ent.Flow] {
+// ListFlows retrieves all flows as lightweight metadata ordered by updated_at descending
+func (s *FlowService) ListFlows() Response[[]FlowMeta] {
 	if s.entClient == nil {
-		return Failure[[]*ent.Flow]("NO_PROJECT", "No project is open")
+		return Failure[[]FlowMeta]("NO_PROJECT", "No project is open")
 	}
 
 	ctx := context.Background()
@@ -298,10 +299,20 @@ func (s *FlowService) ListFlows() Response[[]*ent.Flow] {
 		All(ctx)
 
 	if err != nil {
-		return Failure[[]*ent.Flow]("QUERY_ERROR", fmt.Sprintf("Failed to list flows: %v", err))
+		return Failure[[]FlowMeta]("QUERY_ERROR", fmt.Sprintf("Failed to list flows: %v", err))
 	}
 
-	return Success(flows)
+	metas := make([]FlowMeta, len(flows))
+	for i, f := range flows {
+		metas[i] = FlowMeta{
+			ID:        f.ID,
+			Name:      f.Name,
+			CreatedAt: f.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: f.UpdatedAt.Format(time.RFC3339),
+		}
+	}
+
+	return Success(metas)
 }
 
 // DeleteFlow deletes a flow by ID
@@ -320,6 +331,103 @@ func (s *FlowService) DeleteFlow(id int) Response[bool] {
 			return Failure[bool]("NOT_FOUND", fmt.Sprintf("Flow with ID %d not found", id))
 		}
 		return Failure[bool]("DELETE_ERROR", fmt.Sprintf("Failed to delete flow: %v", err))
+	}
+
+	return Success(true)
+}
+
+// LoadFlow retrieves complete xyflow-compatible canvas state for a flow
+func (s *FlowService) LoadFlow(id int) Response[*FlowState] {
+	if s.entClient == nil {
+		return Failure[*FlowState]("NO_PROJECT", "No project is open")
+	}
+
+	ctx := context.Background()
+	f, err := s.entClient.Flow.
+		Query().
+		Where(flow.ID(id)).
+		WithNodes().
+		WithEdges(func(q *ent.EdgeQuery) {
+			q.WithSourceNode()
+			q.WithTargetNode()
+		}).
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return Failure[*FlowState]("NOT_FOUND", fmt.Sprintf("Flow with ID %d not found", id))
+		}
+		return Failure[*FlowState]("QUERY_ERROR", fmt.Sprintf("Failed to load flow: %v", err))
+	}
+
+	// Map ent nodes to FlowNodeData
+	nodes := make([]FlowNodeData, len(f.Edges.Nodes))
+	for i, n := range f.Edges.Nodes {
+		nodes[i] = FlowNodeData{
+			ID:        n.XyflowID,
+			Type:      n.Type,
+			PositionX: n.PositionX,
+			PositionY: n.PositionY,
+			Data:      n.Data,
+		}
+	}
+
+	// Map ent edges to FlowEdgeData with source/target xyflow IDs
+	edges := make([]FlowEdgeData, len(f.Edges.Edges))
+	for i, e := range f.Edges.Edges {
+		var sourceXyflowID, targetXyflowID string
+		if e.Edges.SourceNode != nil {
+			sourceXyflowID = e.Edges.SourceNode.XyflowID
+		}
+		if e.Edges.TargetNode != nil {
+			targetXyflowID = e.Edges.TargetNode.XyflowID
+		}
+
+		edges[i] = FlowEdgeData{
+			ID:           e.XyflowID,
+			Source:       sourceXyflowID,
+			Target:       targetXyflowID,
+			SourceHandle: e.SourceHandle,
+			TargetHandle: e.TargetHandle,
+			Type:         e.Type,
+			Data:         e.Data,
+		}
+	}
+
+	state := &FlowState{
+		FlowID:       f.ID,
+		Name:         f.Name,
+		Nodes:        nodes,
+		Edges:        edges,
+		ViewportX:    f.ViewportX,
+		ViewportY:    f.ViewportY,
+		ViewportZoom: f.ViewportZoom,
+	}
+
+	return Success(state)
+}
+
+// UpdateFlowName updates the name of an existing flow
+func (s *FlowService) UpdateFlowName(id int, name string) Response[bool] {
+	if s.entClient == nil {
+		return Failure[bool]("NO_PROJECT", "No project is open")
+	}
+
+	if name == "" {
+		return Failure[bool]("VALIDATION_ERROR", "Flow name cannot be empty")
+	}
+
+	ctx := context.Background()
+	_, err := s.entClient.Flow.
+		UpdateOneID(id).
+		SetName(name).
+		Save(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return Failure[bool]("NOT_FOUND", fmt.Sprintf("Flow with ID %d not found", id))
+		}
+		return Failure[bool]("UPDATE_ERROR", fmt.Sprintf("Failed to update flow name: %v", err))
 	}
 
 	return Success(true)
