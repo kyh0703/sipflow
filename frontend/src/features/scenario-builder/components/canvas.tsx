@@ -8,9 +8,11 @@ import {
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useScenarioStore } from '../store/scenarioStore';
-import { edgeTypes } from '../edges/BranchEdge';
-import { useDnD } from '../hooks/useDnD';
+import { useScenarioStore } from '../store/scenario-store';
+import { edgeTypes } from '../edges/branch-edge';
+import { useDnD } from '../hooks/use-dnd';
+import { nodeTypes } from './nodes';
+import { INSTANCE_COLORS } from '../types/scenario';
 
 export function Canvas() {
   const { screenToFlowPosition } = useReactFlow();
@@ -36,11 +38,46 @@ export function Canvas() {
       y: event.clientY,
     });
 
+    let nodeType: string;
+    let nodeData: Record<string, unknown>;
+
+    if (dragType === 'sipInstance') {
+      // Count existing SIP instances for color assignment
+      const instanceCount = nodes.filter((n) => n.type === 'sipInstance').length;
+      nodeType = 'sipInstance';
+      nodeData = {
+        label: 'SIP Instance',
+        mode: 'DN',
+        register: true,
+        color: INSTANCE_COLORS[instanceCount % INSTANCE_COLORS.length],
+      };
+    } else if (dragType.startsWith('command-')) {
+      // Parse command name from type string (e.g., 'command-MakeCall' -> 'MakeCall')
+      const commandName = dragType.replace('command-', '');
+      nodeType = 'command';
+      nodeData = {
+        label: commandName,
+        command: commandName,
+      };
+    } else if (dragType.startsWith('event-')) {
+      // Parse event name from type string (e.g., 'event-INCOMING' -> 'INCOMING')
+      const eventName = dragType.replace('event-', '');
+      nodeType = 'event';
+      nodeData = {
+        label: eventName,
+        event: eventName,
+      };
+    } else {
+      // Fallback for unknown types
+      nodeType = dragType;
+      nodeData = { label: `${dragType} node` };
+    }
+
     const newNode: Node = {
       id: `${dragType}-${Date.now()}`,
-      type: dragType,
+      type: nodeType,
       position,
-      data: { label: `${dragType} node` },
+      data: nodeData,
     };
 
     addNode(newNode);
@@ -71,7 +108,7 @@ export function Canvas() {
       onDragOver={onDragOver}
       onNodeClick={onNodeClick}
       onPaneClick={onPaneClick}
-      nodeTypes={{}}
+      nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       fitView
     >
