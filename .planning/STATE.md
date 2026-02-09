@@ -2,17 +2,17 @@
 
 ## 현재 상태
 - **마일스톤**: 1 (MVP — 시각적 시나리오 빌더 + 시뮬레이션 실행)
-- **페이즈**: 01 (Project Scaffolding — 1 of 3 plans complete)
-- **진행률**: 1/15 plans (6.7%)
-- **상태**: `in-progress`
-- **최근 활동**: 2026-02-09 — Completed 01-01-PLAN.md
+- **페이즈**: 01 완료, 02 대기
+- **진행률**: 3/15 plans (20%)
+- **상태**: `phase-01-complete`
+- **최근 활동**: 2026-02-09 — Phase 01 완료 (검증 통과)
 
-**진행 바:** █░░░░░░░░░░░░░░ (1/15)
+**진행 바:** ███░░░░░░░░░░░░ (3/15)
 
 ## 세션 연속성
-- **Last session:** 2026-02-09 15:50:54 UTC
-- **Stopped at:** Completed 01-01-PLAN.md (awaiting commit approval)
-- **Resume file:** None (awaiting user commit decision)
+- **Last session:** 2026-02-09
+- **Stopped at:** Phase 01 완료, Phase 02 대기
+- **Resume file:** None
 
 ## 프로젝트 메모리
 
@@ -42,6 +42,9 @@
 - [2026-02-09] internal/ 패키지 구조: engine, scenario, binding (01-01)
 - [2026-02-09] Multiple Binding Structs 패턴 채택 (01-01)
 - [2026-02-09] diago v0.27.0 SIP 라이브러리 채택 (01-01)
+- [2026-02-09] Tailwind CSS v4 CSS 기반 설정 채택 (01-02)
+- [2026-02-09] shadcn/ui new-york 스타일 채택 (01-02)
+- [2026-02-09] useEffect + useState 바인딩 호출 패턴 (01-03)
 
 ## 결정사항 누적
 
@@ -51,6 +54,9 @@
 | 01-01 | internal/ 3계층 구조 | 도메인 분리 (engine, scenario, binding) | 백엔드 아키텍처 |
 | 01-01 | Multiple Binding Structs | 관심사 분리, 독립적 바인딩 추가 가능 | Frontend-Backend 통신 |
 | 01-01 | diago v0.27.0 채택 | sipgo 기반, DialogSession 추상화 | SIP 엔진 구현 |
+| 01-02 | Tailwind CSS v4 (CSS 기반) | JS config 불필요, @tailwindcss/vite | 프론트엔드 스타일링 |
+| 01-02 | shadcn/ui new-york 스타일 | neutral base color, CSS variables | UI 컴포넌트 |
+| 01-03 | useEffect 마운트 패턴 | 비동기 바인딩 호출 + 에러 처리 | 프론트엔드 패턴 |
 
 ## 차단 요소 / 우려사항
 
@@ -59,4 +65,4 @@
 
 ### 현재
 - libwebkit 시스템 의존성 누락 (Linux 프로덕션 빌드 시 필요, 개발은 가능)
-- npm audit 3개 moderate 취약점 (프로덕션 전 수정 필요)
+- npm audit moderate 취약점 (프로덕션 전 수정 필요)

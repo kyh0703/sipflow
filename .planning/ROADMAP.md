@@ -12,9 +12,9 @@
 **Plans:** 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Wails v2 프로젝트 초기화 + Go 백엔드 패키지 구조 + diago 의존성
-- [ ] 01-02-PLAN.md — Tailwind CSS v4 + shadcn/ui + @xyflow/react + zustand 설정
-- [ ] 01-03-PLAN.md — Go↔React 바인딩 검증 (ping/pong) + 사용자 확인
+- [x] 01-01-PLAN.md — Wails v2 프로젝트 초기화 + Go 백엔드 패키지 구조 + diago 의존성
+- [x] 01-02-PLAN.md — Tailwind CSS v4 + shadcn/ui + @xyflow/react + zustand 설정
+- [x] 01-03-PLAN.md — Go↔React 바인딩 검증 (ping/pong) + 사용자 확인
 
 **성공 기준**: `wails dev`로 앱 실행, Go↔React 양방향 통신 동작 확인
 
