@@ -2,6 +2,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { DnDProvider } from '../hooks/use-dnd';
 import { Canvas } from './canvas';
 import { NodePalette } from './node-palette';
+import { PropertiesPanel } from './properties-panel';
 
 export function ScenarioBuilder() {
   return (
@@ -27,12 +28,9 @@ export function ScenarioBuilder() {
             <Canvas />
           </div>
 
-          {/* Right Sidebar: Properties placeholder */}
+          {/* Right Sidebar: Properties */}
           <div className="w-[280px] border-l border-border bg-background overflow-y-auto p-4">
-            <h3 className="text-sm font-semibold text-muted-foreground">Properties</h3>
-            <p className="text-xs text-muted-foreground mt-2">
-              Select a node to edit properties
-            </p>
+            <PropertiesPanel />
           </div>
         </div>
       </DnDProvider>
