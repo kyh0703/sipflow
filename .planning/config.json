@@ -1,0 +1,23 @@
+{
+  "project": "sipflow",
+  "version": "0.1.0",
+  "milestone": 1,
+  "phase": 0,
+  "status": "initialized",
+  "commitMode": "confirm",
+  "framework": "wails",
+  "frontendFramework": "react",
+  "language": {
+    "backend": "go",
+    "frontend": "typescript"
+  },
+  "createdAt": "2026-02-09",
+  "paths": {
+    "planning": ".planning",
+    "project": ".planning/PROJECT.md",
+    "requirements": ".planning/REQUIREMENTS.md",
+    "roadmap": ".planning/ROADMAP.md",
+    "state": ".planning/STATE.md",
+    "research": ".planning/research"
+  }
+}
