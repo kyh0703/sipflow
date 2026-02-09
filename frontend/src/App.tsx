@@ -1,28 +1,61 @@
-import {useState} from 'react';
-import logo from './assets/images/logo-universal.png';
+import { useEffect, useState } from 'react';
 import './App.css';
-import {Greet} from "../wailsjs/go/main/App";
+import { Ping, GetVersion } from '../wailsjs/go/binding/EngineBinding';
 
 function App() {
-    const [resultText, setResultText] = useState("Please enter your name below 👇");
-    const [name, setName] = useState('');
-    const updateName = (e: any) => setName(e.target.value);
-    const updateResultText = (result: string) => setResultText(result);
+  const [backendStatus, setBackendStatus] = useState<string>('Connecting...');
+  const [version, setVersion] = useState<string>('Loading...');
+  const [error, setError] = useState<string | null>(null);
 
-    function greet() {
-        Greet(name).then(updateResultText);
-    }
+  useEffect(() => {
+    const initializeBackend = async () => {
+      try {
+        const pingResponse = await Ping();
+        setBackendStatus(`Backend: ${pingResponse}`);
 
-    return (
-        <div id="App">
-            <img src={logo} id="logo" alt="logo"/>
-            <div id="result" className="result">{resultText}</div>
-            <div id="input" className="input-box">
-                <input id="name" className="input" onChange={updateName} autoComplete="off" name="input" type="text"/>
-                <button className="btn" onClick={greet}>Greet</button>
+        const versionResponse = await GetVersion();
+        setVersion(`v${versionResponse}`);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        setBackendStatus('Backend: error');
+      }
+    };
+
+    initializeBackend();
+  }, []);
+
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="bg-white p-8 rounded-lg shadow-lg">
+        <h1 className="text-3xl font-bold text-center text-indigo-600 mb-6">
+          SIPFLOW
+        </h1>
+
+        <div className="space-y-3">
+          <div className="text-center">
+            <p className={`text-lg ${error ? 'text-red-600' : 'text-green-600'}`}>
+              {backendStatus}
+            </p>
+          </div>
+
+          <div className="text-center">
+            <p className="text-lg text-gray-700">
+              {version}
+            </p>
+          </div>
+
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 rounded border border-red-200">
+              <p className="text-sm text-red-600">
+                Error: {error}
+              </p>
             </div>
+          )}
         </div>
-    )
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default App;
