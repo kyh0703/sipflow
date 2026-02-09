@@ -6,6 +6,7 @@ import {
   MiniMap,
   useReactFlow,
   type Node,
+  type Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useScenarioStore } from '../store/scenario-store';
@@ -97,6 +98,34 @@ export function Canvas() {
     setSelectedNode(null);
   };
 
+  const isValidConnection = (connection: Edge | { source: string; target: string; sourceHandle?: string | null }) => {
+    // Prevent self-connections
+    if (connection.source === connection.target) {
+      return false;
+    }
+
+    // Prevent connecting TO a SipInstance node (they have no target handle)
+    const targetNode = nodes.find((node) => node.id === connection.target);
+    if (targetNode && targetNode.type === 'sipInstance') {
+      return false;
+    }
+
+    // Prevent duplicate connections from the same source handle
+    const existingEdge = edges.find(
+      (edge) =>
+        edge.source === connection.source &&
+        edge.sourceHandle === connection.sourceHandle
+    );
+    if (existingEdge) {
+      return false;
+    }
+
+    return true;
+  };
+
+  const connectionLineStyle = { stroke: '#94a3b8', strokeWidth: 2 };
+  const defaultEdgeOptions = { type: 'branch' };
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -110,6 +139,9 @@ export function Canvas() {
       onPaneClick={onPaneClick}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
+      isValidConnection={isValidConnection}
+      connectionLineStyle={connectionLineStyle}
+      defaultEdgeOptions={defaultEdgeOptions}
       fitView
     >
       <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#d1d5db" />

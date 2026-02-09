@@ -25,6 +25,8 @@ interface ScenarioState {
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
   clearCanvas: () => void;
+  getInstanceNodes: () => Node[];
+  getInstanceColor: (instanceId: string) => string;
 }
 
 export const useScenarioStore = create<ScenarioState>((set, get) => ({
@@ -96,5 +98,17 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       edges: [],
       selectedNodeId: null,
     });
+  },
+
+  getInstanceNodes: () => {
+    return get().nodes.filter((node) => node.type === 'sipInstance');
+  },
+
+  getInstanceColor: (instanceId: string) => {
+    const instance = get().nodes.find((node) => node.id === instanceId && node.type === 'sipInstance');
+    if (instance && instance.data && typeof instance.data.color === 'string') {
+      return instance.data.color;
+    }
+    return '#94a3b8'; // gray default
   },
 }));
