@@ -10,6 +10,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import type { EventNode as EventNodeType } from '../../types/scenario';
+import { useScenarioStore } from '../../store/scenario-store';
 
 const EVENT_ICONS = {
   INCOMING: Bell,
@@ -22,13 +23,17 @@ const EVENT_ICONS = {
   NOTIFY: MessageSquare,
 } as const;
 
-export function EventNode({ data }: NodeProps<EventNodeType>) {
+export function EventNode({ data, id }: NodeProps<EventNodeType>) {
   const Icon = EVENT_ICONS[data.event as keyof typeof EVENT_ICONS];
   const instanceColor = data.sipInstanceId ? '#f59e0b' : '#6b7280';
+  const validationErrors = useScenarioStore((state) => state.validationErrors);
+  const hasError = validationErrors.some((error) => error.nodeId === id);
 
   return (
     <div
-      className="bg-amber-50 border-2 border-amber-400 rounded-xl shadow-md min-w-[150px]"
+      className={`bg-amber-50 border-2 border-amber-400 rounded-xl shadow-md min-w-[150px] ${
+        hasError ? 'ring-2 ring-red-500 shadow-red-200' : ''
+      }`}
       style={{ borderLeftWidth: '4px', borderLeftColor: instanceColor }}
     >
       <Handle

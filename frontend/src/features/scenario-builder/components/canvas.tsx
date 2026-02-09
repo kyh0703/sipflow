@@ -12,6 +12,8 @@ import {
 import '@xyflow/react/dist/style.css';
 import { useScenarioStore } from '../store/scenario-store';
 import { useScenarioApi } from '../hooks/use-scenario-api';
+import { useValidation } from '../hooks/use-validation';
+import { wouldCreateCycle } from '../lib/validation';
 import { edgeTypes } from '../edges/branch-edge';
 import { useDnD } from '../hooks/use-dnd';
 import { nodeTypes } from './nodes';
@@ -21,6 +23,7 @@ export function Canvas() {
   const { screenToFlowPosition } = useReactFlow();
   const { type: dragType, setType: setDragType } = useDnD();
   const api = useScenarioApi();
+  const { validateAndNotify } = useValidation();
 
   const nodes = useScenarioStore((state) => state.nodes);
   const edges = useScenarioStore((state) => state.edges);
@@ -116,6 +119,9 @@ export function Canvas() {
           return;
         }
 
+        // Run validation and show warnings
+        validateAndNotify();
+
         try {
           const flowData = toFlowJSON();
           await api.saveScenario(currentScenarioId, flowData);
@@ -130,7 +136,7 @@ export function Canvas() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [currentScenarioId, api, toFlowJSON, setDirty]);
+  }, [currentScenarioId, api, toFlowJSON, setDirty, validateAndNotify]);
 
   const isValidConnection = (connection: Edge | { source: string; target: string; sourceHandle?: string | null }) => {
     // Prevent self-connections
@@ -151,6 +157,11 @@ export function Canvas() {
         edge.sourceHandle === connection.sourceHandle
     );
     if (existingEdge) {
+      return false;
+    }
+
+    // Prevent cycles using DFS
+    if (wouldCreateCycle(nodes, edges, { source: connection.source, target: connection.target })) {
       return false;
     }
 

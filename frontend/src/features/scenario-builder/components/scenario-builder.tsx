@@ -1,5 +1,6 @@
 import { ReactFlowProvider } from '@xyflow/react';
 import { Save } from 'lucide-react';
+import { Toaster } from '@/components/ui/sonner';
 import { DnDProvider } from '../hooks/use-dnd';
 import { Canvas } from './canvas';
 import { NodePalette } from './node-palette';
@@ -34,6 +35,7 @@ export function ScenarioBuilder() {
   return (
     <ReactFlowProvider>
       <DnDProvider>
+        <Toaster position="bottom-right" richColors />
         <div className="flex flex-col h-screen w-screen">
           {/* Header Bar */}
           <div className="h-10 border-b border-border bg-background flex items-center justify-between px-4">
