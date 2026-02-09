@@ -3,20 +3,46 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"sipflow/internal/binding"
+	"sipflow/internal/scenario"
 )
 
 // App struct
 type App struct {
-	ctx           context.Context
-	engineBinding *binding.EngineBinding
+	ctx             context.Context
+	engineBinding   *binding.EngineBinding
+	scenarioBinding *binding.ScenarioBinding
+	scenarioRepo    *scenario.Repository
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
+	// Determine database path
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		panic(fmt.Sprintf("failed to get user config dir: %v", err))
+	}
+
+	dbDir := filepath.Join(configDir, "sipflow")
+	if err := os.MkdirAll(dbDir, 0755); err != nil {
+		panic(fmt.Sprintf("failed to create config directory: %v", err))
+	}
+
+	dbPath := filepath.Join(dbDir, "scenarios.db")
+
+	// Initialize repository
+	repo, err := scenario.NewRepository(dbPath)
+	if err != nil {
+		panic(fmt.Sprintf("failed to initialize scenario repository: %v", err))
+	}
+
 	return &App{
-		engineBinding: binding.NewEngineBinding(),
+		engineBinding:   binding.NewEngineBinding(),
+		scenarioBinding: binding.NewScenarioBinding(repo),
+		scenarioRepo:    repo,
 	}
 }
 
@@ -25,6 +51,14 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.engineBinding.SetContext(ctx)
+	a.scenarioBinding.SetContext(ctx)
+}
+
+// shutdown is called when the app is closing
+func (a *App) shutdown(ctx context.Context) {
+	if a.scenarioRepo != nil {
+		a.scenarioRepo.Close()
+	}
 }
 
 // Greet returns a greeting for the given name
