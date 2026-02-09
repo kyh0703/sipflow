@@ -1,36 +1,87 @@
 import { ReactFlowProvider } from '@xyflow/react';
+import { Save } from 'lucide-react';
 import { DnDProvider } from '../hooks/use-dnd';
 import { Canvas } from './canvas';
 import { NodePalette } from './node-palette';
 import { PropertiesPanel } from './properties-panel';
+import { ScenarioTree } from './scenario-tree';
+import { useScenarioStore } from '../store/scenario-store';
+import { useScenarioApi } from '../hooks/use-scenario-api';
 
 export function ScenarioBuilder() {
+  const api = useScenarioApi();
+  const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
+  const currentScenarioName = useScenarioStore((state) => state.currentScenarioName);
+  const isDirty = useScenarioStore((state) => state.isDirty);
+  const toFlowJSON = useScenarioStore((state) => state.toFlowJSON);
+  const setDirty = useScenarioStore((state) => state.setDirty);
+
+  const handleSave = async () => {
+    if (!currentScenarioId) {
+      alert('No scenario selected. Create or select a scenario first.');
+      return;
+    }
+
+    try {
+      const flowData = toFlowJSON();
+      await api.saveScenario(currentScenarioId, flowData);
+      setDirty(false);
+    } catch (error) {
+      alert('Failed to save scenario: ' + error);
+    }
+  };
+
   return (
     <ReactFlowProvider>
       <DnDProvider>
-        <div className="flex h-screen w-screen">
-          {/* Left Sidebar */}
-          <div className="w-[200px] border-r border-border flex flex-col bg-background">
-            {/* Upper area: Scenario tree placeholder */}
-            <div className="flex-1 border-b p-3">
-              <h3 className="text-sm font-semibold text-muted-foreground mb-2">Scenarios</h3>
-              <p className="text-xs text-muted-foreground">No scenarios yet</p>
+        <div className="flex flex-col h-screen w-screen">
+          {/* Header Bar */}
+          <div className="h-10 border-b border-border bg-background flex items-center justify-between px-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">
+                {currentScenarioName || 'No scenario selected'}
+              </span>
+              {isDirty && (
+                <span className="text-xs text-muted-foreground" title="Unsaved changes">
+                  ● Modified
+                </span>
+              )}
             </div>
-
-            {/* Lower area: Node palette */}
-            <div className="flex-1 overflow-y-auto p-3">
-              <NodePalette />
-            </div>
+            <button
+              onClick={handleSave}
+              disabled={!currentScenarioId}
+              className="flex items-center gap-2 px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Save (Ctrl+S)"
+            >
+              <Save size={14} />
+              Save
+            </button>
           </div>
 
-          {/* Center: Canvas */}
-          <div className="flex-1">
-            <Canvas />
-          </div>
+          {/* Main content */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Left Sidebar */}
+            <div className="w-[200px] border-r border-border flex flex-col bg-background">
+              {/* Upper area: Scenario tree */}
+              <div className="flex-1 border-b overflow-hidden flex flex-col">
+                <ScenarioTree />
+              </div>
 
-          {/* Right Sidebar: Properties */}
-          <div className="w-[280px] border-l border-border bg-background overflow-y-auto p-4">
-            <PropertiesPanel />
+              {/* Lower area: Node palette */}
+              <div className="flex-1 overflow-y-auto p-3">
+                <NodePalette />
+              </div>
+            </div>
+
+            {/* Center: Canvas */}
+            <div className="flex-1">
+              <Canvas />
+            </div>
+
+            {/* Right Sidebar: Properties */}
+            <div className="w-[280px] border-l border-border bg-background overflow-y-auto p-4">
+              <PropertiesPanel />
+            </div>
           </div>
         </div>
       </DnDProvider>

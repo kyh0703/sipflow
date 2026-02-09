@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -10,6 +11,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useScenarioStore } from '../store/scenario-store';
+import { useScenarioApi } from '../hooks/use-scenario-api';
 import { edgeTypes } from '../edges/branch-edge';
 import { useDnD } from '../hooks/use-dnd';
 import { nodeTypes } from './nodes';
@@ -18,6 +20,7 @@ import { INSTANCE_COLORS } from '../types/scenario';
 export function Canvas() {
   const { screenToFlowPosition } = useReactFlow();
   const { type: dragType, setType: setDragType } = useDnD();
+  const api = useScenarioApi();
 
   const nodes = useScenarioStore((state) => state.nodes);
   const edges = useScenarioStore((state) => state.edges);
@@ -26,6 +29,9 @@ export function Canvas() {
   const onConnect = useScenarioStore((state) => state.onConnect);
   const addNode = useScenarioStore((state) => state.addNode);
   const setSelectedNode = useScenarioStore((state) => state.setSelectedNode);
+  const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
+  const toFlowJSON = useScenarioStore((state) => state.toFlowJSON);
+  const setDirty = useScenarioStore((state) => state.setDirty);
 
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
@@ -97,6 +103,34 @@ export function Canvas() {
   const onPaneClick = () => {
     setSelectedNode(null);
   };
+
+  // Keyboard shortcut: Ctrl+S / Cmd+S to save
+  useEffect(() => {
+    const handleKeyDown = async (event: KeyboardEvent) => {
+      // Check for Ctrl+S (Windows/Linux) or Cmd+S (Mac)
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+
+        if (!currentScenarioId) {
+          alert('Create or select a scenario first');
+          return;
+        }
+
+        try {
+          const flowData = toFlowJSON();
+          await api.saveScenario(currentScenarioId, flowData);
+          setDirty(false);
+        } catch (error) {
+          alert('Failed to save scenario: ' + error);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentScenarioId, api, toFlowJSON, setDirty]);
 
   const isValidConnection = (connection: Edge | { source: string; target: string; sourceHandle?: string | null }) => {
     // Prevent self-connections
