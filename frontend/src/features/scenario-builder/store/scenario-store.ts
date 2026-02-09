@@ -15,6 +15,9 @@ interface ScenarioState {
   nodes: Node[];
   edges: Edge[];
   selectedNodeId: string | null;
+  currentScenarioId: string | null;
+  currentScenarioName: string | null;
+  isDirty: boolean;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
@@ -27,22 +30,31 @@ interface ScenarioState {
   clearCanvas: () => void;
   getInstanceNodes: () => Node[];
   getInstanceColor: (instanceId: string) => string;
+  setCurrentScenario: (id: string | null, name: string | null) => void;
+  setDirty: (dirty: boolean) => void;
+  toFlowJSON: () => string;
+  loadFromJSON: (json: string) => void;
 }
 
 export const useScenarioStore = create<ScenarioState>((set, get) => ({
   nodes: [],
   edges: [],
   selectedNodeId: null,
+  currentScenarioId: null,
+  currentScenarioName: null,
+  isDirty: false,
 
   onNodesChange: (changes) => {
     set({
       nodes: applyNodeChanges(changes, get().nodes),
+      isDirty: true,
     });
   },
 
   onEdgesChange: (changes) => {
     set({
       edges: applyEdgeChanges(changes, get().edges),
+      isDirty: true,
     });
   },
 
@@ -56,12 +68,14 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
 
     set({
       edges: addEdge(newEdge, get().edges),
+      isDirty: true,
     });
   },
 
   addNode: (node) => {
     set({
       nodes: [...get().nodes, node],
+      isDirty: true,
     });
   },
 
@@ -69,6 +83,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
     set({
       nodes: get().nodes.filter((n) => n.id !== nodeId),
       edges: get().edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
+      isDirty: true,
     });
   },
 
@@ -77,6 +92,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       nodes: get().nodes.map((node) =>
         node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
       ),
+      isDirty: true,
     });
   },
 
@@ -110,5 +126,35 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       return instance.data.color;
     }
     return '#94a3b8'; // gray default
+  },
+
+  setCurrentScenario: (id: string | null, name: string | null) => {
+    set({
+      currentScenarioId: id,
+      currentScenarioName: name,
+    });
+  },
+
+  setDirty: (dirty: boolean) => {
+    set({ isDirty: dirty });
+  },
+
+  toFlowJSON: () => {
+    const { nodes, edges } = get();
+    return JSON.stringify({ nodes, edges });
+  },
+
+  loadFromJSON: (json: string) => {
+    try {
+      const { nodes, edges } = JSON.parse(json);
+      set({
+        nodes: nodes || [],
+        edges: edges || [],
+        isDirty: false,
+      });
+    } catch (error) {
+      console.error('Failed to parse flow JSON:', error);
+      throw error;
+    }
   },
 }));
