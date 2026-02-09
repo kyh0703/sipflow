@@ -10,6 +10,7 @@ import {
   type Edge,
 } from '@xyflow/react';
 import type { ScenarioNode, BranchEdgeData } from '../types/scenario';
+import type { ValidationError } from '../lib/validation';
 
 interface ScenarioState {
   nodes: Node[];
@@ -18,6 +19,7 @@ interface ScenarioState {
   currentScenarioId: string | null;
   currentScenarioName: string | null;
   isDirty: boolean;
+  validationErrors: ValidationError[];
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
@@ -32,6 +34,8 @@ interface ScenarioState {
   getInstanceColor: (instanceId: string) => string;
   setCurrentScenario: (id: string | null, name: string | null) => void;
   setDirty: (dirty: boolean) => void;
+  setValidationErrors: (errors: ValidationError[]) => void;
+  clearValidationErrors: () => void;
   toFlowJSON: () => string;
   loadFromJSON: (json: string) => void;
 }
@@ -43,6 +47,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
   currentScenarioId: null,
   currentScenarioName: null,
   isDirty: false,
+  validationErrors: [],
 
   onNodesChange: (changes) => {
     set({
@@ -137,6 +142,14 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
 
   setDirty: (dirty: boolean) => {
     set({ isDirty: dirty });
+  },
+
+  setValidationErrors: (errors: ValidationError[]) => {
+    set({ validationErrors: errors });
+  },
+
+  clearValidationErrors: () => {
+    set({ validationErrors: [] });
   },
 
   toFlowJSON: () => {
