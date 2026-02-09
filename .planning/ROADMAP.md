@@ -27,16 +27,15 @@ Plans:
 
 **목표**: Command/Event 노드를 캔버스에 배치하고 연결하는 시나리오 빌더
 
-**작업**:
-- XYFlow 캔버스 컴포넌트 구성
-- Command 노드 타입 정의 및 커스텀 노드 컴포넌트 구현
-- Event 노드 타입 정의 및 커스텀 노드 컴포넌트 구현
-- 노드 팔레트 (사이드바) — 드래그앤드롭으로 캔버스에 노드 추가
-- 엣지 연결 시스템 — 성공/실패 분기 핸들
-- 노드 속성 편집 패널 (우측 사이드바)
-- SIP 인스턴스 정의 UI — 인스턴스 생성 및 노드에 할당
-- 시나리오 직렬화 (JSON 저장/불러오기)
-- 시나리오 유효성 검증
+**Plans:** 6 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — TypeScript types + Zustand store + Canvas shell
+- [ ] 02-02-PLAN.md — Go backend — SQLite repository + Wails scenario binding
+- [ ] 02-03-PLAN.md — Custom nodes + Node palette + 3-panel layout
+- [ ] 02-04-PLAN.md — Edge connection system + Properties panel
+- [ ] 02-05-PLAN.md — Scenario tree + CRUD integration (frontend-backend wiring)
+- [ ] 02-06-PLAN.md — Scenario validation + error display + final verification
 
 **성공 기준**: Command/Event 노드 배치, 연결, 속성 편집, JSON 저장/불러오기 동작
 
