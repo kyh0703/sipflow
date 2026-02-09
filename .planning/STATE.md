@@ -2,16 +2,16 @@
 
 ## 현재 상태
 - **마일스톤**: 1 (MVP — 시각적 시나리오 빌더 + 시뮬레이션 실행)
-- **페이즈**: 01 완료, 02 대기
-- **진행률**: 3/15 plans (20%)
-- **상태**: `phase-01-complete`
-- **최근 활동**: 2026-02-09 — Phase 01 완료 (검증 통과)
+- **페이즈**: 02 완료, 03 대기
+- **진행률**: 9/15 plans (60%)
+- **상태**: `phase-02-complete`
+- **최근 활동**: 2026-02-10 — Phase 02 완료 (검증 통과)
 
-**진행 바:** ███░░░░░░░░░░░░ (3/15)
+**진행 바:** █████████░░░░░░ (9/15)
 
 ## 세션 연속성
-- **Last session:** 2026-02-09
-- **Stopped at:** Phase 01 완료, Phase 02 대기
+- **Last session:** 2026-02-10
+- **Stopped at:** Phase 02 완료, Phase 03 대기
 - **Resume file:** None
 
 ## 프로젝트 메모리
@@ -45,6 +45,9 @@
 - [2026-02-09] Tailwind CSS v4 CSS 기반 설정 채택 (01-02)
 - [2026-02-09] shadcn/ui new-york 스타일 채택 (01-02)
 - [2026-02-09] useEffect + useState 바인딩 호출 패턴 (01-03)
+- [2026-02-10] 프론트엔드 파일명 kebab-case 컨벤션 채택 (02-03)
+- [2026-02-10] modernc.org/sqlite CGo-free SQLite 채택 (02-02)
+- [2026-02-10] Wails models.ts에서 타입 import 패턴 (02-05)
 
 ## 결정사항 누적
 
@@ -57,11 +60,15 @@
 | 01-02 | Tailwind CSS v4 (CSS 기반) | JS config 불필요, @tailwindcss/vite | 프론트엔드 스타일링 |
 | 01-02 | shadcn/ui new-york 스타일 | neutral base color, CSS variables | UI 컴포넌트 |
 | 01-03 | useEffect 마운트 패턴 | 비동기 바인딩 호출 + 에러 처리 | 프론트엔드 패턴 |
+| 02-02 | modernc.org/sqlite | CGo-free, 크로스 컴파일 용이 | 데이터 저장 |
+| 02-03 | kebab-case 파일명 | 사용자 선호, 일관성 | 프론트엔드 파일 구조 |
+| 02-05 | Wails models.ts 타입 import | Wails 자동 생성 타입 활용 | Frontend-Backend 타입 |
 
 ## 차단 요소 / 우려사항
 
 ### 해결됨
 - ~~diago dependency go mod tidy 제거 이슈~~ → 블랭크 임포트로 해결 (01-01)
+- ~~Wails 바인딩 타입 import 에러~~ → models.ts namespace import로 해결 (02-05)
 
 ### 현재
 - libwebkit 시스템 의존성 누락 (Linux 프로덕션 빌드 시 필요, 개발은 가능)

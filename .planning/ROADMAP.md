@@ -30,12 +30,12 @@ Plans:
 **Plans:** 6 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — TypeScript types + Zustand store + Canvas shell
-- [ ] 02-02-PLAN.md — Go backend — SQLite repository + Wails scenario binding
-- [ ] 02-03-PLAN.md — Custom nodes + Node palette + 3-panel layout
-- [ ] 02-04-PLAN.md — Edge connection system + Properties panel
-- [ ] 02-05-PLAN.md — Scenario tree + CRUD integration (frontend-backend wiring)
-- [ ] 02-06-PLAN.md — Scenario validation + error display + final verification
+- [x] 02-01-PLAN.md — TypeScript types + Zustand store + Canvas shell
+- [x] 02-02-PLAN.md — Go backend — SQLite repository + Wails scenario binding
+- [x] 02-03-PLAN.md — Custom nodes + Node palette + 3-panel layout
+- [x] 02-04-PLAN.md — Edge connection system + Properties panel
+- [x] 02-05-PLAN.md — Scenario tree + CRUD integration (frontend-backend wiring)
+- [x] 02-06-PLAN.md — Scenario validation + error display + final verification
 
 **성공 기준**: Command/Event 노드 배치, 연결, 속성 편집, JSON 저장/불러오기 동작
 

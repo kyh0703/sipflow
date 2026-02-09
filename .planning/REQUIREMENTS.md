@@ -16,8 +16,8 @@ SIP 콜플로우 시나리오를 시각적으로 구성하고 로컬에서 시�
 
 ### F2. 시나리오 빌더 (XYFlow)
 - **F2.1**: 노드 팔레트 — Command/Event 노드를 사이드바에서 드래그앤드롭으로 캔버스에 추가
-- **F2.2**: Command 노드 — MakeCall, Answer, Hold, Retrieve, BlindTransfer, AttendedTransfer, Release, Response, Register
-- **F2.3**: Event 노드 — IncomingCall, CallConnected, CallReleased, HoldEvent, TransferEvent, DTMFReceived, Timeout, SIPResponse
+- **F2.2**: Command 노드 (MVP Phase 2): MakeCall, Answer, Release — 이후 Phase에서 Hold, Retrieve, BlindTransfer, AttendedTransfer, Response, Register 추가
+- **F2.3**: Event 노드 — INCOMING, DISCONNECTED, RINGING, TIMEOUT, HELD, RETRIEVED, TRANSFERRED, NOTIFY
 - **F2.4**: 노드 속성 편집 — 선택한 노드의 SIP 파라미터 설정 (SIP URI, 응답 코드, 타임아웃 등)
 - **F2.5**: 엣지 연결 — 노드 간 연결로 실행 흐름 정의 (성공/실패 분기)
 - **F2.6**: SIP 인스턴스 정의 — N개의 SIP UA 인스턴스를 정의하고 각 노드에 인스턴스 할당
