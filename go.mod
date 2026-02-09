@@ -1,14 +1,17 @@
 module sipflow
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/emiago/diago v0.27.0
+	github.com/google/uuid v1.6.0
 	github.com/wailsapp/wails/v2 v2.11.0
+	modernc.org/sqlite v1.44.3
 )
 
 require (
 	github.com/bep/debounce v1.2.1 // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emiago/dtls/v3 v3.0.0-20260122183559-8b8d23e359c0 // indirect
 	github.com/emiago/sipgo v1.2.0 // indirect
 	github.com/go-audio/riff v1.0.0 // indirect
@@ -17,7 +20,6 @@ require (
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/icholy/digest v1.1.0 // indirect
 	github.com/jchv/go-winloader v0.0.0-20210711035445-715c2860da7e // indirect
@@ -29,6 +31,7 @@ require (
 	github.com/leaanthony/u v1.1.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/pion/logging v0.2.4 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.15 // indirect
@@ -38,6 +41,7 @@ require (
 	github.com/pion/transport/v4 v4.0.1 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/samber/lo v1.49.1 // indirect
 	github.com/tkrajina/go-reflector v0.5.8 // indirect
@@ -47,11 +51,15 @@ require (
 	github.com/wailsapp/mimetype v1.4.1 // indirect
 	github.com/zaf/g711 v1.4.0 // indirect
 	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	golang.org/x/net v0.35.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/hraban/opus.v2 v2.0.0-20230925203106-0188a62cb302 // indirect
+	modernc.org/libc v1.67.6 // indirect
+	modernc.org/mathutil v1.7.1 // indirect
+	modernc.org/memory v1.11.0 // indirect
 )
 
 // replace github.com/wailsapp/wails/v2 v2.11.0 => /home/overthinker/go/pkg/mod
