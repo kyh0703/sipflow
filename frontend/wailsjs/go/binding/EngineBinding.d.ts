@@ -4,6 +4,12 @@ import {context} from '../models';
 
 export function GetVersion():Promise<string>;
 
+export function IsRunning():Promise<boolean>;
+
 export function Ping():Promise<string>;
 
 export function SetContext(arg1:context.Context):Promise<void>;
+
+export function StartScenario(arg1:string):Promise<void>;
+
+export function StopScenario():Promise<void>;

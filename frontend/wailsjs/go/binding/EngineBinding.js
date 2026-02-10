@@ -6,10 +6,22 @@ export function GetVersion() {
   return window['go']['binding']['EngineBinding']['GetVersion']();
 }
 
+export function IsRunning() {
+  return window['go']['binding']['EngineBinding']['IsRunning']();
+}
+
 export function Ping() {
   return window['go']['binding']['EngineBinding']['Ping']();
 }
 
 export function SetContext(arg1) {
   return window['go']['binding']['EngineBinding']['SetContext'](arg1);
+}
+
+export function StartScenario(arg1) {
+  return window['go']['binding']['EngineBinding']['StartScenario'](arg1);
+}
+
+export function StopScenario() {
+  return window['go']['binding']['EngineBinding']['StopScenario']();
 }
