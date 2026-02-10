@@ -2,16 +2,16 @@
 
 ## 현재 상태
 - **마일스톤**: 1 (MVP — 시각적 시나리오 빌더 + 시뮬레이션 실행)
-- **페이즈**: 02 완료, 03 대기
-- **진행률**: 9/15 plans (60%)
-- **상태**: `phase-02-complete`
-- **최근 활동**: 2026-02-10 — Phase 02 완료 (검증 통과)
+- **페이즈**: 03 (SIP Engine) 진행 중
+- **진행률**: 10/15 plans (67%)
+- **상태**: `phase-03-in-progress`
+- **최근 활동**: 2026-02-10 — Completed 03-01-PLAN.md (Engine 코어 데이터 구조 + 그래프 파서)
 
-**진행 바:** █████████░░░░░░ (9/15)
+**진행 바:** ██████████░░░░░ (10/15)
 
 ## 세션 연속성
 - **Last session:** 2026-02-10
-- **Stopped at:** Phase 02 완료, Phase 03 대기
+- **Stopped at:** Completed 03-01-PLAN.md
 - **Resume file:** None
 
 ## 프로젝트 메모리
@@ -48,6 +48,10 @@
 - [2026-02-10] 프론트엔드 파일명 kebab-case 컨벤션 채택 (02-03)
 - [2026-02-10] modernc.org/sqlite CGo-free SQLite 채택 (02-02)
 - [2026-02-10] Wails models.ts에서 타입 import 패턴 (02-05)
+- [2026-02-10] EventEmitter 인터페이스 패턴 채택 (03-01)
+- [2026-02-10] SetContext 시 WailsEventEmitter 자동 설정 (03-01)
+- [2026-02-10] 그래프 포인터 체인 구조 채택 (03-01)
+- [2026-02-10] 기본 타임아웃 10초, 커스텀 지원 (03-01)
 
 ## 결정사항 누적
 
@@ -63,6 +67,10 @@
 | 02-02 | modernc.org/sqlite | CGo-free, 크로스 컴파일 용이 | 데이터 저장 |
 | 02-03 | kebab-case 파일명 | 사용자 선호, 일관성 | 프론트엔드 파일 구조 |
 | 02-05 | Wails models.ts 타입 import | Wails 자동 생성 타입 활용 | Frontend-Backend 타입 |
+| 03-01 | EventEmitter 인터페이스 패턴 | 테스트 가능한 이벤트 시스템, 의존성 역전 | Engine 이벤트 발행 |
+| 03-01 | SetContext 시 WailsEventEmitter 자동 설정 | 프로덕션 코드 간소화, 테스트는 SetEventEmitter로 재정의 | Engine 초기화 |
+| 03-01 | 그래프 포인터 체인 구조 | SuccessNext/FailureNext로 O(1) 접근, DAG 구조 적합 | 시나리오 실행 |
+| 03-01 | 기본 타임아웃 10초 | SIP 이벤트 대기 시 네트워크 지연 고려, 커스텀 가능 | Event 노드 실행 |
 
 ## 차단 요소 / 우려사항
 
