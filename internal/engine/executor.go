@@ -92,3 +92,70 @@ func NewExecutor(engine *Engine, im *InstanceManager) *Executor {
 		sessions: NewSessionStore(),
 	}
 }
+
+// ExecuteChain은 시작 노드부터 체인을 순차적으로 실행한다
+func (ex *Executor) ExecuteChain(ctx context.Context, instanceID string, startNode *GraphNode) error {
+	currentNode := startNode
+
+	for currentNode != nil {
+		// Context 취소 확인
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		// 현재 노드 실행
+		err := ex.executeNode(ctx, instanceID, currentNode)
+		if err != nil {
+			// 실패 시 failure 분기 확인
+			if currentNode.FailureNext != nil {
+				currentNode = currentNode.FailureNext
+				continue
+			}
+			// failure 분기 없으면 에러 반환 (전체 중단)
+			return err
+		}
+
+		// 성공 시 다음 노드로
+		currentNode = currentNode.SuccessNext
+	}
+
+	return nil
+}
+
+// executeNode는 단일 노드를 실행한다
+func (ex *Executor) executeNode(ctx context.Context, instanceID string, node *GraphNode) error {
+	// 노드 상태를 "running"으로 변경
+	ex.engine.emitNodeState(node.ID, NodeStatePending, NodeStateRunning)
+
+	var err error
+	switch node.Type {
+	case "command":
+		err = ex.executeCommand(ctx, instanceID, node)
+	case "event":
+		err = ex.executeEvent(ctx, instanceID, node)
+	default:
+		err = nil // unknown type은 무시 (향후 확장)
+	}
+
+	if err != nil {
+		// 실패 이벤트 발행
+		ex.engine.emitNodeState(node.ID, NodeStateRunning, NodeStateFailed)
+		return err
+	}
+
+	// 성공 이벤트 발행
+	ex.engine.emitNodeState(node.ID, NodeStateRunning, NodeStateCompleted)
+	return nil
+}
+
+// executeCommand는 Command 노드를 실행한다 (Task 3에서 구현)
+func (ex *Executor) executeCommand(ctx context.Context, instanceID string, node *GraphNode) error {
+	return nil
+}
+
+// executeEvent는 Event 노드를 실행한다 (Task 4에서 구현)
+func (ex *Executor) executeEvent(ctx context.Context, instanceID string, node *GraphNode) error {
+	return nil
+}
