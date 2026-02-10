@@ -7,12 +7,14 @@ import (
 	"path/filepath"
 
 	"sipflow/internal/binding"
+	"sipflow/internal/engine"
 	"sipflow/internal/scenario"
 )
 
 // App struct
 type App struct {
 	ctx             context.Context
+	engine          *engine.Engine
 	engineBinding   *binding.EngineBinding
 	scenarioBinding *binding.ScenarioBinding
 	scenarioRepo    *scenario.Repository
@@ -39,8 +41,12 @@ func NewApp() *App {
 		panic(fmt.Sprintf("failed to initialize scenario repository: %v", err))
 	}
 
+	// Create Engine
+	eng := engine.NewEngine(repo)
+
 	return &App{
-		engineBinding:   binding.NewEngineBinding(),
+		engine:          eng,
+		engineBinding:   binding.NewEngineBinding(eng),
 		scenarioBinding: binding.NewScenarioBinding(repo),
 		scenarioRepo:    repo,
 	}
@@ -50,12 +56,19 @@ func NewApp() *App {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	a.engine.SetContext(ctx)
 	a.engineBinding.SetContext(ctx)
 	a.scenarioBinding.SetContext(ctx)
 }
 
 // shutdown is called when the app is closing
 func (a *App) shutdown(ctx context.Context) {
+	// Stop running scenario if any
+	if a.engine != nil && a.engine.IsRunning() {
+		a.engine.StopScenario()
+	}
+
+	// Close repository
 	if a.scenarioRepo != nil {
 		a.scenarioRepo.Close()
 	}
