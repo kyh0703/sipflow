@@ -6,6 +6,8 @@ import { Canvas } from './canvas';
 import { NodePalette } from './node-palette';
 import { PropertiesPanel } from './properties-panel';
 import { ScenarioTree } from './scenario-tree';
+import { ExecutionToolbar } from './execution-toolbar';
+import { ExecutionLog } from './execution-log';
 import { useScenarioStore } from '../store/scenario-store';
 import { useScenarioApi } from '../hooks/use-scenario-api';
 
@@ -49,15 +51,18 @@ export function ScenarioBuilder() {
                 </span>
               )}
             </div>
-            <button
-              onClick={handleSave}
-              disabled={!currentScenarioId}
-              className="flex items-center gap-2 px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title="Save (Ctrl+S)"
-            >
-              <Save size={14} />
-              Save
-            </button>
+            <div className="flex items-center gap-3">
+              <ExecutionToolbar />
+              <button
+                onClick={handleSave}
+                disabled={!currentScenarioId}
+                className="flex items-center gap-2 px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Save (Ctrl+S)"
+              >
+                <Save size={14} />
+                Save
+              </button>
+            </div>
           </div>
 
           {/* Main content */}
@@ -75,9 +80,12 @@ export function ScenarioBuilder() {
               </div>
             </div>
 
-            {/* Center: Canvas */}
-            <div className="flex-1">
-              <Canvas />
+            {/* Center: Canvas + Execution Log */}
+            <div className="flex-1 flex flex-col">
+              <div className="flex-1">
+                <Canvas />
+              </div>
+              <ExecutionLog />
             </div>
 
             {/* Right Sidebar: Properties */}
