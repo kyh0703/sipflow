@@ -332,3 +332,154 @@ func TestIntegration_SingleInstance(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 }
+
+// TestIntegration_EventTimeout verifies event timeout handling
+func TestIntegration_EventTimeout(t *testing.T) {
+	eng, repo, te := newTestEngine(t, 16060)
+
+	// Scenario: Instance waits for INCOMING with 2 second timeout, no caller
+	nodes := []FlowNode{
+		{
+			ID:   "inst-a",
+			Type: "sipInstance",
+			Data: map[string]interface{}{
+				"label": "Waiting UA",
+				"mode":  "DN",
+				"dn":    "100",
+			},
+		},
+		{
+			ID:   "evt-incoming",
+			Type: "event",
+			Data: map[string]interface{}{
+				"sipInstanceId": "inst-a",
+				"event":         "INCOMING",
+				"timeout":       2000.0, // 2 second timeout
+			},
+		},
+	}
+
+	edges := []FlowEdge{
+		{ID: "e1", Source: "inst-a", Target: "evt-incoming"},
+	}
+
+	flowData := buildTestFlowData(t, nodes, edges)
+
+	scn, err := repo.CreateScenario("default", "test-timeout")
+	if err != nil {
+		t.Fatalf("CreateScenario failed: %v", err)
+	}
+
+	if err := repo.SaveScenario(scn.ID, flowData); err != nil {
+		t.Fatalf("SaveScenario failed: %v", err)
+	}
+
+	// Start scenario
+	if err := eng.StartScenario(scn.ID); err != nil {
+		t.Fatalf("StartScenario failed: %v", err)
+	}
+
+	// Wait for scenario to fail (timeout after 2 seconds)
+	if !waitForEvent(t, te, EventFailed, 5*time.Second) {
+		t.Fatal("Expected scenario:failed event within 5 seconds")
+	}
+
+	// Verify evt-incoming failed due to timeout
+	if !waitForNodeState(t, te, "evt-incoming", NodeStateFailed, 1*time.Second) {
+		t.Error("evt-incoming did not reach failed state")
+	}
+
+	// Verify scenario:failed event
+	failedEvents := te.GetEventsByName(EventFailed)
+	if len(failedEvents) != 1 {
+		t.Errorf("Expected 1 scenario:failed event, got %d", len(failedEvents))
+	}
+
+	time.Sleep(500 * time.Millisecond)
+}
+
+// TestIntegration_FailureBranch verifies failure branch handling
+func TestIntegration_FailureBranch(t *testing.T) {
+	eng, repo, te := newTestEngine(t, 17060)
+
+	// Scenario: MakeCall to non-existent target -> failure branch -> Release
+	// Note: MakeCall will fail due to localhost limitation, but we can verify failure branch works
+	nodes := []FlowNode{
+		{
+			ID:   "inst-a",
+			Type: "sipInstance",
+			Data: map[string]interface{}{
+				"label": "Caller",
+				"mode":  "DN",
+				"dn":    "100",
+			},
+		},
+		{
+			ID:   "cmd-make",
+			Type: "command",
+			Data: map[string]interface{}{
+				"sipInstanceId": "inst-a",
+				"command":       "MakeCall",
+				"targetUri":     "sip:999@127.0.0.1:19999", // Non-existent target
+				"timeout":       3000.0,
+			},
+		},
+		{
+			ID:   "cmd-release-fail",
+			Type: "command",
+			Data: map[string]interface{}{
+				"sipInstanceId": "inst-a",
+				"command":       "Release",
+			},
+		},
+	}
+
+	edges := []FlowEdge{
+		{ID: "e1", Source: "inst-a", Target: "cmd-make"},
+		{ID: "e2", Source: "cmd-make", Target: "cmd-release-fail", SourceHandle: "failure"},
+	}
+
+	flowData := buildTestFlowData(t, nodes, edges)
+
+	scn, err := repo.CreateScenario("default", "test-failure-branch")
+	if err != nil {
+		t.Fatalf("CreateScenario failed: %v", err)
+	}
+
+	if err := repo.SaveScenario(scn.ID, flowData); err != nil {
+		t.Fatalf("SaveScenario failed: %v", err)
+	}
+
+	// Start scenario
+	if err := eng.StartScenario(scn.ID); err != nil {
+		t.Fatalf("StartScenario failed: %v", err)
+	}
+
+	// Wait for scenario to complete (failure branch should handle the error)
+	if !waitForEvent(t, te, EventCompleted, 10*time.Second) {
+		// Print events for debugging if it doesn't complete
+		allEvents := te.GetEvents()
+		for _, e := range allEvents {
+			t.Logf("Event: %s - %+v", e.Name, e.Data)
+		}
+		t.Fatal("Expected scenario:completed event within 10 seconds")
+	}
+
+	// Verify cmd-make failed
+	if !waitForNodeState(t, te, "cmd-make", NodeStateFailed, 1*time.Second) {
+		t.Error("cmd-make did not reach failed state")
+	}
+
+	// Verify cmd-release-fail completed (failure branch executed)
+	if !waitForNodeState(t, te, "cmd-release-fail", NodeStateCompleted, 1*time.Second) {
+		t.Error("cmd-release-fail did not reach completed state")
+	}
+
+	// Verify scenario completed successfully (failure was handled)
+	completedEvents := te.GetEventsByName(EventCompleted)
+	if len(completedEvents) != 1 {
+		t.Errorf("Expected 1 scenario:completed event, got %d", len(completedEvents))
+	}
+
+	time.Sleep(500 * time.Millisecond)
+}
