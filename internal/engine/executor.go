@@ -2,10 +2,13 @@ package engine
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/emiago/diago"
+	"github.com/emiago/sipgo/sip"
 )
 
 // SessionStore는 활성 SIP 세션을 thread-safe하게 관리한다
@@ -150,8 +153,115 @@ func (ex *Executor) executeNode(ctx context.Context, instanceID string, node *Gr
 	return nil
 }
 
-// executeCommand는 Command 노드를 실행한다 (Task 3에서 구현)
+// executeCommand는 Command 노드를 실행한다
 func (ex *Executor) executeCommand(ctx context.Context, instanceID string, node *GraphNode) error {
+	switch node.Command {
+	case "MakeCall":
+		return ex.executeMakeCall(ctx, instanceID, node)
+	case "Answer":
+		return ex.executeAnswer(ctx, instanceID, node)
+	case "Release":
+		return ex.executeRelease(ctx, instanceID, node)
+	default:
+		return fmt.Errorf("unknown command: %s", node.Command)
+	}
+}
+
+// executeMakeCall은 MakeCall 커맨드를 실행한다
+func (ex *Executor) executeMakeCall(ctx context.Context, instanceID string, node *GraphNode) error {
+	// 액션 로그 발행
+	ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("MakeCall to %s", node.TargetURI), "info")
+
+	// TargetURI 검증
+	if node.TargetURI == "" {
+		return fmt.Errorf("MakeCall requires a targetUri")
+	}
+	if !strings.HasPrefix(node.TargetURI, "sip:") {
+		return fmt.Errorf("targetUri must start with sip: scheme")
+	}
+
+	// URI 파싱
+	var recipient sip.Uri
+	if err := sip.ParseUri(node.TargetURI, &recipient); err != nil {
+		return fmt.Errorf("invalid targetUri %q: %w", node.TargetURI, err)
+	}
+
+	// 인스턴스 조회
+	instance, err := ex.im.GetInstance(instanceID)
+	if err != nil {
+		return fmt.Errorf("failed to get instance: %w", err)
+	}
+
+	// 타임아웃 설정 (기본 30초)
+	timeout := 30 * time.Second
+	if node.Timeout > 0 {
+		timeout = node.Timeout
+	}
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	// Invite 호출
+	dialog, err := instance.UA.Invite(timeoutCtx, recipient, diago.InviteOptions{})
+	if err != nil {
+		return fmt.Errorf("Invite failed: %w", err)
+	}
+
+	// Dialog 저장
+	ex.sessions.StoreDialog(instanceID, dialog)
+
+	// 성공 로그
+	ex.engine.emitActionLog(node.ID, instanceID, "MakeCall succeeded", "info")
+	return nil
+}
+
+// executeAnswer는 Answer 커맨드를 실행한다
+func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *GraphNode) error {
+	// 액션 로그 발행
+	ex.engine.emitActionLog(node.ID, instanceID, "Answer incoming call", "info")
+
+	// Incoming server session 조회
+	serverSession, exists := ex.sessions.GetServerSession(instanceID)
+	if !exists {
+		return fmt.Errorf("no incoming dialog to answer for instance %s", instanceID)
+	}
+
+	// Answer 호출
+	if err := serverSession.Answer(); err != nil {
+		return fmt.Errorf("Answer failed: %w", err)
+	}
+
+	// Server session을 dialog로도 저장
+	ex.sessions.StoreDialog(instanceID, serverSession)
+
+	// 성공 로그
+	ex.engine.emitActionLog(node.ID, instanceID, "Answer succeeded", "info")
+	return nil
+}
+
+// executeRelease는 Release 커맨드를 실행한다
+func (ex *Executor) executeRelease(ctx context.Context, instanceID string, node *GraphNode) error {
+	// 액션 로그 발행
+	ex.engine.emitActionLog(node.ID, instanceID, "Release call", "info")
+
+	// Dialog 조회
+	dialog, exists := ex.sessions.GetDialog(instanceID)
+	if !exists {
+		// 이미 종료된 경우 경고 후 성공 처리
+		ex.engine.emitActionLog(node.ID, instanceID, "No active dialog to release (already terminated)", "warn")
+		return nil
+	}
+
+	// 5초 타임아웃으로 Hangup
+	hangupCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	if err := dialog.Hangup(hangupCtx); err != nil {
+		// Hangup 실패는 경고만 (이미 종료된 경우 등)
+		ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("Hangup warning: %v", err), "warn")
+	}
+
+	// 성공 로그
+	ex.engine.emitActionLog(node.ID, instanceID, "Release succeeded", "info")
 	return nil
 }
 
