@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"sipflow/internal/scenario"
 )
@@ -134,9 +135,46 @@ func (e *Engine) StartScenario(scenarioID string) error {
 	return nil
 }
 
-// StopScenario는 실행 중인 시나리오를 중지한다 (후속 계획에서 구현)
+// StopScenario는 실행 중인 시나리오를 중지한다
 func (e *Engine) StopScenario() error {
-	return errors.New("not implemented")
+	e.mu.Lock()
+	if !e.running {
+		e.mu.Unlock()
+		return errors.New("no running scenario")
+	}
+	cancelFunc := e.cancelFunc
+	e.mu.Unlock()
+
+	// Context 취소
+	if cancelFunc != nil {
+		cancelFunc()
+	}
+
+	// 타임아웃으로 goroutine 종료 대기 (최대 10초)
+	done := make(chan struct{})
+	go func() {
+		e.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// 정상 종료
+	case <-time.After(10 * time.Second):
+		// 강제 종료 (로그 경고)
+		e.emitActionLog("", "", "StopScenario timeout - forced shutdown", "warn")
+	}
+
+	// 이벤트 발행
+	e.emitScenarioStopped()
+
+	// 상태 리셋
+	e.mu.Lock()
+	e.running = false
+	e.cancelFunc = nil
+	e.mu.Unlock()
+
+	return nil
 }
 
 // cleanupOnError는 에러 발생 시 리소스를 정리한다
