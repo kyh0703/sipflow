@@ -54,16 +54,40 @@ func (e *Engine) emitNodeState(nodeID, prevState, newState string) {
 	}
 }
 
+// ActionLogOption은 emitActionLog의 functional option이다
+type ActionLogOption func(data map[string]interface{})
+
+// WithSIPMessage는 SIP 메시지 상세 정보를 포함하는 옵션이다
+func WithSIPMessage(direction, method string, responseCode int, callID, from, to string) ActionLogOption {
+	return func(data map[string]interface{}) {
+		data["sipMessage"] = map[string]interface{}{
+			"direction":    direction,
+			"method":       method,
+			"responseCode": responseCode,
+			"callId":       callID,
+			"from":         from,
+			"to":           to,
+		}
+	}
+}
+
 // emitActionLog는 액션 로그 이벤트를 발행한다
-func (e *Engine) emitActionLog(nodeID, instanceID, message, level string) {
+func (e *Engine) emitActionLog(nodeID, instanceID, message, level string, opts ...ActionLogOption) {
 	if e.emitter != nil {
-		e.emitter.Emit(EventActionLog, map[string]interface{}{
+		data := map[string]interface{}{
 			"nodeId":     nodeID,
 			"instanceId": instanceID,
 			"message":    message,
 			"level":      level,
 			"timestamp":  time.Now().UnixMilli(),
-		})
+		}
+
+		// opts 적용
+		for _, opt := range opts {
+			opt(data)
+		}
+
+		e.emitter.Emit(EventActionLog, data)
 	}
 }
 

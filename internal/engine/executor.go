@@ -209,8 +209,12 @@ func (ex *Executor) executeMakeCall(ctx context.Context, instanceID string, node
 	// Dialog 저장
 	ex.sessions.StoreDialog(instanceID, dialog)
 
-	// 성공 로그
-	ex.engine.emitActionLog(node.ID, instanceID, "MakeCall succeeded", "info")
+	// 성공 로그 (SIP 메시지 상세 정보 포함)
+	// Note: diago DialogSession 인터페이스에서 Call-ID 접근이 제한되어 빈 문자열 사용
+	fromURI := instance.Config.DN  // 발신자는 인스턴스의 DN
+	toURI := recipient.User        // 수신자는 TargetURI의 User
+	ex.engine.emitActionLog(node.ID, instanceID, "MakeCall succeeded", "info",
+		WithSIPMessage("sent", "INVITE", 200, "", fromURI, toURI))
 	return nil
 }
 
@@ -233,8 +237,11 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 	// Server session을 dialog로도 저장
 	ex.sessions.StoreDialog(instanceID, serverSession)
 
-	// 성공 로그
-	ex.engine.emitActionLog(node.ID, instanceID, "Answer succeeded", "info")
+	// 성공 로그 (SIP 메시지 상세 정보 포함)
+	fromUser := serverSession.FromUser()
+	toUser := serverSession.ToUser()
+	ex.engine.emitActionLog(node.ID, instanceID, "Answer succeeded", "info",
+		WithSIPMessage("received", "INVITE", 200, "", fromUser, toUser))
 	return nil
 }
 
@@ -260,8 +267,9 @@ func (ex *Executor) executeRelease(ctx context.Context, instanceID string, node 
 		ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("Hangup warning: %v", err), "warn")
 	}
 
-	// 성공 로그
-	ex.engine.emitActionLog(node.ID, instanceID, "Release succeeded", "info")
+	// 성공 로그 (SIP 메시지 상세 정보 포함)
+	ex.engine.emitActionLog(node.ID, instanceID, "Release succeeded", "info",
+		WithSIPMessage("sent", "BYE", 200, "", "", ""))
 	return nil
 }
 
@@ -306,9 +314,11 @@ func (ex *Executor) executeIncoming(ctx context.Context, instanceID string, node
 		// Server session 저장
 		ex.sessions.StoreServerSession(instanceID, inDialog)
 
-		// 성공 로그
+		// 성공 로그 (SIP 메시지 상세 정보 포함)
 		fromUser := inDialog.FromUser()
-		ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("INCOMING event received from %s", fromUser), "info")
+		toUser := inDialog.ToUser()
+		ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("INCOMING event received from %s", fromUser), "info",
+			WithSIPMessage("received", "INVITE", 0, "", fromUser, toUser))
 		return nil
 	case <-ctx.Done():
 		// 타임아웃
@@ -339,7 +349,8 @@ func (ex *Executor) executeDisconnected(ctx context.Context, instanceID string, 
 // executeRinging은 RINGING 이벤트를 처리한다 (로컬 모드에서는 즉시 완료)
 func (ex *Executor) executeRinging(ctx context.Context, instanceID string, node *GraphNode) error {
 	// Phase 03에서는 MakeCall 성공 시 이미 180 Ringing을 거쳤으므로 즉시 완료
-	ex.engine.emitActionLog(node.ID, instanceID, "RINGING event (auto-completed in local mode)", "info")
+	ex.engine.emitActionLog(node.ID, instanceID, "RINGING event (auto-completed in local mode)", "info",
+		WithSIPMessage("received", "RINGING", 180, "", "", ""))
 	return nil
 }
 
