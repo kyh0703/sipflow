@@ -1,3 +1,4 @@
+// 컴포넌트에서 사용 시: import { useShallow } from 'zustand/react/shallow'
 import { create } from 'zustand';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime/runtime';
 import type {
@@ -10,6 +11,7 @@ import type {
   ScenarioCompletedEvent,
   ScenarioFailedEvent,
   ScenarioStoppedEvent,
+  EdgeAnimationMessage,
 } from '../types/execution';
 import { EXECUTION_EVENTS } from '../types/execution';
 
@@ -17,6 +19,8 @@ interface ExecutionState {
   status: ScenarioExecutionStatus;
   nodeStates: Record<string, NodeExecutionState>;  // nodeId -> state
   actionLogs: ActionLog[];
+  sipMessages: ActionLog[];  // sipMessage 필드가 있는 로그만 필터링
+  edgeAnimations: EdgeAnimationMessage[];  // 현재 활성 엣지 애니메이션
   scenarioError: string | null;
 
   // 이벤트 리스너 관리
@@ -26,6 +30,8 @@ interface ExecutionState {
   // 상태 업데이트
   updateNodeState: (event: NodeStateEvent) => void;
   addActionLog: (event: ActionLogEvent) => void;
+  addEdgeAnimation: (animation: EdgeAnimationMessage) => void;
+  removeEdgeAnimation: (id: string) => void;
 
   // 리셋
   reset: () => void;
@@ -41,6 +47,8 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
   status: 'idle',
   nodeStates: {},
   actionLogs: [],
+  sipMessages: [],
+  edgeAnimations: [],
   scenarioError: null,
 
   startListening: () => {
@@ -114,6 +122,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
         instanceId: event.instanceId,
         message: event.message,
         level: event.level,
+        sipMessage: event.sipMessage,
       };
 
       const updatedLogs = [...state.actionLogs, newLog];
@@ -123,8 +132,33 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
         updatedLogs.splice(0, updatedLogs.length - MAX_ACTION_LOGS);
       }
 
-      return { actionLogs: updatedLogs };
+      // sipMessage가 있으면 sipMessages 배열에도 추가
+      let updatedSipMessages = state.sipMessages;
+      if (event.sipMessage) {
+        updatedSipMessages = [...state.sipMessages, newLog];
+        // sipMessages도 최대 500개 유지
+        if (updatedSipMessages.length > MAX_ACTION_LOGS) {
+          updatedSipMessages.splice(0, updatedSipMessages.length - MAX_ACTION_LOGS);
+        }
+      }
+
+      return {
+        actionLogs: updatedLogs,
+        sipMessages: updatedSipMessages,
+      };
     });
+  },
+
+  addEdgeAnimation: (animation: EdgeAnimationMessage) => {
+    set((state) => ({
+      edgeAnimations: [...state.edgeAnimations, animation],
+    }));
+  },
+
+  removeEdgeAnimation: (id: string) => {
+    set((state) => ({
+      edgeAnimations: state.edgeAnimations.filter(anim => anim.id !== id),
+    }));
   },
 
   reset: () => {
@@ -132,6 +166,8 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
       status: 'idle',
       nodeStates: {},
       actionLogs: [],
+      sipMessages: [],
+      edgeAnimations: [],
       scenarioError: null,
     });
   },

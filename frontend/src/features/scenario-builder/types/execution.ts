@@ -14,6 +14,25 @@ export const EXECUTION_EVENTS = {
   STOPPED: 'scenario:stopped',
 } as const;
 
+// SIP 메시지 상세 정보
+export interface SIPMessageDetail {
+  direction: 'sent' | 'received';
+  method?: string;          // INVITE, BYE, ACK, CANCEL
+  responseCode?: number;    // 200, 180, 404, 0 (해당없음)
+  callId?: string;
+  from?: string;
+  to?: string;
+}
+
+// 엣지 애니메이션 메시지
+export interface EdgeAnimationMessage {
+  id: string;           // 고유 ID
+  edgeId: string;       // XYFlow edge ID
+  method: string;       // SIP 메서드 (INVITE, BYE 등)
+  timestamp: number;    // 시작 타임스탬프
+  duration: number;     // 애니메이션 지속 시간 (ms), 기본 1000
+}
+
 // Go -> Frontend 이벤트 페이로드 타입
 export interface NodeStateEvent {
   nodeId: string;
@@ -28,6 +47,7 @@ export interface ActionLogEvent {
   instanceId: string;
   message: string;
   level: 'info' | 'warning' | 'error';
+  sipMessage?: SIPMessageDetail;
 }
 
 export interface ScenarioStartedEvent {
@@ -64,4 +84,5 @@ export interface ActionLog {
   instanceId: string;
   message: string;
   level: 'info' | 'warning' | 'error';
+  sipMessage?: SIPMessageDetail;
 }
