@@ -2,16 +2,16 @@
 
 ## 현재 상태
 - **마일스톤**: 1 (MVP — 시각적 시나리오 빌더 + 시뮬레이션 실행)
-- **페이즈**: 03 (SIP Engine) 진행 중
-- **진행률**: 14/15 plans (93%)
-- **상태**: `phase-03-in-progress`
-- **최근 활동**: 2026-02-10 — Completed 03-05-PLAN.md (프론트엔드 실행 기초)
+- **페이즈**: 03 (SIP Engine) 완료
+- **진행률**: 15/15 plans (100%)
+- **상태**: `phase-03-complete`
+- **최근 활동**: 2026-02-10 — Completed 03-07-PLAN.md (프론트엔드 실행 UI)
 
-**진행 바:** ██████████████░ (14/15)
+**진행 바:** ███████████████ (15/15)
 
 ## 세션 연속성
 - **Last session:** 2026-02-10
-- **Stopped at:** Completed 03-05-PLAN.md
+- **Stopped at:** Completed 03-07-PLAN.md
 - **Resume file:** None
 
 ## 프로젝트 메모리
@@ -65,6 +65,8 @@
 - [2026-02-10] Wails EventsOn/EventsOff store 통합 패턴 (03-05)
 - [2026-02-10] Record<string, State> Zustand 패턴 (03-05)
 - [2026-02-10] ActionLog 최대 500개 제한 (03-05)
+- [2026-02-10] 실행 상태가 검증 오류보다 우선 (03-07)
+- [2026-02-10] 로그 패널 auto-scroll + conditional rendering (03-07)
 
 ## 결정사항 누적
 
@@ -97,6 +99,9 @@
 | 03-05 | Wails EventsOn/EventsOff 패턴 | Zustand store에서 직접 이벤트 구독, startListening/stopListening 생명주기 관리 | 이벤트 통합 |
 | 03-05 | Record<string, State> 사용 | Map 대신 plain object로 Zustand immutable 업데이트 용이 | 상태 관리 |
 | 03-05 | ActionLog 최대 500개 유지 | 메모리 누수 방지, 장기 실행 안정성 | 로그 관리 |
+| 03-07 | 실행 상태 우선순위 | 노드 실행 상태가 검증 오류보다 우선 표시, 사용자에게 현재 진행 상황 명확히 전달 | 노드 시각화 |
+| 03-07 | 로그 패널 조건부 렌더링 | idle 상태에서 숨김, 실행 시만 표시로 화면 공간 절약 | UI 레이아웃 |
+| 03-07 | ExecutionToolbar 헤더 통합 | 실행 컨트롤과 저장 버튼을 우측에 그룹화 | UI 구성 |
 
 ## 차단 요소 / 우려사항
 
