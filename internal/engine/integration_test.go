@@ -483,3 +483,162 @@ func TestIntegration_FailureBranch(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 }
+
+// TestIntegration_StopScenario verifies forced scenario stopping
+func TestIntegration_StopScenario(t *testing.T) {
+	eng, repo, te := newTestEngine(t, 18060)
+
+	// Scenario: long-running INCOMING wait (60 seconds) that will be stopped
+	nodes := []FlowNode{
+		{
+			ID:   "inst-a",
+			Type: "sipInstance",
+			Data: map[string]interface{}{
+				"label": "Long Wait UA",
+				"mode":  "DN",
+				"dn":    "100",
+			},
+		},
+		{
+			ID:   "evt-incoming",
+			Type: "event",
+			Data: map[string]interface{}{
+				"sipInstanceId": "inst-a",
+				"event":         "INCOMING",
+				"timeout":       60000.0, // 60 second timeout (effectively infinite)
+			},
+		},
+	}
+
+	edges := []FlowEdge{
+		{ID: "e1", Source: "inst-a", Target: "evt-incoming"},
+	}
+
+	flowData := buildTestFlowData(t, nodes, edges)
+
+	scn, err := repo.CreateScenario("default", "test-stop")
+	if err != nil {
+		t.Fatalf("CreateScenario failed: %v", err)
+	}
+
+	if err := repo.SaveScenario(scn.ID, flowData); err != nil {
+		t.Fatalf("SaveScenario failed: %v", err)
+	}
+
+	// Start scenario
+	if err := eng.StartScenario(scn.ID); err != nil {
+		t.Fatalf("StartScenario failed: %v", err)
+	}
+
+	// Verify it's running
+	time.Sleep(500 * time.Millisecond)
+	if !eng.IsRunning() {
+		t.Fatal("Engine should be running")
+	}
+
+	// Stop scenario after 1 second
+	time.Sleep(1 * time.Second)
+	if err := eng.StopScenario(); err != nil {
+		t.Fatalf("StopScenario failed: %v", err)
+	}
+
+	// Verify stopped event
+	if !waitForEvent(t, te, EventStopped, 5*time.Second) {
+		t.Fatal("Expected scenario:stopped event within 5 seconds")
+	}
+
+	// Verify engine is no longer running
+	time.Sleep(500 * time.Millisecond)
+	if eng.IsRunning() {
+		t.Error("Engine should not be running after stop")
+	}
+
+	// Verify scenario:stopped event
+	stoppedEvents := te.GetEventsByName(EventStopped)
+	if len(stoppedEvents) != 1 {
+		t.Errorf("Expected 1 scenario:stopped event, got %d", len(stoppedEvents))
+	}
+
+	time.Sleep(500 * time.Millisecond)
+}
+
+// TestIntegration_ConcurrentStartPrevention verifies concurrent execution prevention
+func TestIntegration_ConcurrentStartPrevention(t *testing.T) {
+	eng, repo, te := newTestEngine(t, 19060)
+
+	// Scenario: long-running wait
+	nodes := []FlowNode{
+		{
+			ID:   "inst-a",
+			Type: "sipInstance",
+			Data: map[string]interface{}{
+				"label": "Concurrent Test UA",
+				"mode":  "DN",
+				"dn":    "100",
+			},
+		},
+		{
+			ID:   "evt-incoming",
+			Type: "event",
+			Data: map[string]interface{}{
+				"sipInstanceId": "inst-a",
+				"event":         "INCOMING",
+				"timeout":       30000.0, // 30 second timeout
+			},
+		},
+	}
+
+	edges := []FlowEdge{
+		{ID: "e1", Source: "inst-a", Target: "evt-incoming"},
+	}
+
+	flowData := buildTestFlowData(t, nodes, edges)
+
+	scn, err := repo.CreateScenario("default", "test-concurrent")
+	if err != nil {
+		t.Fatalf("CreateScenario failed: %v", err)
+	}
+
+	if err := repo.SaveScenario(scn.ID, flowData); err != nil {
+		t.Fatalf("SaveScenario failed: %v", err)
+	}
+
+	// Start first scenario
+	if err := eng.StartScenario(scn.ID); err != nil {
+		t.Fatalf("First StartScenario failed: %v", err)
+	}
+
+	// Wait for it to be running
+	time.Sleep(500 * time.Millisecond)
+	if !eng.IsRunning() {
+		t.Fatal("Engine should be running")
+	}
+
+	// Try to start again - should fail
+	err = eng.StartScenario(scn.ID)
+	if err == nil {
+		t.Fatal("Second StartScenario should have failed with 'already running' error")
+	}
+	if err.Error() != "scenario already running" {
+		t.Errorf("Expected 'scenario already running' error, got: %v", err)
+	}
+
+	// Verify only one scenario:started event
+	startedEvents := te.GetEventsByName(EventStarted)
+	if len(startedEvents) != 1 {
+		t.Errorf("Expected 1 scenario:started event, got %d", len(startedEvents))
+	}
+
+	// Stop the running scenario
+	if err := eng.StopScenario(); err != nil {
+		t.Fatalf("StopScenario failed: %v", err)
+	}
+
+	// Wait for stop to complete
+	time.Sleep(1 * time.Second)
+	if eng.IsRunning() {
+		t.Error("Engine should not be running after stop")
+	}
+
+	time.Sleep(500 * time.Millisecond)
+}
