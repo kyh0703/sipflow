@@ -2,16 +2,19 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Play } from 'lucide-react';
 import type { SipInstanceNode } from '../../types/scenario';
 import { useScenarioStore } from '../../store/scenario-store';
+import { useExecutionStore } from '../../store/execution-store';
 
 export function SipInstanceNode({ data, id }: NodeProps<SipInstanceNode>) {
   const validationErrors = useScenarioStore((state) => state.validationErrors);
   const hasError = validationErrors.some((error) => error.nodeId === id);
+  const status = useExecutionStore((state) => state.status);
+  const isActive = status === 'running';
 
   return (
     <div
       className={`bg-background border-2 border-emerald-400 rounded-lg shadow-md min-w-[160px] ${
         hasError ? 'ring-2 ring-red-500 shadow-red-200' : ''
-      }`}
+      } ${isActive ? 'border-l-4 animate-pulse' : ''}`}
       style={{ borderLeftWidth: '4px', borderLeftColor: data.color }}
     >
       <div className="bg-gradient-to-r from-emerald-50 to-green-50 px-3 py-2 border-b border-emerald-200 flex items-center gap-2">

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import type { EventNode as EventNodeType } from '../../types/scenario';
 import { useScenarioStore } from '../../store/scenario-store';
+import { useExecutionStore } from '../../store/execution-store';
 
 const EVENT_ICONS = {
   INCOMING: Bell,
@@ -23,17 +24,36 @@ const EVENT_ICONS = {
   NOTIFY: MessageSquare,
 } as const;
 
+function getExecutionStyle(status?: string): string {
+  switch (status) {
+    case 'running':
+      return 'ring-2 ring-yellow-400 shadow-yellow-200 animate-pulse';
+    case 'completed':
+      return 'ring-2 ring-green-400 shadow-green-200';
+    case 'failed':
+      return 'ring-2 ring-red-400 shadow-red-200';
+    default:
+      return '';
+  }
+}
+
 export function EventNode({ data, id }: NodeProps<EventNodeType>) {
   const Icon = EVENT_ICONS[data.event as keyof typeof EVENT_ICONS];
   const instanceColor = data.sipInstanceId ? '#f59e0b' : '#6b7280';
   const validationErrors = useScenarioStore((state) => state.validationErrors);
   const hasError = validationErrors.some((error) => error.nodeId === id);
+  const nodeExecState = useExecutionStore((state) => state.nodeStates[id]);
+
+  // Execution state takes priority over validation errors
+  const ringStyle = nodeExecState?.status
+    ? getExecutionStyle(nodeExecState.status)
+    : hasError
+    ? 'ring-2 ring-red-500 shadow-red-200'
+    : '';
 
   return (
     <div
-      className={`bg-amber-50 border-2 border-amber-400 rounded-xl shadow-md min-w-[150px] ${
-        hasError ? 'ring-2 ring-red-500 shadow-red-200' : ''
-      }`}
+      className={`bg-amber-50 border-2 border-amber-400 rounded-xl shadow-md min-w-[150px] ${ringStyle}`}
       style={{ borderLeftWidth: '4px', borderLeftColor: instanceColor }}
     >
       <Handle
@@ -46,6 +66,9 @@ export function EventNode({ data, id }: NodeProps<EventNodeType>) {
       <div className="px-3 py-2 flex items-center gap-2">
         <Icon className="w-4 h-4 text-amber-600" />
         <span className="text-sm font-bold text-amber-900">{data.label}</span>
+        {nodeExecState?.status === 'running' && (
+          <span className="text-xs text-amber-600 ml-auto">Waiting...</span>
+        )}
       </div>
 
       {data.event === 'TIMEOUT' && data.timeout && (

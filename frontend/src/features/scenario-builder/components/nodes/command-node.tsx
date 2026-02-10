@@ -2,6 +2,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Phone, PhoneIncoming, PhoneOff } from 'lucide-react';
 import type { CommandNode as CommandNodeType } from '../../types/scenario';
 import { useScenarioStore } from '../../store/scenario-store';
+import { useExecutionStore } from '../../store/execution-store';
 
 const COMMAND_ICONS = {
   MakeCall: Phone,
@@ -9,17 +10,36 @@ const COMMAND_ICONS = {
   Release: PhoneOff,
 } as const;
 
+function getExecutionStyle(status?: string): string {
+  switch (status) {
+    case 'running':
+      return 'ring-2 ring-yellow-400 shadow-yellow-200 animate-pulse';
+    case 'completed':
+      return 'ring-2 ring-green-400 shadow-green-200';
+    case 'failed':
+      return 'ring-2 ring-red-400 shadow-red-200';
+    default:
+      return '';
+  }
+}
+
 export function CommandNode({ data, id }: NodeProps<CommandNodeType>) {
   const Icon = COMMAND_ICONS[data.command as keyof typeof COMMAND_ICONS];
   const instanceColor = data.sipInstanceId ? '#3b82f6' : '#6b7280';
   const validationErrors = useScenarioStore((state) => state.validationErrors);
   const hasError = validationErrors.some((error) => error.nodeId === id);
+  const nodeExecState = useExecutionStore((state) => state.nodeStates[id]);
+
+  // Execution state takes priority over validation errors
+  const ringStyle = nodeExecState?.status
+    ? getExecutionStyle(nodeExecState.status)
+    : hasError
+    ? 'ring-2 ring-red-500 shadow-red-200'
+    : '';
 
   return (
     <div
-      className={`bg-blue-50 border-2 border-blue-400 rounded-md shadow-md min-w-[150px] ${
-        hasError ? 'ring-2 ring-red-500 shadow-red-200' : ''
-      }`}
+      className={`bg-blue-50 border-2 border-blue-400 rounded-md shadow-md min-w-[150px] ${ringStyle}`}
       style={{ borderLeftWidth: '4px', borderLeftColor: instanceColor }}
     >
       <Handle
