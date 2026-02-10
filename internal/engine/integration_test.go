@@ -402,41 +402,41 @@ func TestIntegration_EventTimeout(t *testing.T) {
 func TestIntegration_FailureBranch(t *testing.T) {
 	eng, repo, te := newTestEngine(t, 17060)
 
-	// Scenario: MakeCall to non-existent target -> failure branch -> Release
-	// Note: MakeCall will fail due to localhost limitation, but we can verify failure branch works
+	// Scenario: INCOMING timeout (1s) -> failure branch -> TIMEOUT event (success)
+	// This tests that when an event fails, the failure branch is executed
 	nodes := []FlowNode{
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
 			Data: map[string]interface{}{
-				"label": "Caller",
+				"label": "Test UA",
 				"mode":  "DN",
 				"dn":    "100",
 			},
 		},
 		{
-			ID:   "cmd-make",
-			Type: "command",
+			ID:   "evt-incoming",
+			Type: "event",
 			Data: map[string]interface{}{
 				"sipInstanceId": "inst-a",
-				"command":       "MakeCall",
-				"targetUri":     "sip:999@127.0.0.1:19999", // Non-existent target
-				"timeout":       3000.0,
+				"event":         "INCOMING",
+				"timeout":       1000.0, // 1 second timeout - will fail
 			},
 		},
 		{
-			ID:   "cmd-release-fail",
-			Type: "command",
+			ID:   "evt-timeout",
+			Type: "event",
 			Data: map[string]interface{}{
 				"sipInstanceId": "inst-a",
-				"command":       "Release",
+				"event":         "TIMEOUT",
+				"timeout":       500.0, // 500ms delay in failure branch
 			},
 		},
 	}
 
 	edges := []FlowEdge{
-		{ID: "e1", Source: "inst-a", Target: "cmd-make"},
-		{ID: "e2", Source: "cmd-make", Target: "cmd-release-fail", SourceHandle: "failure"},
+		{ID: "e1", Source: "inst-a", Target: "evt-incoming"},
+		{ID: "e2", Source: "evt-incoming", Target: "evt-timeout", SourceHandle: "failure"},
 	}
 
 	flowData := buildTestFlowData(t, nodes, edges)
@@ -456,23 +456,24 @@ func TestIntegration_FailureBranch(t *testing.T) {
 	}
 
 	// Wait for scenario to complete (failure branch should handle the error)
-	if !waitForEvent(t, te, EventCompleted, 10*time.Second) {
+	// INCOMING will timeout after 1s, then TIMEOUT event executes (500ms), total ~2s
+	if !waitForEvent(t, te, EventCompleted, 5*time.Second) {
 		// Print events for debugging if it doesn't complete
 		allEvents := te.GetEvents()
 		for _, e := range allEvents {
 			t.Logf("Event: %s - %+v", e.Name, e.Data)
 		}
-		t.Fatal("Expected scenario:completed event within 10 seconds")
+		t.Fatal("Expected scenario:completed event within 5 seconds")
 	}
 
-	// Verify cmd-make failed
-	if !waitForNodeState(t, te, "cmd-make", NodeStateFailed, 1*time.Second) {
-		t.Error("cmd-make did not reach failed state")
+	// Verify evt-incoming failed
+	if !waitForNodeState(t, te, "evt-incoming", NodeStateFailed, 1*time.Second) {
+		t.Error("evt-incoming did not reach failed state")
 	}
 
-	// Verify cmd-release-fail completed (failure branch executed)
-	if !waitForNodeState(t, te, "cmd-release-fail", NodeStateCompleted, 1*time.Second) {
-		t.Error("cmd-release-fail did not reach completed state")
+	// Verify evt-timeout completed (failure branch executed)
+	if !waitForNodeState(t, te, "evt-timeout", NodeStateCompleted, 1*time.Second) {
+		t.Error("evt-timeout did not reach completed state")
 	}
 
 	// Verify scenario completed successfully (failure was handled)
