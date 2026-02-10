@@ -265,7 +265,94 @@ func (ex *Executor) executeRelease(ctx context.Context, instanceID string, node 
 	return nil
 }
 
-// executeEvent는 Event 노드를 실행한다 (Task 4에서 구현)
+// executeEvent는 Event 노드를 실행한다
 func (ex *Executor) executeEvent(ctx context.Context, instanceID string, node *GraphNode) error {
+	// 타임아웃 설정 (기본 10초)
+	timeout := 10 * time.Second
+	if node.Timeout > 0 {
+		timeout = node.Timeout
+	}
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	// 액션 로그 발행
+	ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("Waiting for %s (timeout: %v)", node.Event, timeout), "info")
+
+	switch node.Event {
+	case "INCOMING":
+		return ex.executeIncoming(timeoutCtx, instanceID, node, timeout)
+	case "DISCONNECTED":
+		return ex.executeDisconnected(timeoutCtx, instanceID, node, timeout)
+	case "RINGING":
+		return ex.executeRinging(timeoutCtx, instanceID, node)
+	case "TIMEOUT":
+		return ex.executeTimeout(timeoutCtx, instanceID, node, timeout)
+	default:
+		return fmt.Errorf("event type %s is not supported in Phase 03", node.Event)
+	}
+}
+
+// executeIncoming은 INCOMING 이벤트를 대기한다
+func (ex *Executor) executeIncoming(ctx context.Context, instanceID string, node *GraphNode, timeout time.Duration) error {
+	// 인스턴스 조회
+	instance, err := ex.im.GetInstance(instanceID)
+	if err != nil {
+		return fmt.Errorf("failed to get instance: %w", err)
+	}
+
+	// incoming 채널 대기
+	select {
+	case inDialog := <-instance.incomingCh:
+		// Server session 저장
+		ex.sessions.StoreServerSession(instanceID, inDialog)
+
+		// 성공 로그
+		fromUser := inDialog.FromUser()
+		ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("INCOMING event received from %s", fromUser), "info")
+		return nil
+	case <-ctx.Done():
+		// 타임아웃
+		return fmt.Errorf("INCOMING event timeout after %v", timeout)
+	}
+}
+
+// executeDisconnected는 DISCONNECTED 이벤트를 대기한다
+func (ex *Executor) executeDisconnected(ctx context.Context, instanceID string, node *GraphNode, timeout time.Duration) error {
+	// Dialog 조회
+	dialog, exists := ex.sessions.GetDialog(instanceID)
+	if !exists {
+		return fmt.Errorf("no active dialog for DISCONNECTED event")
+	}
+
+	// dialog context Done 대기
+	select {
+	case <-dialog.Context().Done():
+		// 성공 로그
+		ex.engine.emitActionLog(node.ID, instanceID, "DISCONNECTED event received", "info")
+		return nil
+	case <-ctx.Done():
+		// 타임아웃
+		return fmt.Errorf("DISCONNECTED event timeout after %v", timeout)
+	}
+}
+
+// executeRinging은 RINGING 이벤트를 처리한다 (로컬 모드에서는 즉시 완료)
+func (ex *Executor) executeRinging(ctx context.Context, instanceID string, node *GraphNode) error {
+	// Phase 03에서는 MakeCall 성공 시 이미 180 Ringing을 거쳤으므로 즉시 완료
+	ex.engine.emitActionLog(node.ID, instanceID, "RINGING event (auto-completed in local mode)", "info")
 	return nil
+}
+
+// executeTimeout은 TIMEOUT 이벤트를 처리한다 (단순 딜레이)
+func (ex *Executor) executeTimeout(ctx context.Context, instanceID string, node *GraphNode, timeout time.Duration) error {
+	// time.After로 딜레이
+	select {
+	case <-time.After(timeout):
+		// 성공 로그
+		ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("TIMEOUT event completed after %v", timeout), "info")
+		return nil
+	case <-ctx.Done():
+		// Context 취소
+		return ctx.Err()
+	}
 }
