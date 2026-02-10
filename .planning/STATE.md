@@ -3,15 +3,15 @@
 ## 현재 상태
 - **마일스톤**: 1 (MVP — 시각적 시나리오 빌더 + 시뮬레이션 실행)
 - **페이즈**: 03 (SIP Engine) 진행 중
-- **진행률**: 12/15 plans (80%)
+- **진행률**: 13/15 plans (87%)
 - **상태**: `phase-03-in-progress`
-- **최근 활동**: 2026-02-10 — Completed 03-03-PLAN.md (Command 실행기 + Event 리스너)
+- **최근 활동**: 2026-02-10 — Completed 03-04-PLAN.md (Engine 오케스트레이션 + Wails 바인딩)
 
-**진행 바:** ████████████░░░ (12/15)
+**진행 바:** █████████████░░ (13/15)
 
 ## 세션 연속성
 - **Last session:** 2026-02-10
-- **Stopped at:** Completed 03-03-PLAN.md
+- **Stopped at:** Completed 03-04-PLAN.md
 - **Resume file:** None
 
 ## 프로젝트 메모리
@@ -57,6 +57,11 @@
 - [2026-02-10] SessionStore로 dialog 생명주기 관리 (03-03)
 - [2026-02-10] RINGING 이벤트 즉시 완료 (로컬 모드 단순화) (03-03)
 - [2026-02-10] TIMEOUT 이벤트를 딜레이로 구현 (03-03)
+- [2026-02-10] StartScenario 비동기 실행 패턴 (03-04)
+- [2026-02-10] 인스턴스별 goroutine 실행 (03-04)
+- [2026-02-10] 에러 채널로 실패 전파 (03-04)
+- [2026-02-10] cleanup 순서: Hangup → Close → IM.Cleanup (03-04)
+- [2026-02-10] StopScenario 10초 타임아웃 패턴 (03-04)
 
 ## 결정사항 누적
 
@@ -81,6 +86,11 @@
 | 03-03 | SessionStore로 dialog 관리 | Command/Event 간 상태 공유, thread-safe 접근 | Executor 세션 관리 |
 | 03-03 | RINGING 이벤트 즉시 완료 | 로컬 모드에서 MakeCall 성공 시 이미 180 경유 | Event 실행 단순화 |
 | 03-03 | TIMEOUT을 딜레이로 구현 | 시나리오에서 의도적 대기 표현 | Event 노드 확장 |
+| 03-04 | StartScenario 비동기 실행 | frontend 블로킹 없이 장기 실행 지원, 이벤트로 진행 추적 | 시나리오 실행 API |
+| 03-04 | 인스턴스별 goroutine 실행 | 독립적 UA 병렬 실행, 성능 향상 | 실행 오케스트레이션 |
+| 03-04 | 에러 채널로 실패 전파 | 하나의 인스턴스 실패 시 전체 중단, context 취소 | 에러 처리 |
+| 03-04 | cleanup 순서 정의 | Hangup → Close → IM.Cleanup (SIP 프로토콜 준수) | 리소스 정리 |
+| 03-04 | StopScenario 10초 타임아웃 | goroutine 미응답 시 강제 종료, 앱 shutdown 블로킹 방지 | graceful shutdown |
 
 ## 차단 요소 / 우려사항
 
