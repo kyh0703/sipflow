@@ -13,6 +13,7 @@ type Engine struct {
 	ctx        context.Context
 	repo       *scenario.Repository
 	emitter    EventEmitter
+	im         *InstanceManager
 	mu         sync.Mutex
 	running    bool
 	cancelFunc context.CancelFunc
@@ -24,6 +25,7 @@ func NewEngine(repo *scenario.Repository) *Engine {
 	return &Engine{
 		repo:    repo,
 		emitter: nil, // SetContext 시 자동 설정
+		im:      NewInstanceManager(),
 	}
 }
 
@@ -53,4 +55,9 @@ func (e *Engine) IsRunning() bool {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return e.running
+}
+
+// GetInstanceManager는 InstanceManager를 반환한다
+func (e *Engine) GetInstanceManager() *InstanceManager {
+	return e.im
 }
