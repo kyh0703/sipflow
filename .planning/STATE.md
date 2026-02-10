@@ -3,15 +3,15 @@
 ## 현재 상태
 - **마일스톤**: 1 (MVP — 시각적 시나리오 빌더 + 시뮬레이션 실행)
 - **페이즈**: 03 (SIP Engine) 진행 중
-- **진행률**: 13/15 plans (87%)
+- **진행률**: 14/15 plans (93%)
 - **상태**: `phase-03-in-progress`
-- **최근 활동**: 2026-02-10 — Completed 03-04-PLAN.md (Engine 오케스트레이션 + Wails 바인딩)
+- **최근 활동**: 2026-02-10 — Completed 03-05-PLAN.md (프론트엔드 실행 기초)
 
-**진행 바:** █████████████░░ (13/15)
+**진행 바:** ██████████████░ (14/15)
 
 ## 세션 연속성
 - **Last session:** 2026-02-10
-- **Stopped at:** Completed 03-04-PLAN.md
+- **Stopped at:** Completed 03-05-PLAN.md
 - **Resume file:** None
 
 ## 프로젝트 메모리
@@ -62,6 +62,9 @@
 - [2026-02-10] 에러 채널로 실패 전파 (03-04)
 - [2026-02-10] cleanup 순서: Hangup → Close → IM.Cleanup (03-04)
 - [2026-02-10] StopScenario 10초 타임아웃 패턴 (03-04)
+- [2026-02-10] Wails EventsOn/EventsOff store 통합 패턴 (03-05)
+- [2026-02-10] Record<string, State> Zustand 패턴 (03-05)
+- [2026-02-10] ActionLog 최대 500개 제한 (03-05)
 
 ## 결정사항 누적
 
@@ -91,6 +94,9 @@
 | 03-04 | 에러 채널로 실패 전파 | 하나의 인스턴스 실패 시 전체 중단, context 취소 | 에러 처리 |
 | 03-04 | cleanup 순서 정의 | Hangup → Close → IM.Cleanup (SIP 프로토콜 준수) | 리소스 정리 |
 | 03-04 | StopScenario 10초 타임아웃 | goroutine 미응답 시 강제 종료, 앱 shutdown 블로킹 방지 | graceful shutdown |
+| 03-05 | Wails EventsOn/EventsOff 패턴 | Zustand store에서 직접 이벤트 구독, startListening/stopListening 생명주기 관리 | 이벤트 통합 |
+| 03-05 | Record<string, State> 사용 | Map 대신 plain object로 Zustand immutable 업데이트 용이 | 상태 관리 |
+| 03-05 | ActionLog 최대 500개 유지 | 메모리 누수 방지, 장기 실행 안정성 | 로그 관리 |
 
 ## 차단 요소 / 우려사항
 
