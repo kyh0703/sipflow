@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
+import { toast } from 'sonner';
 import {
   ReactFlow,
   Background,
@@ -37,8 +38,8 @@ export function Canvas() {
   const addNode = useScenarioStore((state) => state.addNode);
   const setSelectedNode = useScenarioStore((state) => state.setSelectedNode);
   const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
-  const toFlowJSON = useScenarioStore((state) => state.toFlowJSON);
   const setDirty = useScenarioStore((state) => state.setDirty);
+  const saveNow = useScenarioStore((state) => state.saveNow);
 
   const status = useExecutionStore((state) => state.status);
   const actionLogs = useExecutionStore((state) => state.actionLogs);
@@ -116,6 +117,11 @@ export function Canvas() {
     setSelectedNode(null);
   };
 
+  const onNodeDragStop = () => {
+    // Mark as dirty when node drag completes (position changes)
+    setDirty(true);
+  };
+
   // Trigger edge animations when sipMessage logs arrive
   useEffect(() => {
     if (status !== 'running') return;
@@ -159,7 +165,7 @@ export function Canvas() {
         event.preventDefault();
 
         if (!currentScenarioId) {
-          alert('Create or select a scenario first');
+          toast.error('Create or select a scenario first');
           return;
         }
 
@@ -167,11 +173,10 @@ export function Canvas() {
         validateAndNotify();
 
         try {
-          const flowData = toFlowJSON();
-          await api.saveScenario(currentScenarioId, flowData);
-          setDirty(false);
+          await saveNow();
+          toast.success('Scenario saved successfully');
         } catch (error) {
-          alert('Failed to save scenario: ' + error);
+          toast.error('Failed to save scenario: ' + error);
         }
       }
     };
@@ -180,7 +185,7 @@ export function Canvas() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [currentScenarioId, api, toFlowJSON, setDirty, validateAndNotify]);
+  }, [currentScenarioId, saveNow, validateAndNotify]);
 
   const isValidConnection = (connection: Edge | { source: string; target: string; sourceHandle?: string | null }) => {
     // Prevent self-connections
@@ -229,6 +234,7 @@ export function Canvas() {
       onDragOver={onDragOver}
       onNodeClick={onNodeClick}
       onPaneClick={onPaneClick}
+      onNodeDragStop={onNodeDragStop}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       isValidConnection={isValidConnection}

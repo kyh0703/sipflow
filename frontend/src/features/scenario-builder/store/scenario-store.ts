@@ -11,6 +11,7 @@ import {
 } from '@xyflow/react';
 import type { ScenarioNode, BranchEdgeData } from '../types/scenario';
 import type { ValidationError } from '../lib/validation';
+import { SaveScenario } from '../../../../wailsjs/go/binding/ScenarioBinding';
 
 interface ScenarioState {
   nodes: Node[];
@@ -19,6 +20,7 @@ interface ScenarioState {
   currentScenarioId: string | null;
   currentScenarioName: string | null;
   isDirty: boolean;
+  saveStatus: 'saved' | 'modified' | 'saving';
   validationErrors: ValidationError[];
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
@@ -34,10 +36,29 @@ interface ScenarioState {
   getInstanceColor: (instanceId: string) => string;
   setCurrentScenario: (id: string | null, name: string | null) => void;
   setDirty: (dirty: boolean) => void;
+  setSaveStatus: (status: 'saved' | 'modified' | 'saving') => void;
+  saveNow: () => Promise<void>;
   setValidationErrors: (errors: ValidationError[]) => void;
   clearValidationErrors: () => void;
   toFlowJSON: () => string;
   loadFromJSON: (json: string) => void;
+}
+
+// Inline debounce utility to avoid external dependencies
+function debounce<T extends (...args: any[]) => any>(
+  fn: T,
+  delay: number
+): { (...args: Parameters<T>): void; cancel: () => void } {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const debounced = (...args: Parameters<T>) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+  debounced.cancel = () => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = null;
+  };
+  return debounced;
 }
 
 export const useScenarioStore = create<ScenarioState>((set, get) => ({
@@ -47,12 +68,16 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
   currentScenarioId: null,
   currentScenarioName: null,
   isDirty: false,
+  saveStatus: 'saved',
   validationErrors: [],
 
   onNodesChange: (changes) => {
+    // Only set isDirty for non-position changes (position changes are handled by onNodeDragStop)
+    const hasNonPositionChange = changes.some((change) => change.type !== 'position');
+
     set({
       nodes: applyNodeChanges(changes, get().nodes),
-      isDirty: true,
+      ...(hasNonPositionChange && { isDirty: true, saveStatus: 'modified' as const }),
     });
   },
 
@@ -60,6 +85,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
     set({
       edges: applyEdgeChanges(changes, get().edges),
       isDirty: true,
+      saveStatus: 'modified',
     });
   },
 
@@ -74,6 +100,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
     set({
       edges: addEdge(newEdge, get().edges),
       isDirty: true,
+      saveStatus: 'modified',
     });
   },
 
@@ -81,6 +108,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
     set({
       nodes: [...get().nodes, node],
       isDirty: true,
+      saveStatus: 'modified',
     });
   },
 
@@ -89,6 +117,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       nodes: get().nodes.filter((n) => n.id !== nodeId),
       edges: get().edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
       isDirty: true,
+      saveStatus: 'modified',
     });
   },
 
@@ -98,6 +127,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
         node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
       ),
       isDirty: true,
+      saveStatus: 'modified',
     });
   },
 
@@ -134,14 +164,49 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
   },
 
   setCurrentScenario: (id: string | null, name: string | null) => {
+    // Cancel any pending autosave when switching scenarios
+    debouncedSave.cancel();
     set({
       currentScenarioId: id,
       currentScenarioName: name,
+      isDirty: false,
+      saveStatus: 'saved',
     });
   },
 
   setDirty: (dirty: boolean) => {
-    set({ isDirty: dirty });
+    set({
+      isDirty: dirty,
+      saveStatus: dirty ? 'modified' : 'saved',
+    });
+  },
+
+  setSaveStatus: (status: 'saved' | 'modified' | 'saving') => {
+    set({ saveStatus: status });
+  },
+
+  saveNow: async () => {
+    // Cancel pending debounced save
+    debouncedSave.cancel();
+
+    const { currentScenarioId, isDirty, toFlowJSON, setSaveStatus, setDirty } = get();
+
+    if (!currentScenarioId || !isDirty) {
+      return;
+    }
+
+    try {
+      setSaveStatus('saving');
+      const flowData = toFlowJSON();
+      await SaveScenario(currentScenarioId, flowData);
+      setDirty(false);
+      setSaveStatus('saved');
+      console.log('[Manual Save] Saved scenario:', currentScenarioId);
+    } catch (error) {
+      setSaveStatus('modified');
+      console.error('[Manual Save] Failed:', error);
+      throw error; // Re-throw for caller to handle
+    }
   },
 
   setValidationErrors: (errors: ValidationError[]) => {
@@ -164,6 +229,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
         nodes: nodes || [],
         edges: edges || [],
         isDirty: false,
+        saveStatus: 'saved',
       });
     } catch (error) {
       console.error('Failed to parse flow JSON:', error);
@@ -171,3 +237,39 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
     }
   },
 }));
+
+// Debounced autosave: 2000ms debounce delay
+const AUTOSAVE_DEBOUNCE_MS = 2000;
+
+const debouncedSave = debounce(async () => {
+  const state = useScenarioStore.getState();
+
+  // Guard: no scenario selected
+  if (!state.currentScenarioId) {
+    return;
+  }
+
+  // Guard: not dirty
+  if (!state.isDirty) {
+    return;
+  }
+
+  try {
+    state.setSaveStatus('saving');
+    const flowData = state.toFlowJSON();
+    await SaveScenario(state.currentScenarioId, flowData);
+    state.setDirty(false);
+    state.setSaveStatus('saved');
+    console.log('[Autosave] Saved scenario:', state.currentScenarioId);
+  } catch (error) {
+    state.setSaveStatus('modified');
+    console.error('[Autosave] Failed:', error);
+  }
+}, AUTOSAVE_DEBOUNCE_MS);
+
+// Subscribe to isDirty changes and trigger autosave
+useScenarioStore.subscribe((state) => {
+  if (state.isDirty && state.currentScenarioId) {
+    debouncedSave();
+  }
+});
