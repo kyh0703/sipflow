@@ -145,7 +145,7 @@ func (r *Repository) ListScenarios(projectID string) ([]ScenarioListItem, error)
 	}
 	defer rows.Close()
 
-	var scenarios []ScenarioListItem
+	scenarios := []ScenarioListItem{}
 	for rows.Next() {
 		var s ScenarioListItem
 		if err := rows.Scan(&s.ID, &s.ProjectID, &s.Name, &s.CreatedAt, &s.UpdatedAt); err != nil {

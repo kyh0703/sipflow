@@ -18,7 +18,7 @@ export function ScenarioTree() {
     try {
       setLoading(true);
       const list = await api.listScenarios();
-      setScenarios(list);
+      setScenarios(list ?? []);
     } catch (error) {
       console.error('Failed to load scenarios:', error);
     } finally {
