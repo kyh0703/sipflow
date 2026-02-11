@@ -1,15 +1,86 @@
 # SIPFLOW Project State
 
 ## 현재 상태
-- **마일스톤**: v1.1 — 미디어 + 녹음
-- **상태**: `requirements-defining`
-- **최근 활동**: 2026-02-11 — 마일스톤 v1.1 시작
+- **마일스톤**: v1.1 — 미디어 + DTMF
+- **페이즈**: Phase 6 — Codec Configuration
+- **상태**: `roadmap-ready`
+- **최근 활동**: 2026-02-11 — 로드맵 생성 완료
+
+## 프로젝트 참조
+
+### 핵심 가치
+- **시각적 시나리오 빌더**: XYFlow 기반 노드 에디터로 SIP 콜플로우를 직관적으로 구성
+- **Command/Event 아키텍처**: SIP 액션(Command)과 이벤트 대기(Event)를 노드로 분리하여 정확한 콜플로우 모델링
+- **N개 SIP 인스턴스**: 다중 SIP UA를 동시에 생성하여 복잡한 시나리오 검증
+- **이중 모드**: 로컬 시뮬레이션 모드 + 실제 SIP 트래픽 생성 모드
+
+### 현재 초점 (v1.1)
+SIP 통화 시나리오에 미디어 재생, DTMF 송수신, 코덱 선택 기능을 추가하여 실제 SIP 미디어 워크플로우를 시뮬레이션/실행할 수 있도록 확장
+
+## 현재 위치
+
+### 페이즈: 6 - Codec Configuration
+**목표:** 사용자가 SIP 인스턴스별 코덱을 선택하고 우선순위를 설정하여 SDP 협상에 반영할 수 있다
+
+**요구사항:** CODEC-01
+
+**계획:** 0/? 완료
+
+**상태:** 대기 중
+
+**진행:**
+```
+Phase 6: [░░░░░░░░░░] 0%
+```
+
+### 전체 마일스톤 진행
+```
+v1.1 Roadmap: [░░░░░░░░░░] 0/4 페이즈 (0%)
+
+✓ Phase 6: Codec Configuration [대기]
+✓ Phase 7: Media Playback [대기]
+✓ Phase 8: DTMF Send & Receive [대기]
+✓ Phase 9: Integration & Polish [대기]
+```
+
+## 성능 지표
+
+### v1.1 마일스톤
+- **총 페이즈**: 4
+- **완료된 페이즈**: 0
+- **총 요구사항**: 9
+- **완료된 요구사항**: 0
+- **총 계획**: 미정
+- **완료된 계획**: 0
+
+### 프로젝트 전체
+- **완료된 마일스톤**: 1 (v1.0)
+- **진행 중 마일스톤**: 1 (v1.1)
+- **총 페이즈 (v1.0+v1.1)**: 9 (5 완료 + 4 대기)
+- **총 계획 (v1.0+v1.1)**: 22+ (22 완료 + 미정)
+
+## 누적 컨텍스트
+
+### 현재 페이즈 결정사항
+없음 (Phase 6 시작 전)
+
+### 할일 (TODO)
+- [ ] Phase 6 계획 생성 (`/prp:plan-phase 6`)
+- [ ] 코덱 선택 UI 설계
+- [ ] diago MediaConfig API 통합 검증
+- [ ] PCMU/PCMA SDP 협상 테스트
+
+### 차단 요소
+없음
+
+### 완료된 마일스톤
+- **v1.0 — MVP**: 시각적 시나리오 빌더 + 시뮬레이션 실행 (5 phases, 22 plans, 78 commits, 2026-02-11 완료)
 
 ## 세션 연속성
 - **Last session:** 2026-02-11
-- **Stopped at:** 마일스톤 v1.1 초기화 (연구 → 요구사항 → 로드맵 진행 중)
+- **Stopped at:** 로드맵 생성 완료 — v1.1 Phase 6~9 정의됨
 - **Resume file:** None
-- **다음 단계:** 연구 → 요구사항 → 로드맵 생성
+- **다음 단계:** `/prp:plan-phase 6` — Codec Configuration 계획 생성
 
 ## 프로젝트 메모리
 
@@ -22,15 +93,19 @@
 ### 도메인 지식
 - diago의 Diago 타입이 SIP UA 인스턴스의 엔트리포인트
 - DialogSession 인터페이스가 통화 세션의 추상화
-- Bridge 타입은 2자 통화만 지원 (현재)
-- 지원 코덱: PCMU, PCMA, Opus, Telephone-event
-- diago DialogSession 인터페이스는 Call-ID 접근을 제공하지 않음 (v0.27.0)
+- diago DialogMedia API가 재생/녹음/DTMF를 모두 지원 (v0.27.0)
+- Bridge 타입은 2자 통화만 지원, 코덱 transcoding 미지원
+- SDP 협상 완료 후에만 dialog.Media() 호출 가능 (RTP 세션 초기화 순서)
+- SIP/RTP는 표준적으로 8kHz mono G.711 사용 (PCMU=0, PCMA=8)
+- RFC 2833 RTP telephone-event가 DTMF 표준 (In-band보다 신뢰성 높음)
 
 ### 기술적 제약
 - Wails v2 Windows hot reload 불안정 (Linux에서 개발 권장)
 - diago Hold/Unhold: 빈 SDP 처리 이슈 (#110)
 - XYFlow stroke-dasharray 성능 문제 → SVG animateMotion 사용
-- diago Bridge는 코덱 호환성 필수 (트랜스코딩 미지원)
+- diago Bridge는 코덱 호환성 필수 (양측 공통 코덱 없으면 488 Not Acceptable)
+- WAV 파일 포맷 불일치 시 재생 속도 왜곡 (8kHz mono PCM 필수)
+- CGO 의존성 회피를 위해 Opus 코덱 제외 (v1.1)
 
 ### 의사결정 로그
 - [2026-02-09] 프로젝트 초기화, MVP 범위 확정
@@ -89,6 +164,11 @@
 - [2026-02-11] saveStatus와 isDirty 분리 관리 (05-02)
 - [2026-02-11] Zustand subscribe 외부 모듈 스코프 호출 패턴 (05-02)
 - [2026-02-11] onNodeDragStop에서 드래그 완료 후 저장 (05-02)
+- [2026-02-11] v1.1 범위 확정: 미디어 재생 + DTMF (녹음 연기)
+- [2026-02-11] Opus 코덱 제외 (CGO 의존성 회피, v1.2+로 연기)
+- [2026-02-11] PCMU를 기본 fallback 코덱으로 채택 (협상 실패 방지)
+- [2026-02-11] 8kHz mono PCM WAV 포맷 검증 필수 (재생 속도 왜곡 방지)
+- [2026-02-11] RFC 2833 DTMF 기본값 (In-band 제외)
 
 ## 결정사항 누적
 
