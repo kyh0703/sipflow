@@ -2,6 +2,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { Save } from 'lucide-react';
 import { useState } from 'react';
 import { Toaster } from '@/components/ui/sonner';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { DnDProvider } from '../hooks/use-dnd';
 import { Canvas } from './canvas';
 import { NodePalette } from './node-palette';
@@ -67,6 +68,7 @@ export function ScenarioBuilder() {
                 <Save size={14} />
                 Save
               </button>
+              <ThemeToggle />
             </div>
           </div>
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTheme } from 'next-themes';
 import {
   ReactFlow,
   Background,
@@ -26,6 +27,7 @@ export function Canvas() {
   const { type: dragType, setType: setDragType } = useDnD();
   const api = useScenarioApi();
   const { validateAndNotify } = useValidation();
+  const { resolvedTheme } = useTheme();
 
   const nodes = useScenarioStore((state) => state.nodes);
   const edges = useScenarioStore((state) => state.edges);
@@ -213,6 +215,9 @@ export function Canvas() {
   const connectionLineStyle = { stroke: '#94a3b8', strokeWidth: 2 };
   const defaultEdgeOptions = { type: 'branch' };
 
+  // Background color: light mode uses gray-300 (#d1d5db), dark mode uses gray-600 (#52525b)
+  const backgroundColor = resolvedTheme === 'dark' ? '#52525b' : '#d1d5db';
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -231,7 +236,7 @@ export function Canvas() {
       defaultEdgeOptions={defaultEdgeOptions}
       fitView
     >
-      <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#d1d5db" />
+      <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={backgroundColor} />
       <Controls />
       <MiniMap />
     </ReactFlow>
