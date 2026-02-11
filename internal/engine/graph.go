@@ -49,6 +49,7 @@ type SipInstanceConfig struct {
 	DN       string
 	Register bool
 	Color    string
+	Codecs   []string // ["PCMU", "PCMA"] — 사용자 선택 코덱 (우선순위 순서)
 }
 
 // InstanceChain은 인스턴스별 실행 체인
@@ -88,6 +89,7 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 				DN:       getStringField(node.Data, "dn", ""),
 				Register: getBoolField(node.Data, "register", true),
 				Color:    getStringField(node.Data, "color", ""),
+				Codecs:   getStringArrayField(node.Data, "codecs", []string{"PCMU", "PCMA"}),
 			}
 			graph.Instances[node.ID] = &InstanceChain{
 				Config:     config,
@@ -193,6 +195,24 @@ func getFloatField(data map[string]interface{}, key string, defaultVal float64) 
 	if val, ok := data[key]; ok {
 		if f, ok := val.(float64); ok {
 			return f
+		}
+	}
+	return defaultVal
+}
+
+// getStringArrayField는 map[string]interface{}에서 안전하게 []string 값을 추출한다
+func getStringArrayField(data map[string]interface{}, key string, defaultVal []string) []string {
+	if val, ok := data[key]; ok {
+		if arr, ok := val.([]interface{}); ok {
+			result := make([]string, 0, len(arr))
+			for _, v := range arr {
+				if s, ok := v.(string); ok {
+					result = append(result, s)
+				}
+			}
+			if len(result) > 0 {
+				return result
+			}
 		}
 	}
 	return defaultVal

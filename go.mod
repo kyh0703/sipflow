@@ -4,6 +4,7 @@ go 1.24.0
 
 require (
 	github.com/emiago/diago v0.27.0
+	github.com/emiago/sipgo v1.2.0
 	github.com/google/uuid v1.6.0
 	github.com/wailsapp/wails/v2 v2.11.0
 	modernc.org/sqlite v1.44.3
@@ -13,7 +14,6 @@ require (
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emiago/dtls/v3 v3.0.0-20260122183559-8b8d23e359c0 // indirect
-	github.com/emiago/sipgo v1.2.0 // indirect
 	github.com/go-audio/riff v1.0.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect

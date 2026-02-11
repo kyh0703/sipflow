@@ -354,3 +354,170 @@ func TestParseScenario_MissingInstanceId(t *testing.T) {
 		t.Errorf("expected error message containing '%s', got '%s'", expectedMsg, err.Error())
 	}
 }
+
+// TestParseScenario_CodecsField tests codecs field parsing
+func TestParseScenario_CodecsField(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100",
+        "register": true,
+        "codecs": ["PCMA", "PCMU"]
+      }
+    }
+  ],
+  "edges": []
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	instA, ok := graph.Instances["inst-a"]
+	if !ok {
+		t.Fatal("inst-a not found")
+	}
+
+	// 검증: Codecs 필드가 순서대로 파싱됨
+	expectedCodecs := []string{"PCMA", "PCMU"}
+	if len(instA.Config.Codecs) != len(expectedCodecs) {
+		t.Errorf("expected %d codecs, got %d", len(expectedCodecs), len(instA.Config.Codecs))
+	}
+	for i, codec := range expectedCodecs {
+		if instA.Config.Codecs[i] != codec {
+			t.Errorf("codec[%d]: expected %s, got %s", i, codec, instA.Config.Codecs[i])
+		}
+	}
+}
+
+// TestParseScenario_CodecsDefault tests default codecs when field is missing
+func TestParseScenario_CodecsDefault(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100",
+        "register": true
+      }
+    }
+  ],
+  "edges": []
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	instA, ok := graph.Instances["inst-a"]
+	if !ok {
+		t.Fatal("inst-a not found")
+	}
+
+	// 검증: 기본값 ["PCMU", "PCMA"] 적용
+	expectedCodecs := []string{"PCMU", "PCMA"}
+	if len(instA.Config.Codecs) != len(expectedCodecs) {
+		t.Errorf("expected %d codecs, got %d", len(expectedCodecs), len(instA.Config.Codecs))
+	}
+	for i, codec := range expectedCodecs {
+		if instA.Config.Codecs[i] != codec {
+			t.Errorf("codec[%d]: expected %s, got %s", i, codec, instA.Config.Codecs[i])
+		}
+	}
+}
+
+// TestParseScenario_CodecsEmpty tests empty codecs array fallback to default
+func TestParseScenario_CodecsEmpty(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100",
+        "register": true,
+        "codecs": []
+      }
+    }
+  ],
+  "edges": []
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	instA, ok := graph.Instances["inst-a"]
+	if !ok {
+		t.Fatal("inst-a not found")
+	}
+
+	// 검증: 빈 배열일 때 기본값 ["PCMU", "PCMA"]로 폴백
+	expectedCodecs := []string{"PCMU", "PCMA"}
+	if len(instA.Config.Codecs) != len(expectedCodecs) {
+		t.Errorf("expected %d codecs, got %d", len(expectedCodecs), len(instA.Config.Codecs))
+	}
+	for i, codec := range expectedCodecs {
+		if instA.Config.Codecs[i] != codec {
+			t.Errorf("codec[%d]: expected %s, got %s", i, codec, instA.Config.Codecs[i])
+		}
+	}
+}
+
+// TestParseScenario_CodecsInvalid tests that invalid codec names are preserved during parsing
+func TestParseScenario_CodecsInvalid(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100",
+        "register": true,
+        "codecs": ["INVALID", "PCMU"]
+      }
+    }
+  ],
+  "edges": []
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	instA, ok := graph.Instances["inst-a"]
+	if !ok {
+		t.Fatal("inst-a not found")
+	}
+
+	// 검증: 잘못된 코덱 이름도 파싱 단계에서는 원본 보존 (필터링은 stringToCodecs에서)
+	expectedCodecs := []string{"INVALID", "PCMU"}
+	if len(instA.Config.Codecs) != len(expectedCodecs) {
+		t.Errorf("expected %d codecs, got %d", len(expectedCodecs), len(instA.Config.Codecs))
+	}
+	for i, codec := range expectedCodecs {
+		if instA.Config.Codecs[i] != codec {
+			t.Errorf("codec[%d]: expected %s, got %s", i, codec, instA.Config.Codecs[i])
+		}
+	}
+}
