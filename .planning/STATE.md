@@ -2,16 +2,16 @@
 
 ## 현재 상태
 - **마일스톤**: 1 (MVP — 시각적 시나리오 빌더 + 시뮬레이션 실행)
-- **페이즈**: 04 (Execution Monitor) 진행 중
-- **진행률**: 17/19 plans (89%)
-- **상태**: `phase-04-in-progress`
-- **최근 활동**: 2026-02-11 — Completed 04-02-PLAN.md (엣지 애니메이션 + 로그 패널)
+- **페이즈**: 04 (Execution Monitor) 완료
+- **진행률**: 18/18 plans (100%)
+- **상태**: `phase-04-complete`
+- **최근 활동**: 2026-02-11 — Phase 04 완료 (실행 모니터 시각화 및 로그)
 
-**진행 바:** █████████████████░░ (17/19)
+**진행 바:** ██████████████████ (18/18)
 
 ## 세션 연속성
-- **Last session:** 2026-02-11 00:32 UTC
-- **Stopped at:** Completed 04-02-PLAN.md
+- **Last session:** 2026-02-11
+- **Stopped at:** Phase 04 완료, 검증 통과 (11/11 must-haves)
 - **Resume file:** None
 
 ## 프로젝트 메모리
@@ -72,6 +72,12 @@
 - [2026-02-11] sipMessages 별도 배열로 필터링 최적화 (04-01)
 - [2026-02-11] 컴포넌트 레벨 엣지 애니메이션 생명주기 관리 (04-01)
 - [2026-02-11] AnimatedMessageEdge가 BranchEdge 대체 (04-02)
+- [2026-02-11] useShallow로 Zustand 리렌더링 최적화 (04-02)
+- [2026-02-11] Sonner toast로 alert() 전면 대체 (04-02)
+- [2026-02-11] 스마트 자동 스크롤 isAtBottom 패턴 (04-02)
+- [2026-02-11] SVG width/height 직접 설정 (viewBox 미사용) (04-03)
+- [2026-02-11] 단일 인스턴스 시 리스트 fallback (04-03)
+- [2026-02-11] Go nil 슬라이스 → 빈 슬라이스 초기화 패턴 (04-03)
 - [2026-02-11] SVG animateMotion 기반 엣지 애니메이션 (04-02)
 - [2026-02-11] 로그 레벨 필터링 UI (info/warning/error 토글) (04-02)
 - [2026-02-11] Smart auto-scroll (isAtBottom 체크) (04-02)

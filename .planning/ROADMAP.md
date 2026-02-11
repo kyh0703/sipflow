@@ -72,9 +72,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Backend SIP 메시지 상세 이벤트 + Frontend 타입/스토어 확장
-- [ ] 04-02-PLAN.md — 엣지 메시지 애니메이션 + 로그 패널 SIP 상세/필터/Sonner
-- [ ] 04-03-PLAN.md — 타임라인 래더 다이어그램 + Log/Timeline 탭 레이아웃 + 검증
+- [x] 04-01-PLAN.md — Backend SIP 메시지 상세 이벤트 + Frontend 타입/스토어 확장
+- [x] 04-02-PLAN.md — 엣지 메시지 애니메이션 + 로그 패널 SIP 상세/필터/Sonner
+- [x] 04-03-PLAN.md — 타임라인 래더 다이어그램 + Log/Timeline 탭 레이아웃 + 검증
 
 **성공 기준**: 시나리오 실행 시 실시간 노드 상태 변경, 메시지 애니메이션, 로그/타임라인 표시
 
