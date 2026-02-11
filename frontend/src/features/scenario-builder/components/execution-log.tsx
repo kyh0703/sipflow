@@ -62,16 +62,10 @@ export function ExecutionLog() {
     }
   }, [actionLogs, isAtBottom]);
 
-  // Hide when idle
-  if (status === 'idle') {
-    return null;
-  }
-
   return (
-    <div className="border-t border-border bg-background">
+    <>
       <div className="flex items-center justify-between px-3 py-1 border-b border-border bg-muted/50">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium">Execution Log</span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => toggleFilter('info')}
@@ -137,6 +131,6 @@ export function ExecutionLog() {
         ))}
         <div ref={endRef} />
       </div>
-    </div>
+    </>
   );
 }

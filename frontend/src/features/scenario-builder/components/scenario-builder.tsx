@@ -1,5 +1,6 @@
 import { ReactFlowProvider } from '@xyflow/react';
 import { Save } from 'lucide-react';
+import { useState } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { DnDProvider } from '../hooks/use-dnd';
 import { Canvas } from './canvas';
@@ -8,8 +9,10 @@ import { PropertiesPanel } from './properties-panel';
 import { ScenarioTree } from './scenario-tree';
 import { ExecutionToolbar } from './execution-toolbar';
 import { ExecutionLog } from './execution-log';
+import { ExecutionTimeline } from './execution-timeline';
 import { useScenarioStore } from '../store/scenario-store';
 import { useScenarioApi } from '../hooks/use-scenario-api';
+import { useExecutionStore } from '../store/execution-store';
 
 export function ScenarioBuilder() {
   const api = useScenarioApi();
@@ -18,6 +21,8 @@ export function ScenarioBuilder() {
   const isDirty = useScenarioStore((state) => state.isDirty);
   const toFlowJSON = useScenarioStore((state) => state.toFlowJSON);
   const setDirty = useScenarioStore((state) => state.setDirty);
+  const executionStatus = useExecutionStore((state) => state.status);
+  const [bottomTab, setBottomTab] = useState<'log' | 'timeline'>('log');
 
   const handleSave = async () => {
     if (!currentScenarioId) {
@@ -80,12 +85,42 @@ export function ScenarioBuilder() {
               </div>
             </div>
 
-            {/* Center: Canvas + Execution Log */}
+            {/* Center: Canvas + Execution Panel (Log/Timeline tabs) */}
             <div className="flex-1 flex flex-col">
               <div className="flex-1">
                 <Canvas />
               </div>
-              <ExecutionLog />
+              {/* Bottom panel: only show when not idle */}
+              {executionStatus !== 'idle' && (
+                <div className="border-t border-border bg-background">
+                  {/* Tab headers */}
+                  <div className="flex items-center gap-1 px-3 py-1 border-b border-border bg-muted/50">
+                    <button
+                      onClick={() => setBottomTab('log')}
+                      className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
+                        bottomTab === 'log'
+                          ? 'bg-background text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Log
+                    </button>
+                    <button
+                      onClick={() => setBottomTab('timeline')}
+                      className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
+                        bottomTab === 'timeline'
+                          ? 'bg-background text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Timeline
+                    </button>
+                  </div>
+                  {/* Tab content */}
+                  {bottomTab === 'log' && <ExecutionLog />}
+                  {bottomTab === 'timeline' && <ExecutionTimeline />}
+                </div>
+              )}
             </div>
 
             {/* Right Sidebar: Properties */}
