@@ -2,16 +2,16 @@
 
 ## 현재 상태
 - **마일스톤**: 1 (MVP — 시각적 시나리오 빌더 + 시뮬레이션 실행)
-- **페이즈**: 04 (Execution Monitor) 완료
-- **진행률**: 18/18 plans (100%)
-- **상태**: `phase-04-complete`
-- **최근 활동**: 2026-02-11 — Phase 04 완료 (실행 모니터 시각화 및 로그)
+- **페이즈**: 05 (UI Completion) 진행 중
+- **진행률**: 19/21 plans (90%)
+- **상태**: `phase-05-in-progress`
+- **최근 활동**: 2026-02-11 — Completed 05-01-PLAN.md (다크모드 구현)
 
-**진행 바:** ██████████████████ (18/18)
+**진행 바:** ███████████████████░░ (19/21)
 
 ## 세션 연속성
 - **Last session:** 2026-02-11
-- **Stopped at:** Phase 04 완료, 검증 통과 (11/11 must-haves)
+- **Stopped at:** Completed 05-01-PLAN.md
 - **Resume file:** None
 
 ## 프로젝트 메모리
@@ -82,6 +82,9 @@
 - [2026-02-11] 로그 레벨 필터링 UI (info/warning/error 토글) (04-02)
 - [2026-02-11] Smart auto-scroll (isAtBottom 체크) (04-02)
 - [2026-02-11] Sonner toast로 alert() 전면 교체 (04-02)
+- [2026-02-11] next-themes 기반 다크모드 구현 (05-01)
+- [2026-02-11] 3-way 순환 토글 (Light/Dark/System) (05-01)
+- [2026-02-11] resolvedTheme으로 배경색 조건 분기 (05-01)
 
 ## 결정사항 누적
 
@@ -126,6 +129,9 @@
 | 04-02 | 로그 레벨 필터링 UI | info/warning/error 토글 버튼으로 빠른 필터링 | 장기 실행 시 로그 디버깅 용이 |
 | 04-02 | Smart auto-scroll | isAtBottom 체크로 사용자 스크롤 존중 | UX 개선, 수동 리뷰 방해 없음 |
 | 04-02 | Sonner toast 전면 도입 | alert() 제거, 비차단 알림으로 전환 | 일관된 알림 UX |
+| 05-01 | next-themes 기반 다크모드 | 이미 설치된 next-themes 활용, Sonner와 테마 컨텍스트 공유 | 전역 테마 컨텍스트로 모든 컴포넌트 자동 연동 |
+| 05-01 | 3-way 순환 토글 패턴 | Light → Dark → System 순환, 단일 버튼으로 직관적 UX | 공간 효율, 빠른 전환 |
+| 05-01 | resolvedTheme으로 배경색 조건 분기 | ReactFlow Background 컴포넌트 API 제약 대응 | System 모드에서도 정확한 테마 반영 |
 
 ## 차단 요소 / 우려사항
 
