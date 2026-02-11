@@ -1,6 +1,7 @@
 import { ReactFlowProvider } from '@xyflow/react';
-import { Save } from 'lucide-react';
+import { Save, Check, Circle, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { DnDProvider } from '../hooks/use-dnd';
@@ -19,24 +20,22 @@ export function ScenarioBuilder() {
   const api = useScenarioApi();
   const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
   const currentScenarioName = useScenarioStore((state) => state.currentScenarioName);
-  const isDirty = useScenarioStore((state) => state.isDirty);
-  const toFlowJSON = useScenarioStore((state) => state.toFlowJSON);
-  const setDirty = useScenarioStore((state) => state.setDirty);
+  const saveStatus = useScenarioStore((state) => state.saveStatus);
+  const saveNow = useScenarioStore((state) => state.saveNow);
   const executionStatus = useExecutionStore((state) => state.status);
   const [bottomTab, setBottomTab] = useState<'log' | 'timeline'>('log');
 
   const handleSave = async () => {
     if (!currentScenarioId) {
-      alert('No scenario selected. Create or select a scenario first.');
+      toast.error('No scenario selected. Create or select a scenario first.');
       return;
     }
 
     try {
-      const flowData = toFlowJSON();
-      await api.saveScenario(currentScenarioId, flowData);
-      setDirty(false);
+      await saveNow();
+      toast.success('Scenario saved successfully');
     } catch (error) {
-      alert('Failed to save scenario: ' + error);
+      toast.error('Failed to save scenario: ' + error);
     }
   };
 
@@ -51,9 +50,23 @@ export function ScenarioBuilder() {
               <span className="text-sm font-medium">
                 {currentScenarioName || 'No scenario selected'}
               </span>
-              {isDirty && (
-                <span className="text-xs text-muted-foreground" title="Unsaved changes">
-                  ● Modified
+              {/* Save Status Indicator */}
+              {saveStatus === 'saved' && (
+                <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-500" title="All changes saved">
+                  <Check size={12} />
+                  Saved
+                </span>
+              )}
+              {saveStatus === 'modified' && (
+                <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-500" title="Unsaved changes">
+                  <Circle size={8} fill="currentColor" />
+                  Modified
+                </span>
+              )}
+              {saveStatus === 'saving' && (
+                <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-500" title="Saving...">
+                  <Loader2 size={12} className="animate-spin" />
+                  Saving...
                 </span>
               )}
             </div>
