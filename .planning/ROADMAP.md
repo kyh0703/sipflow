@@ -90,9 +90,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — 다크모드 (ThemeProvider + ThemeToggle + 헤더 배치)
-- [ ] 05-02-PLAN.md — 자동 저장 (Zustand subscribe + debounce + 상태 인디케이터)
-- [ ] 05-03-PLAN.md — Go E2E 통합 테스트 + Wails 빌드 검증
+- [x] 05-01-PLAN.md — 다크모드 (ThemeProvider + ThemeToggle + 헤더 배치)
+- [x] 05-02-PLAN.md — 자동 저장 (Zustand subscribe + debounce + 상태 인디케이터)
+- [x] 05-03-PLAN.md — Go E2E 통합 테스트 + Wails 빌드 검증
 
 **성공 기준**: 완성된 UI, 기본 시나리오(발신→응답→종료) E2E 동작, 빌드 바이너리 정상 실행
 
