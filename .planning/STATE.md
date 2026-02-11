@@ -3,15 +3,15 @@
 ## 현재 상태
 - **마일스톤**: 1 (MVP — 시각적 시나리오 빌더 + 시뮬레이션 실행)
 - **페이즈**: 04 (Execution Monitor) 진행 중
-- **진행률**: 16/19 plans (84%)
+- **진행률**: 17/19 plans (89%)
 - **상태**: `phase-04-in-progress`
-- **최근 활동**: 2026-02-11 — Completed 04-01-PLAN.md (Backend SIP 메시지 상세 + Frontend 타입/스토어)
+- **최근 활동**: 2026-02-11 — Completed 04-02-PLAN.md (엣지 애니메이션 + 로그 패널)
 
-**진행 바:** ████████████████░░░ (16/19)
+**진행 바:** █████████████████░░ (17/19)
 
 ## 세션 연속성
-- **Last session:** 2026-02-11 00:25 UTC
-- **Stopped at:** Completed 04-01-PLAN.md
+- **Last session:** 2026-02-11 00:32 UTC
+- **Stopped at:** Completed 04-02-PLAN.md
 - **Resume file:** None
 
 ## 프로젝트 메모리
@@ -71,6 +71,11 @@
 - [2026-02-11] Functional Options 패턴으로 emitActionLog 확장 (04-01)
 - [2026-02-11] sipMessages 별도 배열로 필터링 최적화 (04-01)
 - [2026-02-11] 컴포넌트 레벨 엣지 애니메이션 생명주기 관리 (04-01)
+- [2026-02-11] AnimatedMessageEdge가 BranchEdge 대체 (04-02)
+- [2026-02-11] SVG animateMotion 기반 엣지 애니메이션 (04-02)
+- [2026-02-11] 로그 레벨 필터링 UI (info/warning/error 토글) (04-02)
+- [2026-02-11] Smart auto-scroll (isAtBottom 체크) (04-02)
+- [2026-02-11] Sonner toast로 alert() 전면 교체 (04-02)
 
 ## 결정사항 누적
 
@@ -110,6 +115,11 @@
 | 04-01 | sipMessages 별도 배열 | actionLogs에서 필터링하지 않고 삽입 시 분리, O(1) 접근 | 성능 최적화 |
 | 04-01 | 컴포넌트 레벨 애니메이션 생명주기 | setTimeout으로 엣지 애니메이션 정리, store는 순수 상태만 관리 | 관심사 분리 |
 | 04-01 | Call-ID 빈 문자열 | diago 인터페이스 제약으로 빈 문자열 사용, 코멘트로 문서화 | 기술적 한계 수용 |
+| 04-02 | AnimatedMessageEdge가 BranchEdge 대체 | 애니메이션 로직을 포함한 상위 호환 컴포넌트로 교체 | 모든 branch 엣지에 자동 애니메이션 |
+| 04-02 | Canvas에서 엣지 애니메이션 트리거 | actionLogs 변화 감지하여 sipMessage 시 애니메이션 생성 | 중앙화된 애니메이션 관리 |
+| 04-02 | 로그 레벨 필터링 UI | info/warning/error 토글 버튼으로 빠른 필터링 | 장기 실행 시 로그 디버깅 용이 |
+| 04-02 | Smart auto-scroll | isAtBottom 체크로 사용자 스크롤 존중 | UX 개선, 수동 리뷰 방해 없음 |
+| 04-02 | Sonner toast 전면 도입 | alert() 제거, 비차단 알림으로 전환 | 일관된 알림 UX |
 
 ## 차단 요소 / 우려사항
 
