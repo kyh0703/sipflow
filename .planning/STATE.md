@@ -3,15 +3,15 @@
 ## 현재 상태
 - **마일스톤**: 1 (MVP — 시각적 시나리오 빌더 + 시뮬레이션 실행)
 - **페이즈**: 05 (UI Completion) 진행 중
-- **진행률**: 19/21 plans (90%)
+- **진행률**: 20/21 plans (95%)
 - **상태**: `phase-05-in-progress`
-- **최근 활동**: 2026-02-11 — Completed 05-01-PLAN.md (다크모드 구현)
+- **최근 활동**: 2026-02-11 — Completed 05-03-PLAN.md (E2E 통합 테스트 + 빌드 검증)
 
-**진행 바:** ███████████████████░░ (19/21)
+**진행 바:** ████████████████████░ (20/21)
 
 ## 세션 연속성
-- **Last session:** 2026-02-11
-- **Stopped at:** Completed 05-01-PLAN.md
+- **Last session:** 2026-02-11T02:24:00Z
+- **Stopped at:** Completed 05-03-PLAN.md
 - **Resume file:** None
 
 ## 프로젝트 메모리
@@ -85,6 +85,9 @@
 - [2026-02-11] next-themes 기반 다크모드 구현 (05-01)
 - [2026-02-11] 3-way 순환 토글 (Light/Dark/System) (05-01)
 - [2026-02-11] resolvedTheme으로 배경색 조건 분기 (05-01)
+- [2026-02-11] scenarioID 추적을 Engine에 추가 (05-03)
+- [2026-02-11] 2-instance TIMEOUT 체인 시뮬레이션 패턴 (05-03)
+- [2026-02-11] shadcn/ui Button 컴포넌트 추가 (05-03)
 
 ## 결정사항 누적
 
@@ -132,6 +135,8 @@
 | 05-01 | next-themes 기반 다크모드 | 이미 설치된 next-themes 활용, Sonner와 테마 컨텍스트 공유 | 전역 테마 컨텍스트로 모든 컴포넌트 자동 연동 |
 | 05-01 | 3-way 순환 토글 패턴 | Light → Dark → System 순환, 단일 버튼으로 직관적 UX | 공간 효율, 빠른 전환 |
 | 05-01 | resolvedTheme으로 배경색 조건 분기 | ReactFlow Background 컴포넌트 API 제약 대응 | System 모드에서도 정확한 테마 반영 |
+| 05-03 | scenarioID 추적을 Engine에 추가 | scenario:completed 이벤트에 scenarioID 포함하여 여러 시나리오 실행 추적 가능 | 이벤트 추적 개선, 다중 실행 지원 준비 |
+| 05-03 | 2-instance TIMEOUT 체인 시뮬레이션 | diago localhost 포트 충돌로 실제 SIP 통화 불가, TIMEOUT 이벤트로 병렬 실행 검증 | 테스트 전략, 엔진 파이프라인 검증 |
 
 ## 차단 요소 / 우려사항
 
