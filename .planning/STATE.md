@@ -1,15 +1,15 @@
 # SIPFLOW Project State
 
 ## 현재 상태
-- **마일스톤**: v1.0 완료 → 다음 마일스톤 미정
-- **상태**: `milestone-complete`
-- **최근 활동**: 2026-02-11 — v1.0 마일스톤 아카이브 완료
+- **마일스톤**: v1.1 — 미디어 + 녹음
+- **상태**: `requirements-defining`
+- **최근 활동**: 2026-02-11 — 마일스톤 v1.1 시작
 
 ## 세션 연속성
 - **Last session:** 2026-02-11
-- **Stopped at:** v1.0 milestone archived
+- **Stopped at:** 마일스톤 v1.1 초기화 (연구 → 요구사항 → 로드맵 진행 중)
 - **Resume file:** None
-- **다음 단계:** `/prp:new-milestone` 실행
+- **다음 단계:** 연구 → 요구사항 → 로드맵 생성
 
 ## 프로젝트 메모리
 
