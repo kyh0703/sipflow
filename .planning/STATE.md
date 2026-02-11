@@ -2,16 +2,16 @@
 
 ## 현재 상태
 - **마일스톤**: 1 (MVP — 시각적 시나리오 빌더 + 시뮬레이션 실행)
-- **페이즈**: 03 (SIP Engine) 완료
-- **진행률**: 15/15 plans (100%)
-- **상태**: `phase-03-complete`
-- **최근 활동**: 2026-02-10 — Completed 03-07-PLAN.md (프론트엔드 실행 UI)
+- **페이즈**: 04 (Execution Monitor) 진행 중
+- **진행률**: 16/19 plans (84%)
+- **상태**: `phase-04-in-progress`
+- **최근 활동**: 2026-02-11 — Completed 04-01-PLAN.md (Backend SIP 메시지 상세 + Frontend 타입/스토어)
 
-**진행 바:** ███████████████ (15/15)
+**진행 바:** ████████████████░░░ (16/19)
 
 ## 세션 연속성
-- **Last session:** 2026-02-10
-- **Stopped at:** Completed 03-07-PLAN.md
+- **Last session:** 2026-02-11 00:25 UTC
+- **Stopped at:** Completed 04-01-PLAN.md
 - **Resume file:** None
 
 ## 프로젝트 메모리
@@ -27,6 +27,7 @@
 - DialogSession 인터페이스가 통화 세션의 추상화
 - Bridge 타입은 2자 통화만 지원 (현재)
 - 지원 코덱: PCMU, PCMA, Opus, Telephone-event
+- diago DialogSession 인터페이스는 Call-ID 접근을 제공하지 않음 (v0.27.0)
 
 ### 기술적 제약
 - Wails v2 Windows hot reload 불안정 (Linux에서 개발 권장)
@@ -67,6 +68,9 @@
 - [2026-02-10] ActionLog 최대 500개 제한 (03-05)
 - [2026-02-10] 실행 상태가 검증 오류보다 우선 (03-07)
 - [2026-02-10] 로그 패널 auto-scroll + conditional rendering (03-07)
+- [2026-02-11] Functional Options 패턴으로 emitActionLog 확장 (04-01)
+- [2026-02-11] sipMessages 별도 배열로 필터링 최적화 (04-01)
+- [2026-02-11] 컴포넌트 레벨 엣지 애니메이션 생명주기 관리 (04-01)
 
 ## 결정사항 누적
 
@@ -102,6 +106,10 @@
 | 03-07 | 실행 상태 우선순위 | 노드 실행 상태가 검증 오류보다 우선 표시, 사용자에게 현재 진행 상황 명확히 전달 | 노드 시각화 |
 | 03-07 | 로그 패널 조건부 렌더링 | idle 상태에서 숨김, 실행 시만 표시로 화면 공간 절약 | UI 레이아웃 |
 | 03-07 | ExecutionToolbar 헤더 통합 | 실행 컨트롤과 저장 버튼을 우측에 그룹화 | UI 구성 |
+| 04-01 | Functional Options 패턴 | ActionLogOption으로 sipMessage 선택적 추가, 기존 호출 하위 호환 | 이벤트 시스템 확장 |
+| 04-01 | sipMessages 별도 배열 | actionLogs에서 필터링하지 않고 삽입 시 분리, O(1) 접근 | 성능 최적화 |
+| 04-01 | 컴포넌트 레벨 애니메이션 생명주기 | setTimeout으로 엣지 애니메이션 정리, store는 순수 상태만 관리 | 관심사 분리 |
+| 04-01 | Call-ID 빈 문자열 | diago 인터페이스 제약으로 빈 문자열 사용, 코멘트로 문서화 | 기술적 한계 수용 |
 
 ## 차단 요소 / 우려사항
 
@@ -112,3 +120,4 @@
 ### 현재
 - libwebkit 시스템 의존성 누락 (Linux 프로덕션 빌드 시 필요, 개발은 가능)
 - npm audit moderate 취약점 (프로덕션 전 수정 필요)
+- diago Call-ID 미지원 (04-01에서 문서화, 향후 diago 업데이트 대기)
