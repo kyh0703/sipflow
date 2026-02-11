@@ -93,6 +93,28 @@ SIPFLOW는 SIP(Session Initiation Protocol) 콜플로우를 시각적으로 구�
 | Timeout | 타임아웃 | 설정 시간 초과 |
 | SIPResponse | 특정 SIP 응답 대기 | 100/180/200/4xx/5xx/6xx |
 
+## Current State
+
+**Released**: v1.0 — MVP — 시각적 시나리오 빌더 + 시뮬레이션 실행 (2026-02-11)
+
+v1.0에서 달성한 것:
+- 풀스택 Wails v2 데스크톱 앱 (Go + React + TypeScript)
+- XYFlow 기반 시각적 시나리오 빌더 (Command/Event/SIP Instance 노드)
+- diago 기반 SIP 실행 엔진 (멀티 인스턴스 병렬 실행)
+- 실시간 실행 시각화 (엣지 애니메이션, 로그 패널, SIP 래더 다이어그램)
+- 프로덕션 UI (다크모드, 자동 저장, shadcn/ui)
+- 22+ Go 테스트, E2E 통합 테스트
+
+### Next Milestone Goals
+
+다음 마일스톤은 `/prp:new-milestone`으로 시작합니다. 후보:
+- 고급 시나리오 (조건 분기, 반복, 템플릿)
+- SIP 래더 다이어그램 시각화 강화
+- 미디어/녹음 기능
+- 멀티플랫폼 빌드
+
+---
+
 ## 컨벤션
 
 ### Go
