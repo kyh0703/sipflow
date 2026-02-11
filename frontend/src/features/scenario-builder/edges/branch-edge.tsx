@@ -1,4 +1,5 @@
 import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
+import { AnimatedMessageEdge } from './animated-message-edge';
 
 export function BranchEdge({
   id,
@@ -39,5 +40,5 @@ export function BranchEdge({
 }
 
 export const edgeTypes = {
-  branch: BranchEdge,
+  branch: AnimatedMessageEdge,
 };

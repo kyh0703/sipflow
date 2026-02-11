@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   ReactFlow,
   Background,
@@ -11,6 +11,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useScenarioStore } from '../store/scenario-store';
+import { useExecutionStore } from '../store/execution-store';
 import { useScenarioApi } from '../hooks/use-scenario-api';
 import { useValidation } from '../hooks/use-validation';
 import { wouldCreateCycle } from '../lib/validation';
@@ -18,6 +19,7 @@ import { edgeTypes } from '../edges/branch-edge';
 import { useDnD } from '../hooks/use-dnd';
 import { nodeTypes } from './nodes';
 import { INSTANCE_COLORS } from '../types/scenario';
+import type { EdgeAnimationMessage } from '../types/execution';
 
 export function Canvas() {
   const { screenToFlowPosition } = useReactFlow();
@@ -35,6 +37,11 @@ export function Canvas() {
   const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
   const toFlowJSON = useScenarioStore((state) => state.toFlowJSON);
   const setDirty = useScenarioStore((state) => state.setDirty);
+
+  const status = useExecutionStore((state) => state.status);
+  const actionLogs = useExecutionStore((state) => state.actionLogs);
+  const addEdgeAnimation = useExecutionStore((state) => state.addEdgeAnimation);
+  const lastLogCountRef = useRef(0);
 
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
@@ -106,6 +113,41 @@ export function Canvas() {
   const onPaneClick = () => {
     setSelectedNode(null);
   };
+
+  // Trigger edge animations when sipMessage logs arrive
+  useEffect(() => {
+    if (status !== 'running') return;
+
+    // Only process new logs
+    if (actionLogs.length <= lastLogCountRef.current) {
+      lastLogCountRef.current = actionLogs.length;
+      return;
+    }
+
+    // Get new logs since last check
+    const newLogs = actionLogs.slice(lastLogCountRef.current);
+    lastLogCountRef.current = actionLogs.length;
+
+    // Process each new log with sipMessage
+    newLogs.forEach((log) => {
+      if (!log.sipMessage) return;
+
+      // Find outgoing edge from this node
+      const outgoingEdge = edges.find((edge) => edge.source === log.nodeId);
+      if (!outgoingEdge) return;
+
+      // Create edge animation
+      const animation: EdgeAnimationMessage = {
+        id: crypto.randomUUID(),
+        edgeId: outgoingEdge.id,
+        method: log.sipMessage.method || '?',
+        timestamp: Date.now(),
+        duration: 1000,
+      };
+
+      addEdgeAnimation(animation);
+    });
+  }, [status, actionLogs, edges, addEdgeAnimation]);
 
   // Keyboard shortcut: Ctrl+S / Cmd+S to save
   useEffect(() => {
