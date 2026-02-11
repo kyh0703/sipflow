@@ -3,15 +3,15 @@
 ## 현재 상태
 - **마일스톤**: 1 (MVP — 시각적 시나리오 빌더 + 시뮬레이션 실행)
 - **페이즈**: 05 (UI Completion) 진행 중
-- **진행률**: 20/21 plans (95%)
-- **상태**: `phase-05-in-progress`
-- **최근 활동**: 2026-02-11 — Completed 05-03-PLAN.md (E2E 통합 테스트 + 빌드 검증)
+- **진행률**: 21/21 plans (100%)
+- **상태**: `phase-05-complete`
+- **최근 활동**: 2026-02-11 — Completed 05-02-PLAN.md (Zustand 자동 저장)
 
-**진행 바:** ████████████████████░ (20/21)
+**진행 바:** █████████████████████ (21/21)
 
 ## 세션 연속성
-- **Last session:** 2026-02-11T02:24:00Z
-- **Stopped at:** Completed 05-03-PLAN.md
+- **Last session:** 2026-02-11T02:31:31Z
+- **Stopped at:** Completed 05-02-PLAN.md
 - **Resume file:** None
 
 ## 프로젝트 메모리
@@ -88,6 +88,10 @@
 - [2026-02-11] scenarioID 추적을 Engine에 추가 (05-03)
 - [2026-02-11] 2-instance TIMEOUT 체인 시뮬레이션 패턴 (05-03)
 - [2026-02-11] shadcn/ui Button 컴포넌트 추가 (05-03)
+- [2026-02-11] 2000ms debounce 자동 저장 (05-02)
+- [2026-02-11] saveStatus와 isDirty 분리 관리 (05-02)
+- [2026-02-11] Zustand subscribe 외부 모듈 스코프 호출 패턴 (05-02)
+- [2026-02-11] onNodeDragStop에서 드래그 완료 후 저장 (05-02)
 
 ## 결정사항 누적
 
@@ -137,6 +141,10 @@
 | 05-01 | resolvedTheme으로 배경색 조건 분기 | ReactFlow Background 컴포넌트 API 제약 대응 | System 모드에서도 정확한 테마 반영 |
 | 05-03 | scenarioID 추적을 Engine에 추가 | scenario:completed 이벤트에 scenarioID 포함하여 여러 시나리오 실행 추적 가능 | 이벤트 추적 개선, 다중 실행 지원 준비 |
 | 05-03 | 2-instance TIMEOUT 체인 시뮬레이션 | diago localhost 포트 충돌로 실제 SIP 통화 불가, TIMEOUT 이벤트로 병렬 실행 검증 | 테스트 전략, 엔진 파이프라인 검증 |
+| 05-02 | 2000ms debounce 자동 저장 | 사용자 결정 1-2초 범위 → 2000ms 채택 | 데이터 손실 방지, UX 향상 |
+| 05-02 | saveStatus와 isDirty 분리 | isDirty는 변경 추적, saveStatus는 저장 상태 (saved/modified/saving) | UI에서 저장 프로세스 명확 표시 |
+| 05-02 | position 변경 분리 | onNodesChange에서 position 변경 무시, onNodeDragStop에서 isDirty 설정 | 드래그 중 저장 방지 |
+| 05-02 | 인라인 debounce 구현 | lodash/use-debounce 없이 인라인 구현, cancel 메서드 포함 | 외부 의존성 불필요, 수동 저장 시 pending save 취소 |
 
 ## 차단 요소 / 우려사항
 
