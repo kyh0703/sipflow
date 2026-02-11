@@ -102,10 +102,11 @@ func (e *Engine) emitScenarioStarted(scenarioID string) {
 }
 
 // emitScenarioCompleted는 시나리오 완료 이벤트를 발행한다
-func (e *Engine) emitScenarioCompleted() {
+func (e *Engine) emitScenarioCompleted(scenarioID string) {
 	if e.emitter != nil {
 		e.emitter.Emit(EventCompleted, map[string]interface{}{
-			"timestamp": time.Now().UnixMilli(),
+			"scenarioId": scenarioID,
+			"timestamp":  time.Now().UnixMilli(),
 		})
 	}
 }

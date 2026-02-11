@@ -12,14 +12,15 @@ import (
 
 // Engine은 시나리오 실행 엔진
 type Engine struct {
-	ctx        context.Context
-	repo       *scenario.Repository
-	emitter    EventEmitter
-	im         *InstanceManager
-	mu         sync.Mutex
-	running    bool
-	cancelFunc context.CancelFunc
-	wg         sync.WaitGroup
+	ctx         context.Context
+	repo        *scenario.Repository
+	emitter     EventEmitter
+	im          *InstanceManager
+	mu          sync.Mutex
+	running     bool
+	scenarioID  string
+	cancelFunc  context.CancelFunc
+	wg          sync.WaitGroup
 }
 
 // NewEngine은 새로운 Engine을 생성한다
@@ -78,6 +79,7 @@ func (e *Engine) StartScenario(scenarioID string) error {
 	// 6. 실행 context 생성
 	execCtx, cancel := context.WithCancel(context.Background())
 	e.mu.Lock()
+	e.scenarioID = scenarioID
 	e.cancelFunc = cancel
 	e.mu.Unlock()
 
@@ -118,15 +120,20 @@ func (e *Engine) StartScenario(scenarioID string) error {
 		e.cleanup(executor)
 
 		// 결과 판단
+		e.mu.Lock()
+		currentScenarioID := e.scenarioID
+		e.mu.Unlock()
+
 		select {
 		case err := <-errCh:
 			e.emitScenarioFailed(err.Error())
 		default:
-			e.emitScenarioCompleted()
+			e.emitScenarioCompleted(currentScenarioID)
 		}
 
 		e.mu.Lock()
 		e.running = false
+		e.scenarioID = ""
 		e.cancelFunc = nil
 		e.mu.Unlock()
 	}()
@@ -171,6 +178,7 @@ func (e *Engine) StopScenario() error {
 	// 상태 리셋
 	e.mu.Lock()
 	e.running = false
+	e.scenarioID = ""
 	e.cancelFunc = nil
 	e.mu.Unlock()
 
@@ -182,6 +190,7 @@ func (e *Engine) cleanupOnError() {
 	e.im.Cleanup()
 	e.mu.Lock()
 	e.running = false
+	e.scenarioID = ""
 	e.mu.Unlock()
 }
 

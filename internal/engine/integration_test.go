@@ -643,3 +643,413 @@ func TestIntegration_ConcurrentStartPrevention(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 }
+
+// TestIntegration_TwoPartyCallSimulation tests a two-instance scenario with TIMEOUT events
+// This tests parallel execution of multiple instances in simulation mode
+func TestIntegration_TwoPartyCallSimulation(t *testing.T) {
+	eng, repo, te := newTestEngine(t, 20060)
+
+	// Build scenario:
+	// Instance A (dn: "100") -> TIMEOUT(500ms) -> TIMEOUT(500ms)
+	// Instance B (dn: "200") -> TIMEOUT(500ms)
+	// Both instances execute in parallel
+	nodes := []FlowNode{
+		// Instance A
+		{
+			ID:   "inst-a",
+			Type: "sipInstance",
+			Data: map[string]interface{}{
+				"label": "Instance A",
+				"mode":  "DN",
+				"dn":    "100",
+			},
+		},
+		{
+			ID:   "evt-timeout-a1",
+			Type: "event",
+			Data: map[string]interface{}{
+				"sipInstanceId": "inst-a",
+				"event":         "TIMEOUT",
+				"timeout":       500.0, // 500ms delay
+			},
+		},
+		{
+			ID:   "evt-timeout-a2",
+			Type: "event",
+			Data: map[string]interface{}{
+				"sipInstanceId": "inst-a",
+				"event":         "TIMEOUT",
+				"timeout":       500.0, // 500ms delay
+			},
+		},
+		// Instance B
+		{
+			ID:   "inst-b",
+			Type: "sipInstance",
+			Data: map[string]interface{}{
+				"label": "Instance B",
+				"mode":  "DN",
+				"dn":    "200",
+			},
+		},
+		{
+			ID:   "evt-timeout-b",
+			Type: "event",
+			Data: map[string]interface{}{
+				"sipInstanceId": "inst-b",
+				"event":         "TIMEOUT",
+				"timeout":       500.0, // 500ms delay
+			},
+		},
+	}
+
+	edges := []FlowEdge{
+		{ID: "e1", Source: "inst-a", Target: "evt-timeout-a1"},
+		{ID: "e2", Source: "evt-timeout-a1", Target: "evt-timeout-a2", SourceHandle: "success"},
+		{ID: "e3", Source: "inst-b", Target: "evt-timeout-b"},
+	}
+
+	flowData := buildTestFlowData(t, nodes, edges)
+
+	// Create and save scenario
+	scn, err := repo.CreateScenario("default", "test-2party-simulation")
+	if err != nil {
+		t.Fatalf("CreateScenario failed: %v", err)
+	}
+
+	if err := repo.SaveScenario(scn.ID, flowData); err != nil {
+		t.Fatalf("SaveScenario failed: %v", err)
+	}
+
+	// Start scenario
+	if err := eng.StartScenario(scn.ID); err != nil {
+		t.Fatalf("StartScenario failed: %v", err)
+	}
+
+	// Wait for scenario to complete (max 5 seconds)
+	if !waitForEvent(t, te, EventCompleted, 5*time.Second) {
+		// Print all events for debugging
+		allEvents := te.GetEvents()
+		t.Logf("Total events: %d", len(allEvents))
+		for i, e := range allEvents {
+			t.Logf("Event %d: %s - %+v", i, e.Name, e.Data)
+		}
+		t.Fatal("Scenario did not complete within 5 seconds")
+	}
+
+	// Verify events
+	startedEvents := te.GetEventsByName(EventStarted)
+	if len(startedEvents) != 1 {
+		t.Errorf("Expected 1 scenario:started event, got %d", len(startedEvents))
+	}
+
+	// Verify all nodes reached completed state
+	if !waitForNodeState(t, te, "evt-timeout-a1", NodeStateCompleted, 1*time.Second) {
+		t.Error("evt-timeout-a1 did not reach completed state")
+	}
+	if !waitForNodeState(t, te, "evt-timeout-a2", NodeStateCompleted, 1*time.Second) {
+		t.Error("evt-timeout-a2 did not reach completed state")
+	}
+	if !waitForNodeState(t, te, "evt-timeout-b", NodeStateCompleted, 1*time.Second) {
+		t.Error("evt-timeout-b did not reach completed state")
+	}
+
+	// Verify scenario completed successfully
+	completedEvents := te.GetEventsByName(EventCompleted)
+	if len(completedEvents) != 1 {
+		t.Errorf("Expected 1 scenario:completed event, got %d", len(completedEvents))
+	}
+
+	// Cleanup
+	time.Sleep(500 * time.Millisecond)
+}
+
+// TestIntegration_EventStreamVerification tests the accuracy and ordering of event streams
+func TestIntegration_EventStreamVerification(t *testing.T) {
+	eng, repo, te := newTestEngine(t, 21060)
+
+	// Simple scenario: one instance with single TIMEOUT event
+	nodes := []FlowNode{
+		{
+			ID:   "inst-a",
+			Type: "sipInstance",
+			Data: map[string]interface{}{
+				"label": "Test UA",
+				"mode":  "DN",
+				"dn":    "100",
+			},
+		},
+		{
+			ID:   "evt-timeout",
+			Type: "event",
+			Data: map[string]interface{}{
+				"sipInstanceId": "inst-a",
+				"event":         "TIMEOUT",
+				"timeout":       500.0, // 500ms delay
+			},
+		},
+	}
+
+	edges := []FlowEdge{
+		{ID: "e1", Source: "inst-a", Target: "evt-timeout"},
+	}
+
+	flowData := buildTestFlowData(t, nodes, edges)
+
+	scn, err := repo.CreateScenario("default", "test-event-stream")
+	if err != nil {
+		t.Fatalf("CreateScenario failed: %v", err)
+	}
+
+	if err := repo.SaveScenario(scn.ID, flowData); err != nil {
+		t.Fatalf("SaveScenario failed: %v", err)
+	}
+
+	// Start scenario
+	if err := eng.StartScenario(scn.ID); err != nil {
+		t.Fatalf("StartScenario failed: %v", err)
+	}
+
+	// Wait for scenario to complete
+	if !waitForEvent(t, te, EventCompleted, 5*time.Second) {
+		t.Fatal("Expected scenario:completed event within 5 seconds")
+	}
+
+	// Verify scenario:started event
+	startedEvents := te.GetEventsByName(EventStarted)
+	if len(startedEvents) != 1 {
+		t.Fatalf("Expected 1 scenario:started event, got %d", len(startedEvents))
+	}
+	startedEvent := startedEvents[0]
+	if startedEvent.Data["scenarioId"] != scn.ID {
+		t.Errorf("scenario:started event missing scenarioId, got: %+v", startedEvent.Data)
+	}
+
+	// Verify node:state events
+	nodeStateEvents := te.GetEventsByName(EventNodeState)
+	if len(nodeStateEvents) == 0 {
+		t.Fatal("Expected node:state events")
+	}
+
+	// Find node:state events for evt-timeout
+	var pendingToRunning, runningToCompleted bool
+	for _, e := range nodeStateEvents {
+		if e.Data["nodeId"] == "evt-timeout" {
+			prevState, okPrev := e.Data["previousState"].(string)
+			newState, okNew := e.Data["newState"].(string)
+			if !okPrev || !okNew {
+				t.Errorf("node:state event missing previousState or newState, got: %+v", e.Data)
+				continue
+			}
+			if prevState == NodeStatePending && newState == NodeStateRunning {
+				pendingToRunning = true
+			}
+			if prevState == NodeStateRunning && newState == NodeStateCompleted {
+				runningToCompleted = true
+			}
+		}
+	}
+	if !pendingToRunning {
+		t.Error("Expected node:state event (pending -> running) for evt-timeout")
+	}
+	if !runningToCompleted {
+		t.Error("Expected node:state event (running -> completed) for evt-timeout")
+	}
+
+	// Verify action:log events
+	actionLogEvents := te.GetEventsByName(EventActionLog)
+	if len(actionLogEvents) == 0 {
+		t.Fatal("Expected action:log events")
+	}
+
+	// Find action:log events for evt-timeout
+	var foundActionLog bool
+	for _, e := range actionLogEvents {
+		if e.Data["nodeId"] == "evt-timeout" {
+			if _, ok := e.Data["message"].(string); !ok {
+				t.Errorf("action:log event missing message, got: %+v", e.Data)
+			}
+			foundActionLog = true
+		}
+	}
+	if !foundActionLog {
+		t.Error("Expected action:log event for evt-timeout")
+	}
+
+	// Verify scenario:completed event
+	completedEvents := te.GetEventsByName(EventCompleted)
+	if len(completedEvents) != 1 {
+		t.Fatalf("Expected 1 scenario:completed event, got %d", len(completedEvents))
+	}
+	completedEvent := completedEvents[0]
+	if completedEvent.Data["scenarioId"] != scn.ID {
+		t.Errorf("scenario:completed event missing scenarioId, got: %+v", completedEvent.Data)
+	}
+
+	// Verify event ordering: started -> node:state -> action:log -> completed
+	allEvents := te.GetEvents()
+	var startedIdx, firstNodeStateIdx, firstActionLogIdx, completedIdx int = -1, -1, -1, -1
+	for i, e := range allEvents {
+		switch e.Name {
+		case EventStarted:
+			if startedIdx == -1 {
+				startedIdx = i
+			}
+		case EventNodeState:
+			if firstNodeStateIdx == -1 && e.Data["nodeId"] == "evt-timeout" {
+				firstNodeStateIdx = i
+			}
+		case EventActionLog:
+			if firstActionLogIdx == -1 && e.Data["nodeId"] == "evt-timeout" {
+				firstActionLogIdx = i
+			}
+		case EventCompleted:
+			if completedIdx == -1 {
+				completedIdx = i
+			}
+		}
+	}
+
+	if startedIdx == -1 || firstNodeStateIdx == -1 || firstActionLogIdx == -1 || completedIdx == -1 {
+		t.Fatal("Not all required events found")
+	}
+
+	if !(startedIdx < firstNodeStateIdx && firstNodeStateIdx < completedIdx) {
+		t.Errorf("Event ordering incorrect: started=%d, node:state=%d, completed=%d",
+			startedIdx, firstNodeStateIdx, completedIdx)
+	}
+
+	time.Sleep(500 * time.Millisecond)
+}
+
+// TestIntegration_CleanupVerification tests cleanup after scenario completion
+func TestIntegration_CleanupVerification(t *testing.T) {
+	eng, repo, te := newTestEngine(t, 22060)
+
+	// Simple scenario: one instance with single TIMEOUT event
+	nodes := []FlowNode{
+		{
+			ID:   "inst-a",
+			Type: "sipInstance",
+			Data: map[string]interface{}{
+				"label": "Cleanup Test UA",
+				"mode":  "DN",
+				"dn":    "100",
+			},
+		},
+		{
+			ID:   "evt-timeout",
+			Type: "event",
+			Data: map[string]interface{}{
+				"sipInstanceId": "inst-a",
+				"event":         "TIMEOUT",
+				"timeout":       500.0, // 500ms delay
+			},
+		},
+	}
+
+	edges := []FlowEdge{
+		{ID: "e1", Source: "inst-a", Target: "evt-timeout"},
+	}
+
+	flowData := buildTestFlowData(t, nodes, edges)
+
+	scn, err := repo.CreateScenario("default", "test-cleanup")
+	if err != nil {
+		t.Fatalf("CreateScenario failed: %v", err)
+	}
+
+	if err := repo.SaveScenario(scn.ID, flowData); err != nil {
+		t.Fatalf("SaveScenario failed: %v", err)
+	}
+
+	// Start scenario
+	if err := eng.StartScenario(scn.ID); err != nil {
+		t.Fatalf("StartScenario failed: %v", err)
+	}
+
+	// Wait for scenario to complete
+	if !waitForEvent(t, te, EventCompleted, 5*time.Second) {
+		t.Fatal("Expected scenario:completed event within 5 seconds")
+	}
+
+	// Wait for cleanup to finish
+	time.Sleep(1 * time.Second)
+
+	// Verify engine is no longer running
+	if eng.IsRunning() {
+		t.Error("Engine should not be running after scenario completion")
+	}
+
+	// Verify cleanup action logs
+	actionLogs := te.GetEventsByName(EventActionLog)
+	var foundCleanupStart, foundCleanupCompleted bool
+	for _, e := range actionLogs {
+		if msg, ok := e.Data["message"].(string); ok {
+			if msg == "Starting cleanup" {
+				foundCleanupStart = true
+			}
+			if msg == "Cleanup completed" {
+				foundCleanupCompleted = true
+			}
+		}
+	}
+	if !foundCleanupStart {
+		t.Error("Expected 'Starting cleanup' action log")
+	}
+	if !foundCleanupCompleted {
+		t.Error("Expected 'Cleanup completed' action log")
+	}
+
+	// Verify restart capability - create a new scenario and run it
+	scn2, err := repo.CreateScenario("default", "test-restart")
+	if err != nil {
+		t.Fatalf("CreateScenario failed for restart test: %v", err)
+	}
+
+	if err := repo.SaveScenario(scn2.ID, flowData); err != nil {
+		t.Fatalf("SaveScenario failed for restart test: %v", err)
+	}
+
+	// Start second scenario
+	if err := eng.StartScenario(scn2.ID); err != nil {
+		t.Fatalf("StartScenario failed on restart: %v (cleanup may not have completed properly)", err)
+	}
+
+	// Wait for second scenario to complete with longer timeout
+	if !waitForEvent(t, te, EventCompleted, 10*time.Second) {
+		t.Fatal("Expected second scenario:completed event within 10 seconds")
+	}
+
+	// Wait a bit for all goroutines to finish
+	time.Sleep(1 * time.Second)
+
+	// Verify two completed events (one for each scenario)
+	completedEvents := te.GetEventsByName(EventCompleted)
+	if len(completedEvents) != 2 {
+		t.Errorf("Expected 2 scenario:completed events (one per run), got %d", len(completedEvents))
+		// Debug: print all completed events
+		for i, evt := range completedEvents {
+			t.Logf("Completed event %d: %+v", i, evt.Data)
+		}
+	}
+
+	// Verify both scenarioIDs are present in completed events
+	foundScn1, foundScn2 := false, false
+	for _, evt := range completedEvents {
+		if evt.Data["scenarioId"] == scn.ID {
+			foundScn1 = true
+		}
+		if evt.Data["scenarioId"] == scn2.ID {
+			foundScn2 = true
+		}
+	}
+	if !foundScn1 {
+		t.Error("First scenario completion event not found")
+	}
+	if !foundScn2 {
+		t.Error("Second scenario completion event not found")
+	}
+
+	time.Sleep(500 * time.Millisecond)
+}
