@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Play, Square, ToggleLeft } from 'lucide-react';
+import { toast } from 'sonner';
 import { useExecutionStore } from '../store/execution-store';
 import { useScenarioStore } from '../store/scenario-store';
 import { useEngineApi } from '../hooks/use-engine-api';
@@ -27,7 +28,9 @@ export function ExecutionToolbar() {
 
   const handleStart = async () => {
     if (!currentScenarioId) {
-      alert('No scenario selected. Please select or create a scenario first.');
+      toast.warning('No scenario selected', {
+        description: 'Please select or create a scenario first.',
+      });
       return;
     }
 
@@ -35,7 +38,9 @@ export function ExecutionToolbar() {
       reset();
       await startScenario(currentScenarioId);
     } catch (error) {
-      alert('Failed to start scenario: ' + error);
+      toast.error('Failed to start scenario', {
+        description: String(error),
+      });
     }
   };
 
@@ -43,7 +48,9 @@ export function ExecutionToolbar() {
     try {
       await stopScenario();
     } catch (error) {
-      alert('Failed to stop scenario: ' + error);
+      toast.error('Failed to stop scenario', {
+        description: String(error),
+      });
     }
   };
 
