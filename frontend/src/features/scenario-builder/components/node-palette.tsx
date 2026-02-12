@@ -3,6 +3,7 @@ import {
   Phone,
   PhoneIncoming,
   PhoneOff,
+  Volume2,
   Bell,
   PhoneMissed,
   BellRing,
@@ -100,6 +101,12 @@ export function NodePalette() {
           type="command-Release"
           label="Release"
           icon={PhoneOff}
+          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+        />
+        <PaletteItem
+          type="command-PlayAudio"
+          label="PlayAudio"
+          icon={Volume2}
           colorClass="bg-blue-50 border-blue-400 text-blue-900"
         />
       </Section>

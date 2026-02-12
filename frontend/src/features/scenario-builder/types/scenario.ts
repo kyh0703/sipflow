@@ -8,7 +8,7 @@ export const NODE_CATEGORIES = {
 } as const;
 
 // Command types (MVP Phase 2)
-export const COMMAND_TYPES = ['MakeCall', 'Answer', 'Release'] as const;
+export const COMMAND_TYPES = ['MakeCall', 'Answer', 'Release', 'PlayAudio'] as const;
 
 // Event types (full set)
 export const EVENT_TYPES = [
@@ -58,6 +58,7 @@ export interface CommandNodeData extends Record<string, unknown> {
   sipInstanceId?: string;
   targetUri?: string; // for MakeCall
   timeout?: number; // milliseconds
+  filePath?: string; // for PlayAudio WAV file absolute path
 }
 
 export type CommandNode = Node<CommandNodeData, 'command'>;
