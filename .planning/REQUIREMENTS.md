@@ -10,9 +10,9 @@
 
 ### 미디어 재생
 
-- [ ] **MEDIA-01**: 사용자가 PlayAudio Command 노드를 캔버스에 배치하여 통화 중 WAV 파일을 RTP로 재생할 수 있음
-- [ ] **MEDIA-02**: 사용자가 Wails 네이티브 파일 다이얼로그를 통해 WAV 오디오 파일을 선택할 수 있음
-- [ ] **MEDIA-03**: 시스템이 WAV 파일을 검증하여 8kHz mono PCM 포맷이 아닌 경우 사용자에게 오류를 표시함
+- [x] **MEDIA-01**: 사용자가 PlayAudio Command 노드를 캔버스에 배치하여 통화 중 WAV 파일을 RTP로 재생할 수 있음
+- [x] **MEDIA-02**: 사용자가 Wails 네이티브 파일 다이얼로그를 통해 WAV 오디오 파일을 선택할 수 있음
+- [x] **MEDIA-03**: 시스템이 WAV 파일을 검증하여 8kHz mono PCM 포맷이 아닌 경우 사용자에게 오류를 표시함
 
 ### DTMF
 
@@ -73,9 +73,9 @@
 | REQ-ID | 페이즈 | 계획 | 상태 |
 |--------|--------|------|------|
 | CODEC-01 | Phase 6 | 06-01, 06-02 | Complete |
-| MEDIA-01 | Phase 7 | 대기 | 대기 |
-| MEDIA-02 | Phase 7 | 대기 | 대기 |
-| MEDIA-03 | Phase 7 | 대기 | 대기 |
+| MEDIA-01 | Phase 7 | 07-01, 07-02 | Complete |
+| MEDIA-02 | Phase 7 | 07-01, 07-02 | Complete |
+| MEDIA-03 | Phase 7 | 07-01 | Complete |
 | DTMF-01 | Phase 8 | 대기 | 대기 |
 | DTMF-02 | Phase 8 | 대기 | 대기 |
 | NF-01 | Phase 9 | 대기 | 대기 |

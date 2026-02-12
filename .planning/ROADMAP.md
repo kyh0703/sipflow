@@ -36,7 +36,7 @@ Plans:
 
 ---
 
-### Phase 7: Media Playback
+### Phase 7: Media Playback ✅
 
 **목표:** 사용자가 통화 중 WAV 오디오 파일을 RTP로 재생하여 IVR 프롬프트 시뮬레이션을 수행할 수 있다
 
@@ -57,8 +57,8 @@ Plans:
 
 **Plans:** 2 plans
 Plans:
-- [ ] 07-01-PLAN.md — Backend WAV 검증 바인딩 + 실행 엔진 PlayAudio
-- [ ] 07-02-PLAN.md — Frontend PlayAudio 노드 UI + 파일 선택 연동
+- [x] 07-01-PLAN.md — Backend WAV 검증 바인딩 + 실행 엔진 PlayAudio
+- [x] 07-02-PLAN.md — Frontend PlayAudio 노드 UI + 파일 선택 연동
 
 ---
 
@@ -108,11 +108,11 @@ Plans:
 | Phase | 목표 | 요구사항 | 계획 | 상태 |
 |-------|------|----------|------|------|
 | 6 - Codec Configuration | 코덱 선택 및 SDP 협상 | CODEC-01 | 2/2 | ✅ 완료 |
-| 7 - Media Playback | WAV 재생 | MEDIA-01, MEDIA-02, MEDIA-03 | 0/2 | 계획됨 |
+| 7 - Media Playback | WAV 재생 | MEDIA-01, MEDIA-02, MEDIA-03 | 2/2 | ✅ 완료 |
 | 8 - DTMF Send & Receive | DTMF 송수신 | DTMF-01, DTMF-02 | 0/? | 대기 |
 | 9 - Integration & Polish | 통합 테스트 및 품질 | NF-01, NF-02, NF-03 | 0/? | 대기 |
 
-**전체:** 1/4 페이즈 완료
+**전체:** 2/4 페이즈 완료
 
 ---
 
