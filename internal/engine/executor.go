@@ -231,6 +231,21 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 
 	// Answer 호출
 	if err := serverSession.Answer(); err != nil {
+		// 코덱 협상 실패 감지 (에러 메시지에 "codec" 또는 "media" 관련 문자열 포함 여부)
+		errMsg := err.Error()
+		if strings.Contains(strings.ToLower(errMsg), "codec") ||
+			strings.Contains(strings.ToLower(errMsg), "media") ||
+			strings.Contains(strings.ToLower(errMsg), "negotiat") {
+			// 인스턴스 코덱 정보 조회 (디버깅용)
+			instance, instErr := ex.im.GetInstance(instanceID)
+			if instErr == nil {
+				ex.engine.emitActionLog(node.ID, instanceID,
+					fmt.Sprintf("Instance codecs: %v", instance.Config.Codecs), "debug")
+			}
+			ex.engine.emitActionLog(node.ID, instanceID,
+				fmt.Sprintf("Codec negotiation failed (488 Not Acceptable): %v", err), "error")
+			return fmt.Errorf("codec negotiation failed (488 Not Acceptable): %w", err)
+		}
 		return fmt.Errorf("Answer failed: %w", err)
 	}
 

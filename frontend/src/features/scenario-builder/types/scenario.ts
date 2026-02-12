@@ -32,6 +32,12 @@ export const INSTANCE_COLORS = [
   '#06b6d4', // cyan
 ] as const;
 
+// Available codecs for SIP instances
+export const AVAILABLE_CODECS = ['PCMU', 'PCMA'] as const;
+
+// Default codec selection (all codecs enabled, PCMU first)
+export const DEFAULT_CODECS: string[] = ['PCMU', 'PCMA'];
+
 // SIP Instance Node
 export interface SipInstanceNodeData extends Record<string, unknown> {
   label: string;
@@ -40,6 +46,7 @@ export interface SipInstanceNodeData extends Record<string, unknown> {
   register: boolean;
   serverId?: string;
   color: string;
+  codecs?: string[]; // ["PCMU", "PCMA"] — codec priority order
 }
 
 export type SipInstanceNode = Node<SipInstanceNodeData, 'sipInstance'>;

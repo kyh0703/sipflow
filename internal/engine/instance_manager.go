@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/emiago/diago"
+	"github.com/emiago/diago/media"
 	"github.com/emiago/sipgo"
 )
 
@@ -36,6 +37,22 @@ func NewInstanceManager() *InstanceManager {
 		nextPort:   5060,
 		maxRetries: 10,
 	}
+}
+
+// stringToCodecs는 코덱 이름 문자열 배열을 media.Codec 배열로 변환한다
+func stringToCodecs(codecNames []string) []media.Codec {
+	codecs := make([]media.Codec, 0, len(codecNames)+1)
+	for _, name := range codecNames {
+		switch name {
+		case "PCMU":
+			codecs = append(codecs, media.CodecAudioUlaw)
+		case "PCMA":
+			codecs = append(codecs, media.CodecAudioAlaw)
+		}
+	}
+	// telephone-event는 항상 마지막에 추가 (DTMF 지원)
+	codecs = append(codecs, media.CodecTelephoneEvent8000)
+	return codecs
 }
 
 // CreateInstances는 ExecutionGraph의 모든 인스턴스에 대해 diago UA를 생성한다
@@ -71,12 +88,18 @@ func (im *InstanceManager) CreateInstances(graph *ExecutionGraph) error {
 			return fmt.Errorf("failed to create UA for instance %s: %w", instanceID, err)
 		}
 
+		// 코덱 문자열 → media.Codec 변환
+		codecs := stringToCodecs(chain.Config.Codecs)
+
 		// diago 인스턴스 생성 (127.0.0.1에 바인딩)
 		dg := diago.NewDiago(ua,
 			diago.WithTransport(diago.Transport{
 				Transport: "udp",
 				BindHost:  "127.0.0.1",
 				BindPort:  port,
+			}),
+			diago.WithMediaConfig(diago.MediaConfig{
+				Codecs: codecs,
 			}),
 		)
 

@@ -1,6 +1,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Play } from 'lucide-react';
 import type { SipInstanceNode } from '../../types/scenario';
+import { DEFAULT_CODECS } from '../../types/scenario';
 import { useScenarioStore } from '../../store/scenario-store';
 import { useExecutionStore } from '../../store/execution-store';
 
@@ -41,6 +42,10 @@ export function SipInstanceNode({ data, id }: NodeProps<SipInstanceNode>) {
         {data.mode === 'DN' && data.dn && (
           <div className="text-xs text-muted-foreground">DN: {data.dn}</div>
         )}
+        {/* Codec display */}
+        <div className="text-xs text-muted-foreground mt-1">
+          {(data.codecs && data.codecs.length > 0 ? data.codecs : DEFAULT_CODECS).join(', ')}
+        </div>
       </div>
 
       <Handle

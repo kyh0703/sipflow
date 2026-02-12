@@ -4,7 +4,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import type { SipInstanceNode } from '../../types/scenario';
-import { INSTANCE_COLORS } from '../../types/scenario';
+import { INSTANCE_COLORS, DEFAULT_CODECS } from '../../types/scenario';
+import { CodecListItem } from './codec-list-item';
 
 interface SipInstancePropertiesProps {
   node: SipInstanceNode;
@@ -20,6 +21,18 @@ export function SipInstanceProperties({ node, onUpdate }: SipInstancePropertiesP
       register: mode === 'DN',
     });
   };
+
+  const moveCodec = (fromIndex: number, toIndex: number) => {
+    const currentCodecs = data.codecs && data.codecs.length > 0
+      ? data.codecs
+      : [...DEFAULT_CODECS];
+    const newCodecs = [...currentCodecs];
+    const [removed] = newCodecs.splice(fromIndex, 1);
+    newCodecs.splice(toIndex, 0, removed);
+    onUpdate({ codecs: newCodecs });
+  };
+
+  const displayCodecs = data.codecs && data.codecs.length > 0 ? data.codecs : DEFAULT_CODECS;
 
   return (
     <div className="space-y-4 nodrag">
@@ -103,6 +116,24 @@ export function SipInstanceProperties({ node, onUpdate }: SipInstancePropertiesP
               }}
               onClick={() => onUpdate({ color })}
               aria-label={`Select color ${color}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Codec Selection */}
+      <div className="space-y-2">
+        <Label>Preferred Codecs</Label>
+        <p className="text-xs text-muted-foreground">Drag to reorder priority.</p>
+        <div className="space-y-2">
+          {displayCodecs.map((codec, index) => (
+            <CodecListItem
+              key={codec}
+              codec={codec}
+              index={index}
+              onMove={moveCodec}
             />
           ))}
         </div>

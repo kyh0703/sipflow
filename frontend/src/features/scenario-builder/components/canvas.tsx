@@ -20,7 +20,7 @@ import { wouldCreateCycle } from '../lib/validation';
 import { edgeTypes } from '../edges/branch-edge';
 import { useDnD } from '../hooks/use-dnd';
 import { nodeTypes } from './nodes';
-import { INSTANCE_COLORS } from '../types/scenario';
+import { INSTANCE_COLORS, DEFAULT_CODECS } from '../types/scenario';
 import type { EdgeAnimationMessage } from '../types/execution';
 
 export function Canvas() {
@@ -70,6 +70,7 @@ export function Canvas() {
         mode: 'DN',
         register: true,
         color: INSTANCE_COLORS[instanceCount % INSTANCE_COLORS.length],
+        codecs: [...DEFAULT_CODECS],
       };
     } else if (dragType.startsWith('command-')) {
       // Parse command name from type string (e.g., 'command-MakeCall' -> 'MakeCall')
