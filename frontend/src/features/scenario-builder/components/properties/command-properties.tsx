@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { useScenarioStore } from '../../store/scenario-store';
 import type { CommandNode } from '../../types/scenario';
+import { SelectWAVFile } from '../../../../../wailsjs/go/binding/MediaBinding';
 
 interface CommandPropertiesProps {
   node: CommandNode;
@@ -14,9 +18,24 @@ interface CommandPropertiesProps {
 export function CommandProperties({ node, onUpdate }: CommandPropertiesProps) {
   const { data } = node;
   const nodes = useScenarioStore((state) => state.nodes);
+  const [isSelecting, setIsSelecting] = useState(false);
 
   // Filter SIP Instance nodes for instance assignment
   const sipInstanceNodes = nodes.filter((n) => n.type === 'sipInstance');
+
+  const handleSelectAudioFile = async () => {
+    setIsSelecting(true);
+    try {
+      const filePath = await SelectWAVFile();
+      if (!filePath) return;
+      onUpdate({ filePath });
+      toast.success('Audio file selected');
+    } catch (err: any) {
+      toast.error(`Invalid WAV file: ${err?.message || err}`);
+    } finally {
+      setIsSelecting(false);
+    }
+  };
 
   return (
     <div className="space-y-4 nodrag">
@@ -111,6 +130,27 @@ export function CommandProperties({ node, onUpdate }: CommandPropertiesProps) {
             onChange={(e) => onUpdate({ cause: e.target.value } as any)}
             placeholder="Normal clearing"
           />
+        </div>
+      )}
+
+      {data.command === 'PlayAudio' && (
+        <div className="space-y-2">
+          <Label>Audio File</Label>
+          {data.filePath ? (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" title={data.filePath} className="max-w-[200px] truncate">
+                {data.filePath.split(/[\\/]/).pop()}
+              </Badge>
+              <Button size="sm" variant="ghost" onClick={handleSelectAudioFile} disabled={isSelecting}>
+                Change
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={handleSelectAudioFile} disabled={isSelecting} size="sm">
+              {isSelecting ? 'Selecting...' : 'Select File'}
+            </Button>
+          )}
+          <p className="text-xs text-muted-foreground">Required: 8kHz mono PCM WAV format</p>
         </div>
       )}
     </div>

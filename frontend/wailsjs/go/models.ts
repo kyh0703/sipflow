@@ -1,3 +1,24 @@
+export namespace binding {
+	
+	export class WAVValidationResult {
+	    valid: boolean;
+	    error?: string;
+	    details?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new WAVValidationResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.valid = source["valid"];
+	        this.error = source["error"];
+	        this.details = source["details"];
+	    }
+	}
+
+}
+
 export namespace scenario {
 	
 	export class Scenario {
