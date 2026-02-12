@@ -17,6 +17,7 @@ type App struct {
 	engine          *engine.Engine
 	engineBinding   *binding.EngineBinding
 	scenarioBinding *binding.ScenarioBinding
+	mediaBinding    *binding.MediaBinding
 	scenarioRepo    *scenario.Repository
 }
 
@@ -48,6 +49,7 @@ func NewApp() *App {
 		engine:          eng,
 		engineBinding:   binding.NewEngineBinding(eng),
 		scenarioBinding: binding.NewScenarioBinding(repo),
+		mediaBinding:    binding.NewMediaBinding(),
 		scenarioRepo:    repo,
 	}
 }
@@ -59,6 +61,7 @@ func (a *App) startup(ctx context.Context) {
 	a.engine.SetContext(ctx)
 	a.engineBinding.SetContext(ctx)
 	a.scenarioBinding.SetContext(ctx)
+	a.mediaBinding.SetContext(ctx)
 }
 
 // shutdown is called when the app is closing

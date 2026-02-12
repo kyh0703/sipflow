@@ -33,12 +33,14 @@ type GraphNode struct {
 	ID          string
 	Type        string // command|event
 	InstanceID  string
-	Command     string        // MakeCall|Answer|Release (command 노드 전용)
+	Command     string        // MakeCall|Answer|Release|PlayAudio (command 노드 전용)
 	TargetURI   string        // MakeCall 대상 URI (command 노드 전용)
+	FilePath    string        // PlayAudio WAV 파일 경로 (command 노드 전용)
 	Event       string        // INCOMING|DISCONNECTED|RINGING|TIMEOUT (event 노드 전용)
 	Timeout     time.Duration // 타임아웃 (기본 10초)
 	SuccessNext *GraphNode    // 성공 분기 다음 노드
 	FailureNext *GraphNode    // 실패 분기 다음 노드
+	Data        map[string]interface{} // 원본 노드 데이터 (executePlayAudio에서 필요)
 }
 
 // SipInstanceConfig는 SIP Instance 설정
@@ -113,11 +115,13 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 				ID:         node.ID,
 				Type:       node.Type,
 				InstanceID: sipInstanceID,
+				Data:       node.Data, // 원본 데이터 저장
 			}
 
 			if node.Type == "command" {
 				gnode.Command = getStringField(node.Data, "command", "")
 				gnode.TargetURI = getStringField(node.Data, "targetUri", "")
+				gnode.FilePath = getStringField(node.Data, "filePath", "")
 				timeoutMs := getFloatField(node.Data, "timeout", 10000)
 				gnode.Timeout = time.Duration(timeoutMs) * time.Millisecond
 			} else if node.Type == "event" {

@@ -3,6 +3,8 @@ package engine
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -162,6 +164,8 @@ func (ex *Executor) executeCommand(ctx context.Context, instanceID string, node 
 		return ex.executeAnswer(ctx, instanceID, node)
 	case "Release":
 		return ex.executeRelease(ctx, instanceID, node)
+	case "PlayAudio":
+		return ex.executePlayAudio(ctx, instanceID, node)
 	default:
 		return fmt.Errorf("unknown command: %s", node.Command)
 	}
@@ -381,4 +385,74 @@ func (ex *Executor) executeTimeout(ctx context.Context, instanceID string, node 
 		// Context 취소
 		return ctx.Err()
 	}
+}
+
+// executePlayAudio는 PlayAudio 커맨드를 실행한다
+func (ex *Executor) executePlayAudio(ctx context.Context, instanceID string, node *GraphNode) error {
+	// FilePath 검증
+	if node.FilePath == "" {
+		ex.engine.emitActionLog(node.ID, instanceID, "PlayAudio requires filePath", "error")
+		return fmt.Errorf("PlayAudio requires filePath")
+	}
+
+	// 파일 존재 확인
+	if _, err := os.Stat(node.FilePath); err != nil {
+		if os.IsNotExist(err) {
+			ex.engine.emitActionLog(node.ID, instanceID,
+				fmt.Sprintf("Audio file not found: %s", node.FilePath), "error")
+			return fmt.Errorf("audio file not found: %s", node.FilePath)
+		}
+		return fmt.Errorf("cannot access audio file: %w", err)
+	}
+
+	// Dialog 조회
+	dialog, exists := ex.sessions.GetDialog(instanceID)
+	if !exists {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			"No active dialog for PlayAudio (call must be answered first)", "error")
+		return fmt.Errorf("no active dialog for PlayAudio")
+	}
+
+	// WAV 파일 열기
+	file, err := os.Open(node.FilePath)
+	if err != nil {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("Failed to open audio file: %v", err), "error")
+		return fmt.Errorf("failed to open audio file: %w", err)
+	}
+	defer file.Close()
+
+	// Playback 인스턴스 생성
+	pb, err := dialog.Media().PlaybackCreate()
+	if err != nil {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("PlaybackCreate failed: %v", err), "error")
+		return fmt.Errorf("PlaybackCreate failed: %w", err)
+	}
+
+	// 파일명 추출
+	fileName := filepath.Base(node.FilePath)
+	ex.engine.emitActionLog(node.ID, instanceID,
+		fmt.Sprintf("Playing audio file: %s", fileName), "info")
+
+	// Context 취소 확인
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	// WAV 파일 재생 (blocking until playback completes)
+	bytesPlayed, err := pb.Play(file, "audio/wav")
+	if err != nil {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("Playback failed: %v", err), "error")
+		return fmt.Errorf("Play failed: %w", err)
+	}
+
+	// 재생 완료 로그
+	ex.engine.emitActionLog(node.ID, instanceID,
+		fmt.Sprintf("Playback completed (%d bytes)", bytesPlayed), "info")
+
+	return nil
 }

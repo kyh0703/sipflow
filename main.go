@@ -30,6 +30,7 @@ func main() {
 			app,
 			app.engineBinding,
 			app.scenarioBinding,
+			app.mediaBinding,
 		},
 	})
 
