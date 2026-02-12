@@ -97,12 +97,12 @@
 
 | Phase | 목표 | 요구사항 | 계획 | 상태 |
 |-------|------|----------|------|------|
-| 6 - Codec Configuration | 코덱 선택 및 SDP 협상 | CODEC-01 | 0/? | 대기 |
+| 6 - Codec Configuration | 코덱 선택 및 SDP 협상 | CODEC-01 | 2/2 | ✅ 완료 |
 | 7 - Media Playback | WAV 재생 | MEDIA-01, MEDIA-02, MEDIA-03 | 0/? | 대기 |
 | 8 - DTMF Send & Receive | DTMF 송수신 | DTMF-01, DTMF-02 | 0/? | 대기 |
 | 9 - Integration & Polish | 통합 테스트 및 품질 | NF-01, NF-02, NF-03 | 0/? | 대기 |
 
-**전체:** 0/4 페이즈 완료
+**전체:** 1/4 페이즈 완료
 
 ---
 

@@ -21,7 +21,7 @@
 
 ### 코덱 선택
 
-- [ ] **CODEC-01**: 사용자가 SIP Instance 노드에서 선호 코덱 목록(PCMU/PCMA)과 우선순위를 설정하여 SDP 협상에 반영할 수 있음
+- [x] **CODEC-01**: 사용자가 SIP Instance 노드에서 선호 코덱 목록(PCMU/PCMA)과 우선순위를 설정하여 SDP 협상에 반영할 수 있음
 
 ### 비기능 요구사항
 
@@ -72,7 +72,7 @@
 
 | REQ-ID | 페이즈 | 계획 | 상태 |
 |--------|--------|------|------|
-| CODEC-01 | Phase 6 | 대기 | 대기 |
+| CODEC-01 | Phase 6 | 06-01, 06-02 | Complete |
 | MEDIA-01 | Phase 7 | 대기 | 대기 |
 | MEDIA-02 | Phase 7 | 대기 | 대기 |
 | MEDIA-03 | Phase 7 | 대기 | 대기 |

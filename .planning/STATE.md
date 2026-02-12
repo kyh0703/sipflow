@@ -2,9 +2,9 @@
 
 ## 현재 상태
 - **마일스톤**: v1.1 — 미디어 + DTMF
-- **페이즈**: Phase 6 — Codec Configuration
-- **상태**: `roadmap-ready`
-- **최근 활동**: 2026-02-11 — 로드맵 생성 완료
+- **페이즈**: Phase 7 — Media Playback
+- **상태**: `phase-ready`
+- **최근 활동**: 2026-02-12 — Phase 6 Codec Configuration 완료
 
 ## 프로젝트 참조
 
@@ -19,10 +19,10 @@ SIP 통화 시나리오에 미디어 재생, DTMF 송수신, 코덱 선택 기�
 
 ## 현재 위치
 
-### 페이즈: 6 - Codec Configuration
-**목표:** 사용자가 SIP 인스턴스별 코덱을 선택하고 우선순위를 설정하여 SDP 협상에 반영할 수 있다
+### 페이즈: 7 - Media Playback
+**목표:** 사용자가 통화 중 WAV 오디오 파일을 RTP로 재생하여 IVR 프롬프트 시뮬레이션을 수행할 수 있다
 
-**요구사항:** CODEC-01
+**요구사항:** MEDIA-01, MEDIA-02, MEDIA-03
 
 **계획:** 0/? 완료
 
@@ -30,45 +30,45 @@ SIP 통화 시나리오에 미디어 재생, DTMF 송수신, 코덱 선택 기�
 
 **진행:**
 ```
-Phase 6: [░░░░░░░░░░] 0%
+Phase 7: [░░░░░░░░░░] 0%
 ```
 
 ### 전체 마일스톤 진행
 ```
-v1.1 Roadmap: [░░░░░░░░░░] 0/4 페이즈 (0%)
+v1.1 Roadmap: [██▌░░░░░░░] 1/4 페이즈 (25%)
 
-✓ Phase 6: Codec Configuration [대기]
-✓ Phase 7: Media Playback [대기]
-✓ Phase 8: DTMF Send & Receive [대기]
-✓ Phase 9: Integration & Polish [대기]
+✅ Phase 6: Codec Configuration [완료] — 2 plans, 2026-02-12
+○ Phase 7: Media Playback [대기]
+○ Phase 8: DTMF Send & Receive [대기]
+○ Phase 9: Integration & Polish [대기]
 ```
 
 ## 성능 지표
 
 ### v1.1 마일스톤
 - **총 페이즈**: 4
-- **완료된 페이즈**: 0
+- **완료된 페이즈**: 1
 - **총 요구사항**: 9
-- **완료된 요구사항**: 0
-- **총 계획**: 미정
-- **완료된 계획**: 0
+- **완료된 요구사항**: 1 (CODEC-01)
+- **총 계획**: 2+
+- **완료된 계획**: 2
 
 ### 프로젝트 전체
 - **완료된 마일스톤**: 1 (v1.0)
 - **진행 중 마일스톤**: 1 (v1.1)
-- **총 페이즈 (v1.0+v1.1)**: 9 (5 완료 + 4 대기)
-- **총 계획 (v1.0+v1.1)**: 22+ (22 완료 + 미정)
+- **총 페이즈 (v1.0+v1.1)**: 9 (6 완료 + 3 대기)
+- **총 계획 (v1.0+v1.1)**: 24 (24 완료 + 미정)
 
 ## 누적 컨텍스트
 
 ### 현재 페이즈 결정사항
-없음 (Phase 6 시작 전)
+없음 (Phase 7 시작 전)
 
 ### 할일 (TODO)
-- [ ] Phase 6 계획 생성 (`/prp:plan-phase 6`)
-- [ ] 코덱 선택 UI 설계
-- [ ] diago MediaConfig API 통합 검증
-- [ ] PCMU/PCMA SDP 협상 테스트
+- [ ] Phase 7 논의 또는 계획 생성
+- [ ] PlayAudio Command 노드 설계
+- [ ] WAV 파일 선택 다이얼로그 구현
+- [ ] WAV 포맷 검증 (8kHz mono PCM)
 
 ### 차단 요소
 없음
@@ -77,10 +77,10 @@ v1.1 Roadmap: [░░░░░░░░░░] 0/4 페이즈 (0%)
 - **v1.0 — MVP**: 시각적 시나리오 빌더 + 시뮬레이션 실행 (5 phases, 22 plans, 78 commits, 2026-02-11 완료)
 
 ## 세션 연속성
-- **Last session:** 2026-02-11
-- **Stopped at:** 로드맵 생성 완료 — v1.1 Phase 6~9 정의됨
+- **Last session:** 2026-02-12
+- **Stopped at:** Phase 6 Codec Configuration 완료 — 검증 통과 (16/16)
 - **Resume file:** None
-- **다음 단계:** `/prp:plan-phase 6` — Codec Configuration 계획 생성
+- **다음 단계:** `/prp:discuss-phase 7` 또는 `/prp:plan-phase 7` — Media Playback
 
 ## 프로젝트 메모리
 
@@ -169,6 +169,10 @@ v1.1 Roadmap: [░░░░░░░░░░] 0/4 페이즈 (0%)
 - [2026-02-11] PCMU를 기본 fallback 코덱으로 채택 (협상 실패 방지)
 - [2026-02-11] 8kHz mono PCM WAV 포맷 검증 필수 (재생 속도 왜곡 방지)
 - [2026-02-11] RFC 2833 DTMF 기본값 (In-band 제외)
+- [2026-02-12] stringToCodecs에서 telephone-event 자동 추가 (06-01)
+- [2026-02-12] WithMediaConfig 인스턴스별 코덱 적용 (06-01)
+- [2026-02-12] HTML5 DnD 기반 코덱 순서 변경 UI (06-02)
+- [2026-02-12] nodrag 클래스로 React Flow 충돌 방지 (06-02)
 
 ## 결정사항 누적
 
@@ -222,6 +226,12 @@ v1.1 Roadmap: [░░░░░░░░░░] 0/4 페이즈 (0%)
 | 05-02 | saveStatus와 isDirty 분리 | isDirty는 변경 추적, saveStatus는 저장 상태 (saved/modified/saving) | UI에서 저장 프로세스 명확 표시 |
 | 05-02 | position 변경 분리 | onNodesChange에서 position 변경 무시, onNodeDragStop에서 isDirty 설정 | 드래그 중 저장 방지 |
 | 05-02 | 인라인 debounce 구현 | lodash/use-debounce 없이 인라인 구현, cancel 메서드 포함 | 외부 의존성 불필요, 수동 저장 시 pending save 취소 |
+| 06-01 | stringToCodecs + telephone-event 자동 포함 | DTMF 지원 보장, 사용자 설정 불필요 | 모든 SDP에 RFC 2833 포함 |
+| 06-01 | WithMediaConfig 인스턴스별 적용 | 사용자 코덱 선택을 SDP에 반영 | diago UA 생성 파이프라인 |
+| 06-01 | 488 협상 실패 감지 + 디버그 로깅 | 코덱 불일치 원인 파악 용이 | executor 에러 처리 |
+| 06-02 | HTML5 DnD 코덱 순서 변경 | ROADMAP 성공기준 충족 (드래그 우선순위) | Properties 패널 |
+| 06-02 | nodrag 클래스 적용 | React Flow 캔버스 드래그와 충돌 방지 | codec-list-item 컴포넌트 |
+| 06-02 | DEFAULT_CODECS 일관된 폴백 패턴 | v1.0 하위 호환, undefined/빈 배열 안전 처리 | 모든 코덱 참조 지점 |
 
 ## 차단 요소 / 우려사항
 
