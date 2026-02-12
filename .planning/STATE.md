@@ -4,7 +4,7 @@
 - **마일스톤**: v1.1 — 미디어 + DTMF
 - **페이즈**: Phase 7 — Media Playback
 - **상태**: `in-progress`
-- **최근 활동**: 2026-02-12 — Completed 07-01-PLAN.md
+- **최근 활동**: 2026-02-12 — Completed 07-02-PLAN.md
 
 ## 프로젝트 참조
 
@@ -24,21 +24,21 @@ SIP 통화 시나리오에 미디어 재생, DTMF 송수신, 코덱 선택 기�
 
 **요구사항:** MEDIA-01, MEDIA-02, MEDIA-03
 
-**계획:** 1/3 완료 (07-01)
+**계획:** 2/3 완료 (07-01, 07-02)
 
 **상태:** 진행 중
 
 **진행:**
 ```
-Phase 7: [███░░░░░░░] 33%
+Phase 7: [██████░░░░] 67%
 ```
 
 ### 전체 마일스톤 진행
 ```
-v1.1 Roadmap: [██▊░░░░░░░] 1.33/4 페이즈 (33%)
+v1.1 Roadmap: [███░░░░░░░] 1.67/4 페이즈 (42%)
 
 ✅ Phase 6: Codec Configuration [완료] — 2 plans, 2026-02-12
-⚙ Phase 7: Media Playback [진행 중] — 1/3 plans, 2026-02-12
+⚙ Phase 7: Media Playback [진행 중] — 2/3 plans, 2026-02-12
 ○ Phase 8: DTMF Send & Receive [대기]
 ○ Phase 9: Integration & Polish [대기]
 ```
@@ -51,13 +51,13 @@ v1.1 Roadmap: [██▊░░░░░░░] 1.33/4 페이즈 (33%)
 - **총 요구사항**: 9
 - **완료된 요구사항**: 1 (CODEC-01)
 - **총 계획**: 5+ (예상)
-- **완료된 계획**: 3
+- **완료된 계획**: 4
 
 ### 프로젝트 전체
 - **완료된 마일스톤**: 1 (v1.0)
 - **진행 중 마일스톤**: 1 (v1.1)
 - **총 페이즈 (v1.0+v1.1)**: 9 (6 완료 + 1 진행 중 + 2 대기)
-- **총 계획 (v1.0+v1.1)**: 27 (25 완료 + 미정)
+- **총 계획 (v1.0+v1.1)**: 28 (26 완료 + 미정)
 
 ## 누적 컨텍스트
 
@@ -68,12 +68,16 @@ v1.1 Roadmap: [██▊░░░░░░░] 1.33/4 페이즈 (33%)
 | 07-01 | go-audio/wav 라이브러리 채택 | 순수 Go, SampleRate/NumChans/AudioFormat 제공 | WAV 검증, 크로스 컴파일 용이 |
 | 07-01 | SelectWAVFile에서 즉시 검증 | 선택 직후 피드백 제공 | UX 향상, 실행 시점 에러 방지 |
 | 07-01 | pb.Play() bytesPlayed 로깅 | 디버깅 시 파일 크기 확인 가능 | 실행 로그에서 처리량 추적 |
+| 07-02 | Volume2 아이콘 채택 | 오디오 재생의 직관적 시각 표현 | 노드 팔레트 및 캔버스 일관성 |
+| 07-02 | 파일명만 표시, 전체 경로는 tooltip | 긴 경로로 인한 UI 깨짐 방지 | 캔버스 노드 및 Properties 패널 레이아웃 |
+| 07-02 | 즉시 toast 피드백 | 파일 선택 직후 검증 피드백 제공 | UX 향상, 실행 시점 에러 방지 |
+| 07-02 | isSelecting 상태 관리 | 다이얼로그 중복 열림 방지 | Properties 패널 버튼 UX 개선 |
 
 ### 할일 (TODO)
 - [x] ~~PlayAudio Command 노드 설계~~ (07-01 완료)
 - [x] ~~WAV 파일 선택 다이얼로그 구현~~ (07-01 완료)
 - [x] ~~WAV 포맷 검증 (8kHz mono PCM)~~ (07-01 완료)
-- [ ] PlayAudio 프론트엔드 UI 구현 (07-02)
+- [x] ~~PlayAudio 프론트엔드 UI 구현~~ (07-02 완료)
 - [ ] PlayAudio 통합 테스트 (07-03)
 
 ### 차단 요소
@@ -83,10 +87,10 @@ v1.1 Roadmap: [██▊░░░░░░░] 1.33/4 페이즈 (33%)
 - **v1.0 — MVP**: 시각적 시나리오 빌더 + 시뮬레이션 실행 (5 phases, 22 plans, 78 commits, 2026-02-11 완료)
 
 ## 세션 연속성
-- **Last session:** 2026-02-12 02:41:49 UTC
-- **Stopped at:** Completed 07-01-PLAN.md — PlayAudio 백엔드 구현
+- **Last session:** 2026-02-12 02:55:21 UTC
+- **Stopped at:** Completed 07-02-PLAN.md — PlayAudio 프론트엔드 UI
 - **Resume file:** None
-- **다음 단계:** 07-02 (PlayAudio 프론트엔드 UI) 또는 07-03 (통합 테스트)
+- **다음 단계:** 07-03 (PlayAudio 통합 테스트)
 
 ## 프로젝트 메모리
 
@@ -244,6 +248,10 @@ v1.1 Roadmap: [██▊░░░░░░░] 1.33/4 페이즈 (33%)
 | 07-01 | go-audio/wav 라이브러리 채택 | 순수 Go, SampleRate/NumChans/AudioFormat 제공 | WAV 검증, 크로스 컴파일 용이 |
 | 07-01 | SelectWAVFile에서 즉시 검증 | 선택 직후 피드백 제공 | UX 향상, 실행 시점 에러 방지 |
 | 07-01 | pb.Play() bytesPlayed 로깅 | 디버깅 시 파일 크기 확인 가능 | 실행 로그에서 처리량 추적 |
+| 07-02 | Volume2 아이콘 채택 | 오디오 재생의 직관적 시각 표현 | 노드 팔레트 및 캔버스 일관성 |
+| 07-02 | 파일명만 표시, 전체 경로는 tooltip | 긴 경로로 인한 UI 깨짐 방지 | 캔버스 노드 및 Properties 패널 레이아웃 |
+| 07-02 | 즉시 toast 피드백 | 파일 선택 직후 검증 피드백 제공 | UX 향상, 실행 시점 에러 방지 |
+| 07-02 | isSelecting 상태 관리 | 다이얼로그 중복 열림 방지 | Properties 패널 버튼 UX 개선 |
 
 ## 차단 요소 / 우려사항
 
