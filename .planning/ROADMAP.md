@@ -13,7 +13,7 @@
 **깊이:** 표준 (balanced grouping)
 **상태:** 로드맵 생성 완료
 
-### Phase 6: Codec Configuration
+### Phase 6: Codec Configuration ✅
 
 **목표:** 사용자가 SIP 인스턴스별 코덱을 선택하고 우선순위를 설정하여 SDP 협상에 반영할 수 있다
 
@@ -28,6 +28,11 @@
 2. 선택된 코덱 목록이 시나리오 저장 시 유지되고 로드 시 복원됨
 3. 시나리오 실행 시 SDP INVITE에 사용자가 선택한 코덱 순서대로 m= 라인이 포함됨
 4. 양측 인스턴스에 공통 코덱이 없으면 488 Not Acceptable 응답으로 협상 실패가 명확히 표시됨
+
+**Plans:** 2 plans
+Plans:
+- [x] 06-01-PLAN.md — Backend 코덱 데이터 모델 + diago 통합
+- [x] 06-02-PLAN.md — Frontend 코덱 선택 UI + 노드 표시
 
 ---
 
@@ -49,6 +54,11 @@
 3. 잘못된 포맷(44.1kHz stereo 등)의 WAV 파일 선택 시 즉시 오류 메시지가 표시되고 8kHz mono PCM 요구사항이 안내됨
 4. 통화 연결 상태에서 PlayAudio 노드 실행 시 선택한 WAV 파일이 RTP로 재생되고 재생 완료 후 다음 노드로 진행됨
 5. 실행 패널에서 미디어 재생 진행 상황이 프로그레스 바로 표시됨
+
+**Plans:** 2 plans
+Plans:
+- [ ] 07-01-PLAN.md — Backend WAV 검증 바인딩 + 실행 엔진 PlayAudio
+- [ ] 07-02-PLAN.md — Frontend PlayAudio 노드 UI + 파일 선택 연동
 
 ---
 
@@ -98,7 +108,7 @@
 | Phase | 목표 | 요구사항 | 계획 | 상태 |
 |-------|------|----------|------|------|
 | 6 - Codec Configuration | 코덱 선택 및 SDP 협상 | CODEC-01 | 2/2 | ✅ 완료 |
-| 7 - Media Playback | WAV 재생 | MEDIA-01, MEDIA-02, MEDIA-03 | 0/? | 대기 |
+| 7 - Media Playback | WAV 재생 | MEDIA-01, MEDIA-02, MEDIA-03 | 0/2 | 계획됨 |
 | 8 - DTMF Send & Receive | DTMF 송수신 | DTMF-01, DTMF-02 | 0/? | 대기 |
 | 9 - Integration & Polish | 통합 테스트 및 품질 | NF-01, NF-02, NF-03 | 0/? | 대기 |
 
