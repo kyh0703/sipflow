@@ -116,12 +116,23 @@ v1.1에서 달성한 것:
 - telephone-event 자동 추가 (코덱 설정과 무관하게 DTMF 보장)
 - 44개 Go 테스트, v1.0 호환성 통합 테스트, README 전체 재작성
 
-## Current Milestone: 없음 (다음 마일스톤 미정)
+## Current Milestone: v1.2 — Transfer + UI 개선
+
+**목표:** SIP 통화 전환(Blind/Attended Transfer) 및 보류(Hold/Retrieve) 기능을 구현하고, 노드 팔레트·실행 모니터·전반적 UI를 개선하여 시나리오 빌더의 완성도를 높인다.
+
+**타겟 기능:**
+- BlindTransfer Command 노드 — `Dialog.Refer()` 기반 블라인드 전환
+- AttendedTransfer Command 노드 — `Dialog.ReferOptions()` 기반 어텐디드 전환
+- Hold/Retrieve Command 노드 — `Dialog.ReInvite()` 기반 통화 보류/해제
+- TransferEvent/HoldEvent Event 노드 — REFER/Re-INVITE 수신 대기
+- 노드 팔레트 개선 (그룹화, 검색, 아이콘 정리)
+- 실행 모니터 개선 (로그/타임라인 UX 향상)
+- 전반적 UI 폴리시 (소소한 개선사항 모음)
 
 ### Next Milestone Goals
 
 향후 마일스톤 후보:
-- **v1.2**: 통화 녹음 + 미디어 확장 (StartRecording/StopRecording, stopOnDTMF, 재생 진행률)
+- **v1.3**: 통화 녹음 + 미디어 확장 (StartRecording/StopRecording, stopOnDTMF, 재생 진행률)
 - **v2.0**: 고급 시나리오 (조건 분기, 반복, 템플릿) + SIP 래더 다이어그램 시각화
 - **v3.0**: 멀티플랫폼 빌드 + 자동 업데이트 + 시나리오 공유
 
