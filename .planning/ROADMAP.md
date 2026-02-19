@@ -16,7 +16,7 @@
 
 ---
 
-### Phase 10: Hold/Retrieve Backend
+### Phase 10: Hold/Retrieve Backend ✅
 
 **목표:** 사용자가 활성 통화를 보류하고 해제하며, 상대방의 보류/해제를 감지할 수 있다
 
@@ -40,8 +40,8 @@
 **Plans:** 2 plans
 
 Plans:
-- [ ] 10-01-PLAN.md — AnswerOptions 리팩토링 + SIP 이벤트 버스 인프라
-- [ ] 10-02-PLAN.md — Hold/Retrieve Command + HeldEvent/RetrievedEvent 핸들러
+- [x] 10-01-PLAN.md — AnswerOptions 리팩토링 + SIP 이벤트 버스 인프라
+- [x] 10-02-PLAN.md — Hold/Retrieve Command + HeldEvent/RetrievedEvent 핸들러
 
 ---
 
@@ -116,12 +116,12 @@ Plans:
 
 | Phase | 목표 | 요구사항 | 계획 | 상태 |
 |-------|------|----------|------|------|
-| 10 - Hold/Retrieve Backend | Hold/Retrieve 백엔드 구현 | HOLD-01, HOLD-02, HOLD-03, HOLD-04 | 2 plans | 계획 완료 |
+| 10 - Hold/Retrieve Backend | Hold/Retrieve 백엔드 구현 | HOLD-01, HOLD-02, HOLD-03, HOLD-04 | 2 plans | ✅ 완료 |
 | 11 - BlindTransfer Backend | BlindTransfer/TransferEvent 백엔드 | XFER-01, XFER-02 | — | 대기 |
 | 12 - UI 리디자인 | Activity Bar + Resizable 사이드바 | UI-01, UI-02 | — | 대기 |
 | 13 - 새 노드 UI + 통합 | 새 노드 UI 완성 + 품질 | UI-03, NF-01, NF-02, NF-03 | — | 대기 |
 
-**전체:** 0/4 페이즈 완료
+**전체:** 1/4 페이즈 완료
 
 ---
 

@@ -15,10 +15,10 @@
 
 ### Hold/Retrieve (통화 보류/해제)
 
-- [ ] **HOLD-01**: 사용자가 Hold Command 노드를 배치하여 활성 통화를 보류(Re-INVITE sendonly)할 수 있음
-- [ ] **HOLD-02**: 사용자가 Retrieve Command 노드를 배치하여 보류된 통화를 재개(Re-INVITE sendrecv)할 수 있음
-- [ ] **HOLD-03**: 사용자가 HeldEvent 노드로 상대방의 Hold Re-INVITE를 감지할 수 있음
-- [ ] **HOLD-04**: 사용자가 RetrievedEvent 노드로 상대방의 Retrieve Re-INVITE를 감지할 수 있음
+- [x] **HOLD-01**: 사용자가 Hold Command 노드를 배치하여 활성 통화를 보류(Re-INVITE sendonly)할 수 있음
+- [x] **HOLD-02**: 사용자가 Retrieve Command 노드를 배치하여 보류된 통화를 재개(Re-INVITE sendrecv)할 수 있음
+- [x] **HOLD-03**: 사용자가 HeldEvent 노드로 상대방의 Hold Re-INVITE를 감지할 수 있음
+- [x] **HOLD-04**: 사용자가 RetrievedEvent 노드로 상대방의 Retrieve Re-INVITE를 감지할 수 있음
 
 ### UI 개선 (레이아웃 리디자인)
 
@@ -56,10 +56,10 @@
 |----------|--------|------|------|
 | XFER-01  | Phase 11 | — | 미시작 |
 | XFER-02  | Phase 11 | — | 미시작 |
-| HOLD-01  | Phase 10 | — | 미시작 |
-| HOLD-02  | Phase 10 | — | 미시작 |
-| HOLD-03  | Phase 10 | — | 미시작 |
-| HOLD-04  | Phase 10 | — | 미시작 |
+| HOLD-01  | Phase 10 | 10-02 | 완료 |
+| HOLD-02  | Phase 10 | 10-02 | 완료 |
+| HOLD-03  | Phase 10 | 10-02 | 완료 |
+| HOLD-04  | Phase 10 | 10-02 | 완료 |
 | UI-01    | Phase 12 | — | 미시작 |
 | UI-02    | Phase 12 | — | 미시작 |
 | UI-03    | Phase 13 | — | 미시작 |
