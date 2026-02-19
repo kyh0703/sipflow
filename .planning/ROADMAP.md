@@ -45,7 +45,7 @@ Plans:
 
 ---
 
-### Phase 11: BlindTransfer + TransferEvent Backend
+### Phase 11: BlindTransfer + TransferEvent Backend ✅
 
 **목표:** 사용자가 활성 통화를 제3자 URI로 블라인드 전환하고, 상대방의 REFER 요청을 감지할 수 있다
 
@@ -62,7 +62,11 @@ Plans:
 3. TransferEvent 노드가 상대방의 REFER 요청을 수신하고 다음 노드로 진행됨
 4. TransferEvent 노드에서 수신한 REFER의 Refer-To URI 값이 실행 로그에 표시됨
 
-**Plans:** (계획 예정)
+**Plans:** 2 plans
+
+Plans:
+- [x] 11-01-PLAN.md — BlindTransfer 구현 + TRANSFERRED 이벤트 라우팅
+- [x] 11-02-PLAN.md — OnRefer 콜백 완전 구현 + BlindTransfer 테스트
 
 ---
 
@@ -117,11 +121,11 @@ Plans:
 | Phase | 목표 | 요구사항 | 계획 | 상태 |
 |-------|------|----------|------|------|
 | 10 - Hold/Retrieve Backend | Hold/Retrieve 백엔드 구현 | HOLD-01, HOLD-02, HOLD-03, HOLD-04 | 2 plans | ✅ 완료 |
-| 11 - BlindTransfer Backend | BlindTransfer/TransferEvent 백엔드 | XFER-01, XFER-02 | — | 대기 |
+| 11 - BlindTransfer Backend | BlindTransfer/TransferEvent 백엔드 | XFER-01, XFER-02 | 2 plans | ✅ 완료 |
 | 12 - UI 리디자인 | Activity Bar + Resizable 사이드바 | UI-01, UI-02 | — | 대기 |
 | 13 - 새 노드 UI + 통합 | 새 노드 UI 완성 + 품질 | UI-03, NF-01, NF-02, NF-03 | — | 대기 |
 
-**전체:** 1/4 페이즈 완료
+**전체:** 2/4 페이즈 완료
 
 ---
 

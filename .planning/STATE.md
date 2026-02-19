@@ -76,8 +76,8 @@ v1.2 Roadmap: [█████     ] 2/4 phases complete
 
 ### 할일 (TODO)
 - [x] Phase 10 계획 수립 + 실행 완료
-- [ ] Phase 11 계획 수립 (`/prp:plan-phase 11`)
-- [ ] Phase 12 계획 수립 (백엔드와 병렬 진행 가능)
+- [x] Phase 11 계획 수립 + 실행 완료
+- [ ] Phase 12 계획 수립 (백엔드와 독립, 프론트엔드 전용)
 
 ### 차단 요소
 없음

@@ -10,8 +10,8 @@
 
 ### Transfer (통화 전환)
 
-- [ ] **XFER-01**: 사용자가 BlindTransfer Command 노드를 캔버스에 배치하여 활성 통화를 제3자 URI로 전환(REFER)할 수 있음
-- [ ] **XFER-02**: 사용자가 TransferEvent 노드로 상대방이 보낸 REFER 요청을 감지하고 대기할 수 있음
+- [x] **XFER-01**: 사용자가 BlindTransfer Command 노드를 캔버스에 배치하여 활성 통화를 제3자 URI로 전환(REFER)할 수 있음
+- [x] **XFER-02**: 사용자가 TransferEvent 노드로 상대방이 보낸 REFER 요청을 감지하고 대기할 수 있음
 
 ### Hold/Retrieve (통화 보류/해제)
 
@@ -54,8 +54,8 @@
 
 | 요구사항 | 페이즈 | 계획 | 상태 |
 |----------|--------|------|------|
-| XFER-01  | Phase 11 | — | 미시작 |
-| XFER-02  | Phase 11 | — | 미시작 |
+| XFER-01  | Phase 11 | 11-01, 11-02 | 완료 |
+| XFER-02  | Phase 11 | 11-01, 11-02 | 완료 |
 | HOLD-01  | Phase 10 | 10-02 | 완료 |
 | HOLD-02  | Phase 10 | 10-02 | 완료 |
 | HOLD-03  | Phase 10 | 10-02 | 완료 |
