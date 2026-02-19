@@ -270,7 +270,7 @@ func (ex *Executor) executeMakeCall(ctx context.Context, instanceID string, node
 	return nil
 }
 
-// executeAnswer는 Answer 커맨드를 실행한다
+// executeAnswer는 Answer 커맨드를 실행한다 (AnswerOptions 기반)
 func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *GraphNode) error {
 	// 액션 로그 발행
 	ex.engine.emitActionLog(node.ID, instanceID, "Answer incoming call", "info")
@@ -281,8 +281,50 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 		return fmt.Errorf("no incoming dialog to answer for instance %s", instanceID)
 	}
 
-	// Answer 호출
-	if err := serverSession.Answer(); err != nil {
+	// AnswerOptions 구성 (OnMediaUpdate, OnRefer 콜백 등록)
+	opts := diago.AnswerOptions{
+		// OnMediaUpdate: Hold/Retrieve 감지를 위한 콜백
+		// 반드시 goroutine으로 분리해야 함 — 콜백은 d.mu.Lock() 안에서 호출되므로
+		// 동일 goroutine에서 d.MediaSession()(내부적으로 d.mu.Lock()) 호출 시 데드락 발생
+		OnMediaUpdate: func(d *diago.DialogMedia) {
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						ex.engine.emitActionLog(node.ID, instanceID,
+							fmt.Sprintf("OnMediaUpdate panic recovered: %v", r), "error")
+					}
+				}()
+
+				msess := d.MediaSession()
+				if msess == nil {
+					return
+				}
+				localSDP := string(msess.LocalSDP())
+
+				if strings.Contains(localSDP, "a=recvonly") {
+					// 상대방이 Hold 요청 (sendonly) → 우리는 recvonly → HELD 이벤트
+					ex.engine.emitSIPEvent(instanceID, "HELD")
+					ex.engine.emitActionLog(node.ID, instanceID, "Call HELD by remote party", "info",
+						WithSIPMessage("received", "INVITE", 200, "", "", "", "recvonly"))
+				} else if strings.Contains(localSDP, "a=sendrecv") {
+					// 상대방이 Retrieve 요청 (sendrecv) → RETRIEVED 이벤트
+					ex.engine.emitSIPEvent(instanceID, "RETRIEVED")
+					ex.engine.emitActionLog(node.ID, instanceID, "Call RETRIEVED by remote party", "info",
+						WithSIPMessage("received", "INVITE", 200, "", "", "", "sendrecv"))
+				}
+			}()
+		},
+		// OnRefer: BlindTransfer 감지를 위한 콜백 (Phase 11 대비 스텁)
+		OnRefer: func(referDialog *diago.DialogClientSession) error {
+			ex.engine.emitSIPEvent(instanceID, "TRANSFERRED")
+			ex.engine.emitActionLog(node.ID, instanceID, "REFER received (transfer)", "info",
+				WithSIPMessage("received", "REFER", 0, "", "", ""))
+			return nil
+		},
+	}
+
+	// AnswerOptions 호출
+	if err := serverSession.AnswerOptions(opts); err != nil {
 		// 코덱 협상 실패 감지 (에러 메시지에 "codec" 또는 "media" 관련 문자열 포함 여부)
 		errMsg := err.Error()
 		if strings.Contains(strings.ToLower(errMsg), "codec") ||

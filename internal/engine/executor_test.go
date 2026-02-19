@@ -299,3 +299,120 @@ func TestExecuteDTMFReceived_NoDialog(t *testing.T) {
 		t.Errorf("expected 'no active dialog' error, got: %v", err)
 	}
 }
+
+// TestSessionStore_SIPEventBus는 SIP 이벤트 버스의 발행/구독을 테스트한다
+func TestSessionStore_SIPEventBus(t *testing.T) {
+	store := NewSessionStore()
+
+	// 구독 채널 생성
+	ch := store.SubscribeSIPEvent("inst1", "HELD")
+
+	// goroutine으로 50ms 후 이벤트 발행
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		store.emitSIPEvent("inst1", "HELD")
+	}()
+
+	// 채널 수신 확인 (1초 타임아웃)
+	select {
+	case <-ch:
+		// 정상 수신
+	case <-time.After(1 * time.Second):
+		t.Fatal("timeout waiting for HELD event")
+	}
+
+	// UnsubscribeSIPEvent 후 재발행 → 수신 안 됨 확인
+	store.UnsubscribeSIPEvent("inst1", "HELD", ch)
+	store.emitSIPEvent("inst1", "HELD")
+
+	select {
+	case <-ch:
+		t.Fatal("should not receive event after unsubscribe")
+	case <-time.After(100 * time.Millisecond):
+		// 정상: 구독 해제 후 수신 안 됨
+	}
+}
+
+// TestSessionStore_SIPEventBus_MultipleSubscribers는 다중 구독자를 테스트한다
+func TestSessionStore_SIPEventBus_MultipleSubscribers(t *testing.T) {
+	store := NewSessionStore()
+
+	// 같은 이벤트에 2개 채널 구독
+	ch1 := store.SubscribeSIPEvent("inst1", "RETRIEVED")
+	ch2 := store.SubscribeSIPEvent("inst1", "RETRIEVED")
+
+	// 한 번 emit → 두 채널 모두 수신
+	store.emitSIPEvent("inst1", "RETRIEVED")
+
+	for i, ch := range []chan struct{}{ch1, ch2} {
+		select {
+		case <-ch:
+			// 정상 수신
+		case <-time.After(1 * time.Second):
+			t.Fatalf("timeout waiting for RETRIEVED event on channel %d", i+1)
+		}
+	}
+}
+
+// TestSessionStore_SIPEventBus_NoSubscribers는 구독자 없을 때 패닉이 없음을 테스트한다
+func TestSessionStore_SIPEventBus_NoSubscribers(t *testing.T) {
+	store := NewSessionStore()
+
+	// 구독 없이 emitSIPEvent 호출 → 패닉 없이 완료
+	store.emitSIPEvent("inst1", "HELD")
+	store.emitSIPEvent("inst-nonexistent", "TRANSFERRED")
+}
+
+// TestWithSIPMessage_Note는 note 파라미터가 포함된 경우를 테스트한다
+func TestWithSIPMessage_Note(t *testing.T) {
+	opt := WithSIPMessage("sent", "INVITE", 200, "", "", "", "sendonly")
+	data := map[string]interface{}{}
+	opt(data)
+
+	sipMsg, ok := data["sipMessage"].(map[string]interface{})
+	if !ok {
+		t.Fatal("sipMessage not found in data")
+	}
+
+	note, ok := sipMsg["note"].(string)
+	if !ok {
+		t.Fatal("note not found in sipMessage")
+	}
+	if note != "sendonly" {
+		t.Errorf("expected note 'sendonly', got '%s'", note)
+	}
+}
+
+// TestWithSIPMessage_NoNote는 note 없이 기존 호환성을 테스트한다
+func TestWithSIPMessage_NoNote(t *testing.T) {
+	// 기존 6개 인자로 호출 (note 없음)
+	opt := WithSIPMessage("sent", "INVITE", 200, "", "", "")
+	data := map[string]interface{}{}
+	opt(data)
+
+	sipMsg, ok := data["sipMessage"].(map[string]interface{})
+	if !ok {
+		t.Fatal("sipMessage not found in data")
+	}
+
+	if _, exists := sipMsg["note"]; exists {
+		t.Error("note should not be present when not provided")
+	}
+}
+
+// TestWithSIPMessage_EmptyNote는 빈 note가 포함되지 않음을 테스트한다
+func TestWithSIPMessage_EmptyNote(t *testing.T) {
+	// 빈 문자열 note → 포함되지 않아야 함
+	opt := WithSIPMessage("sent", "INVITE", 200, "", "", "", "")
+	data := map[string]interface{}{}
+	opt(data)
+
+	sipMsg, ok := data["sipMessage"].(map[string]interface{})
+	if !ok {
+		t.Fatal("sipMessage not found in data")
+	}
+
+	if _, exists := sipMsg["note"]; exists {
+		t.Error("note should not be present when empty string provided")
+	}
+}
