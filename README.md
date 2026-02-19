@@ -1,19 +1,227 @@
-# README
+# SIPFLOW
 
-## About
+Visual SIP Scenario Builder — SIP 통화 시나리오를 시각적으로 설계하고 실행하는 데스크톱 애플리케이션
 
-This is the official Wails React-TS template.
+## 소개
 
-You can configure the project by editing `wails.json`. More information about the project settings can be found
-here: https://wails.io/docs/reference/project-config
+SIPFLOW는 SIP(Session Initiation Protocol) 통화 시나리오를 드래그앤드롭 방식으로 설계하고, 실시간으로 실행 및 모니터링할 수 있는 데스크톱 애플리케이션입니다.
 
-## Live Development
+### 주요 기능
 
-To run in live development mode, run `wails dev` in the project directory. This will run a Vite development
-server that will provide very fast hot reload of your frontend changes. If you want to develop in a browser
-and have access to your Go methods, there is also a dev server that runs on http://localhost:34115. Connect
-to this in your browser, and you can call your Go code from devtools.
+- **비주얼 시나리오 빌더**: 노드 기반 플로우 에디터로 SIP 시나리오를 시각적으로 설계
+- **실시간 실행 모니터링**: 시나리오 실행 시 각 노드의 상태 변화와 SIP 메시지를 실시간으로 추적
+- **미디어 재생**: WAV 파일을 SIP 통화 중 재생 (8kHz mono PCM)
+- **DTMF 송수신**: RFC 2833 기반 DTMF tone 전송 및 수신
+- **코덱 설정**: PCMU/PCMA 코덱 선택 및 우선순위 설정
+- **시나리오 저장/로드**: SQLite 기반 시나리오 영구 저장
 
-## Building
+## 기술 스택
 
-To build a redistributable, production mode package, use `wails build`.
+| 구분 | 기술 |
+|------|------|
+| Framework | [Wails v2](https://wails.io) (Go + Web Frontend) |
+| Backend | Go 1.24+ |
+| Frontend | React + TypeScript + [XYFlow](https://reactflow.dev) + Tailwind CSS |
+| SIP Engine | [diago](https://github.com/emiago/diago) (SIP UA library) |
+| Database | SQLite ([modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite)) |
+| 지원 플랫폼 | Linux, Windows, macOS |
+
+## 사전 요구사항
+
+- Go 1.24 이상
+- Node.js 18 이상 + npm
+- Wails CLI v2 (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
+- Linux: `libgtk-3-dev`, `libwebkit2gtk-4.0-dev` 패키지
+
+## 빌드 및 실행
+
+### 개발 모드
+
+```bash
+wails dev
+```
+
+핫 리로드가 활성화된 개발 서버가 시작됩니다. 프론트엔드 변경 시 자동으로 반영됩니다.
+
+### 프로덕션 빌드
+
+```bash
+wails build
+```
+
+배포 가능한 실행 파일이 `build/bin/` 디렉토리에 생성됩니다.
+
+## 시나리오 작성 가이드
+
+SIPFLOW의 시나리오는 세 가지 유형의 노드로 구성됩니다:
+
+### 1. SIP Instance 노드
+
+SIP 통화의 참여자(UA, User Agent)를 나타냅니다.
+
+| 속성 | 설명 |
+|------|------|
+| Label | 인스턴스 이름 (예: "Caller", "Callee") |
+| Mode | DN (Directory Number) 또는 Endpoint |
+| DN | 전화번호/내선번호 (예: "100") |
+| Register | SIP Registrar 등록 여부 |
+| Codecs | 사용할 오디오 코덱 목록 (기본: PCMU, PCMA) |
+
+### 2. Command 노드 (파란색)
+
+SIP 통화에서 능동적으로 수행하는 동작입니다.
+
+| Command | 설명 | 주요 속성 |
+|---------|------|----------|
+| **MakeCall** | 상대방에게 SIP INVITE 전송 | `targetUri`: 대상 SIP URI (예: `sip:200@192.168.1.100`) |
+| **Answer** | 수신 통화 응답 (200 OK) | — |
+| **Release** | 통화 종료 (BYE) | — |
+| **PlayAudio** | WAV 파일 재생 | `filePath`: WAV 파일 경로 |
+| **SendDTMF** | DTMF tone 전송 | `digits`: 전송할 문자열, `intervalMs`: 간격(ms) |
+
+### 3. Event 노드 (노란색)
+
+SIP 통화에서 특정 이벤트를 대기합니다.
+
+| Event | 설명 | 주요 속성 |
+|-------|------|----------|
+| **INCOMING** | 수신 통화 대기 | `timeout`: 대기 시간(ms) |
+| **DISCONNECTED** | 상대방 통화 종료 대기 | `timeout`: 대기 시간(ms) |
+| **RINGING** | 180 Ringing 수신 대기 | — |
+| **TIMEOUT** | 지정 시간만큼 대기 (딜레이) | `timeout`: 대기 시간(ms) |
+| **DTMFReceived** | DTMF tone 수신 대기 | `expectedDigit`: 대기할 특정 digit, `timeout`: 대기 시간(ms) |
+
+### 노드 연결
+
+- **Success 분기** (기본): 노드 실행 성공 시 다음 노드로 이동
+- **Failure 분기**: 노드 실행 실패 시 대안 경로로 이동 (예: 타임아웃 시 다른 동작 수행)
+
+## WAV 파일 요구사항
+
+PlayAudio 노드에서 사용하는 WAV 파일은 다음 형식을 준수해야 합니다:
+
+| 항목 | 요구사항 |
+|------|---------|
+| 포맷 | WAV (PCM) |
+| 샘플레이트 | **8000 Hz (8kHz)** |
+| 채널 | **모노 (1 채널)** |
+| 오디오 포맷 | PCM (비압축) |
+| 비트 깊이 | 16-bit 권장 |
+
+### WAV 파일 변환 방법
+
+기존 오디오 파일을 요구 형식으로 변환하려면 `ffmpeg`을 사용합니다:
+
+```bash
+ffmpeg -i input.mp3 -ar 8000 -ac 1 -acodec pcm_s16le output.wav
+```
+
+- `-ar 8000`: 샘플레이트를 8kHz로 변환
+- `-ac 1`: 모노 채널로 변환
+- `-acodec pcm_s16le`: 16-bit PCM 코덱 사용
+
+### 형식 불일치 시 동작
+
+- **샘플레이트 불일치**: 파일 선택 시 검증 실패, 노드에서 사용 불가
+- **스테레오 파일**: 검증 실패, 모노로 변환 필요
+- **비 PCM 포맷**: 검증 실패 (MP3, AAC 등 직접 사용 불가)
+
+> SIPFLOW는 파일 선택 시 자동으로 WAV 헤더를 검증하여 부적합한 파일을 사전에 차단합니다.
+
+## 코덱 선택 가이드
+
+SIP Instance 노드에서 사용할 오디오 코덱을 설정할 수 있습니다.
+
+### 지원 코덱
+
+| 코덱 | 정식 명칭 | 설명 | 권장 사용 환경 |
+|------|----------|------|---------------|
+| **PCMU** | G.711 μ-law | 북미 표준 코덱 | 북미 SIP 서버, 가장 높은 호환성 |
+| **PCMA** | G.711 A-law | 유럽/아시아 표준 코덱 | 유럽/아시아 SIP 서버 |
+
+### 코덱 우선순위
+
+- 코덱 목록의 순서가 SDP 협상 시 우선순위를 결정합니다
+- 첫 번째 코덱이 가장 높은 우선순위로 제안됩니다
+- 상대방이 첫 번째 코덱을 지원하지 않으면 두 번째 코덱으로 폴백합니다
+
+### telephone-event
+
+- DTMF 전송을 위한 `telephone-event` 코덱은 항상 자동으로 추가됩니다
+- 별도 설정 없이 RFC 2833 기반 DTMF가 지원됩니다
+
+### 기본 설정
+
+코덱을 설정하지 않으면 `[PCMU, PCMA]` 기본값이 적용됩니다. 대부분의 SIP 서버와 호환됩니다.
+
+## DTMF 사용 예시
+
+### 예시 1: IVR 메뉴 탐색
+
+ARS/IVR 시스템에 전화를 걸어 메뉴를 탐색하는 시나리오:
+
+```
+[Instance A] ─── MakeCall(sip:ivr@pbx.local) ─── TIMEOUT(2000ms) ─── SendDTMF("1")
+                                                  (안내 멘트 대기)     (메뉴 1 선택)
+```
+
+1. `MakeCall`로 IVR 시스템에 전화
+2. `TIMEOUT`으로 안내 멘트 재생 시간 대기 (2초)
+3. `SendDTMF`로 메뉴 번호 "1" 전송
+
+### 예시 2: DTMF 수신 및 분기
+
+외부에서 걸려온 전화의 DTMF 입력에 따라 다른 동작을 수행하는 시나리오:
+
+```
+[Instance B] ─── INCOMING ─── Answer ─── PlayAudio(welcome.wav)
+                                              │
+                                         DTMFReceived(expectedDigit: "1")
+                                         ┌────┴────┐
+                                      success    failure(timeout)
+                                         │           │
+                                    PlayAudio    PlayAudio
+                                   (option1.wav) (retry.wav)
+```
+
+1. `INCOMING`으로 수신 통화 대기
+2. `Answer`로 통화 응답
+3. `PlayAudio`로 안내 멘트 재생
+4. `DTMFReceived`로 digit "1" 수신 대기
+   - 성공: option1.wav 재생
+   - 타임아웃: retry.wav 재생 (failure 분기)
+
+### SendDTMF 속성
+
+| 속성 | 설명 | 기본값 |
+|------|------|--------|
+| `digits` | 전송할 DTMF 문자열 (0-9, *, #, A-D) | — (필수) |
+| `intervalMs` | digit 간 전송 간격 (밀리초) | 100ms |
+
+### DTMFReceived 속성
+
+| 속성 | 설명 | 기본값 |
+|------|------|--------|
+| `expectedDigit` | 대기할 특정 digit (빈 값이면 아무 digit) | "" (아무 digit) |
+| `timeout` | 수신 대기 시간 (밀리초) | 10000ms (10초) |
+
+## 프로젝트 구조
+
+```
+sipflow/
+├── app.go                  # Wails 앱 진입점
+├── main.go                 # 앱 초기화 및 바인딩
+├── wails.json              # Wails 프로젝트 설정
+├── internal/
+│   ├── binding/            # Wails Go↔Frontend 바인딩
+│   ├── engine/             # SIP 시나리오 실행 엔진
+│   └── scenario/           # 시나리오 저장소 (SQLite)
+└── frontend/
+    └── src/
+        └── features/
+            └── scenario-builder/  # 시나리오 빌더 UI
+```
+
+## 라이선스
+
+MIT License
