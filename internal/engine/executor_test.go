@@ -2,8 +2,13 @@ package engine
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+
+	"sipflow/internal/scenario"
 )
 
 // TestExecuteChain_BasicSuccess는 ExecuteChain의 기본 구조를 검증한다
@@ -167,5 +172,130 @@ func TestIsValidDTMF(t *testing.T) {
 				t.Errorf("isValidDTMF(%c) = %v, expected %v", tt.input, result, tt.expected)
 			}
 		})
+	}
+}
+
+// newTestExecutor creates a minimal Executor for error path testing
+func newTestExecutor(t *testing.T) (*Executor, *TestEventEmitter) {
+	t.Helper()
+	dbPath := filepath.Join(t.TempDir(), "test.db")
+	repo, err := scenario.NewRepository(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { repo.Close() })
+
+	eng := NewEngine(repo)
+	te := &TestEventEmitter{}
+	eng.SetEventEmitter(te)
+
+	executor := NewExecutor(eng, eng.im)
+	return executor, te
+}
+
+func TestExecutePlayAudio_NoFilePath(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:       "test-node",
+		Type:     "command",
+		Command:  "PlayAudio",
+		FilePath: "",
+	}
+	err := ex.executePlayAudio(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error for empty filePath")
+	}
+	if !strings.Contains(err.Error(), "requires filePath") {
+		t.Errorf("expected 'requires filePath' error, got: %v", err)
+	}
+}
+
+func TestExecutePlayAudio_FileNotFound(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:       "test-node",
+		Type:     "command",
+		Command:  "PlayAudio",
+		FilePath: "/nonexistent/path/audio.wav",
+	}
+	err := ex.executePlayAudio(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error for non-existent file")
+	}
+	if !strings.Contains(err.Error(), "audio file not found") {
+		t.Errorf("expected 'audio file not found' error, got: %v", err)
+	}
+}
+
+func TestExecutePlayAudio_NoDialog(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	// 실제 파일 생성 (빈 파일이지만 존재함)
+	tmpFile := filepath.Join(t.TempDir(), "test.wav")
+	os.WriteFile(tmpFile, []byte("fake wav content"), 0644)
+
+	node := &GraphNode{
+		ID:       "test-node",
+		Type:     "command",
+		Command:  "PlayAudio",
+		FilePath: tmpFile,
+	}
+	err := ex.executePlayAudio(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error for missing dialog")
+	}
+	if !strings.Contains(err.Error(), "no active dialog") {
+		t.Errorf("expected 'no active dialog' error, got: %v", err)
+	}
+}
+
+func TestExecuteSendDTMF_NoDigits(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:      "test-node",
+		Type:    "command",
+		Command: "SendDTMF",
+		Digits:  "",
+	}
+	err := ex.executeSendDTMF(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error for empty digits")
+	}
+	if !strings.Contains(err.Error(), "requires digits") {
+		t.Errorf("expected 'requires digits' error, got: %v", err)
+	}
+}
+
+func TestExecuteSendDTMF_NoDialog(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:      "test-node",
+		Type:    "command",
+		Command: "SendDTMF",
+		Digits:  "123",
+	}
+	err := ex.executeSendDTMF(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error for missing dialog")
+	}
+	if !strings.Contains(err.Error(), "no active dialog") {
+		t.Errorf("expected 'no active dialog' error, got: %v", err)
+	}
+}
+
+func TestExecuteDTMFReceived_NoDialog(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:            "test-node",
+		Type:          "event",
+		Event:         "DTMFReceived",
+		ExpectedDigit: "1",
+		Timeout:       1 * time.Second,
+	}
+	err := ex.executeDTMFReceived(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error for missing dialog")
+	}
+	if !strings.Contains(err.Error(), "no active dialog") {
+		t.Errorf("expected 'no active dialog' error, got: %v", err)
 	}
 }
