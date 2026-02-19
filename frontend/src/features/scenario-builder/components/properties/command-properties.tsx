@@ -153,6 +153,47 @@ export function CommandProperties({ node, onUpdate }: CommandPropertiesProps) {
           <p className="text-xs text-muted-foreground">Required: 8kHz mono PCM WAV format</p>
         </div>
       )}
+
+      {data.command === 'SendDTMF' && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="digits">Digits</Label>
+            <Input
+              id="digits"
+              value={data.digits || ''}
+              onChange={(e) => {
+                // 유효한 DTMF 문자만 허용: 0-9, *, #, A-D
+                const filtered = e.target.value.replace(/[^0-9*#A-Da-d]/g, '').toUpperCase();
+                onUpdate({ digits: filtered });
+              }}
+              placeholder="1234*#"
+              maxLength={20}
+            />
+            <p className="text-xs text-muted-foreground">
+              Valid: 0-9, *, #, A-D (max 20 digits)
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="intervalMs">Interval Between Digits (ms)</Label>
+            <Input
+              id="intervalMs"
+              type="number"
+              value={data.intervalMs ?? 100}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10) || 100;
+                onUpdate({ intervalMs: Math.max(50, Math.min(1000, val)) });
+              }}
+              min={50}
+              max={1000}
+              step={10}
+            />
+            <p className="text-xs text-muted-foreground">
+              Delay between each digit (min: 50ms, default: 100ms)
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }
