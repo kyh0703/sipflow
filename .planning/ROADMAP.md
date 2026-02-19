@@ -37,7 +37,11 @@
 4. 상대방이 Retrieve를 전송한 경우 RetrievedEvent 노드가 이를 감지하고 다음 노드로 진행됨
 5. executeAnswer()가 AnswerOptions 기반으로 리팩토링되어 OnMediaUpdate 콜백이 동작함
 
-**Plans:** (계획 예정)
+**Plans:** 2 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — AnswerOptions 리팩토링 + SIP 이벤트 버스 인프라
+- [ ] 10-02-PLAN.md — Hold/Retrieve Command + HeldEvent/RetrievedEvent 핸들러
 
 ---
 
@@ -112,7 +116,7 @@
 
 | Phase | 목표 | 요구사항 | 계획 | 상태 |
 |-------|------|----------|------|------|
-| 10 - Hold/Retrieve Backend | Hold/Retrieve 백엔드 구현 | HOLD-01, HOLD-02, HOLD-03, HOLD-04 | — | 대기 |
+| 10 - Hold/Retrieve Backend | Hold/Retrieve 백엔드 구현 | HOLD-01, HOLD-02, HOLD-03, HOLD-04 | 2 plans | 계획 완료 |
 | 11 - BlindTransfer Backend | BlindTransfer/TransferEvent 백엔드 | XFER-01, XFER-02 | — | 대기 |
 | 12 - UI 리디자인 | Activity Bar + Resizable 사이드바 | UI-01, UI-02 | — | 대기 |
 | 13 - 새 노드 UI + 통합 | 새 노드 UI 완성 + 품질 | UI-03, NF-01, NF-02, NF-03 | — | 대기 |
