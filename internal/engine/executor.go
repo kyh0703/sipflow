@@ -166,6 +166,8 @@ func (ex *Executor) executeCommand(ctx context.Context, instanceID string, node 
 		return ex.executeRelease(ctx, instanceID, node)
 	case "PlayAudio":
 		return ex.executePlayAudio(ctx, instanceID, node)
+	case "SendDTMF":
+		return ex.executeSendDTMF(ctx, instanceID, node)
 	default:
 		return fmt.Errorf("unknown command: %s", node.Command)
 	}
@@ -314,8 +316,10 @@ func (ex *Executor) executeEvent(ctx context.Context, instanceID string, node *G
 		return ex.executeRinging(timeoutCtx, instanceID, node)
 	case "TIMEOUT":
 		return ex.executeTimeout(timeoutCtx, instanceID, node, timeout)
+	case "DTMFReceived":
+		return ex.executeDTMFReceived(timeoutCtx, instanceID, node)
 	default:
-		return fmt.Errorf("event type %s is not supported in Phase 03", node.Event)
+		return fmt.Errorf("event type %s is not supported", node.Event)
 	}
 }
 
@@ -455,4 +459,169 @@ func (ex *Executor) executePlayAudio(ctx context.Context, instanceID string, nod
 		fmt.Sprintf("Playback completed (%d bytes)", bytesPlayed), "info")
 
 	return nil
+}
+
+// executeSendDTMF는 SendDTMF 커맨드를 실행한다
+func (ex *Executor) executeSendDTMF(ctx context.Context, instanceID string, node *GraphNode) error {
+	// Digits 검증
+	if node.Digits == "" {
+		ex.engine.emitActionLog(node.ID, instanceID, "SendDTMF requires digits", "error")
+		return fmt.Errorf("SendDTMF requires digits")
+	}
+
+	// Interval 계산
+	interval := time.Duration(node.IntervalMs) * time.Millisecond
+
+	// Dialog 조회
+	dialog, exists := ex.sessions.GetDialog(instanceID)
+	if !exists {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			"No active dialog for SendDTMF (call must be answered first)", "error")
+		return fmt.Errorf("no active dialog for SendDTMF")
+	}
+
+	// DTMF writer 생성
+	dtmfWriter := dialog.Media().AudioWriterDTMF()
+
+	// 전송 시작 로그
+	ex.engine.emitActionLog(node.ID, instanceID,
+		fmt.Sprintf("Sending DTMF digits: %s (interval: %dms)", node.Digits, int(node.IntervalMs)), "info")
+
+	// 각 digit 전송
+	digits := []rune(node.Digits)
+	for i, digit := range digits {
+		// Context 취소 확인
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		// Digit 검증
+		if !isValidDTMF(digit) {
+			ex.engine.emitActionLog(node.ID, instanceID,
+				fmt.Sprintf("Invalid DTMF digit: %c", digit), "error")
+			return fmt.Errorf("invalid DTMF digit: %c (allowed: 0-9, *, #, A-D)", digit)
+		}
+
+		// DTMF 전송
+		if err := dtmfWriter.WriteDTMF(digit); err != nil {
+			ex.engine.emitActionLog(node.ID, instanceID,
+				fmt.Sprintf("Failed to send DTMF %c: %v", digit, err), "error")
+			return fmt.Errorf("WriteDTMF failed for %c: %w", digit, err)
+		}
+
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("Sent DTMF: %c", digit), "info")
+
+		// 마지막 digit이 아니면 interval 대기
+		if i < len(digits)-1 {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(interval):
+			}
+		}
+	}
+
+	ex.engine.emitActionLog(node.ID, instanceID,
+		fmt.Sprintf("DTMF transmission completed (%d digits)", len(digits)), "info")
+	return nil
+}
+
+// executeDTMFReceived는 DTMFReceived 이벤트를 실행한다
+func (ex *Executor) executeDTMFReceived(ctx context.Context, instanceID string, node *GraphNode) error {
+	// ExpectedDigit 파싱 (optional)
+	expectedDigit := node.ExpectedDigit
+
+	// Dialog 조회
+	dialog, exists := ex.sessions.GetDialog(instanceID)
+	if !exists {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			"No active dialog for DTMFReceived (call must be answered first)", "error")
+		return fmt.Errorf("no active dialog for DTMFReceived")
+	}
+
+	// DTMF reader 생성
+	dtmfReader := dialog.Media().AudioReaderDTMF()
+
+	// 대기 상태 로그
+	if expectedDigit != "" {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("Waiting for DTMF digit: %s (timeout: %dms)", expectedDigit, node.Timeout.Milliseconds()), "info")
+	} else {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("Waiting for any DTMF digit (timeout: %dms)", node.Timeout.Milliseconds()), "info")
+	}
+
+	// 채널 생성
+	receivedCh := make(chan rune, 1)
+	errCh := make(chan error, 1)
+
+	// Goroutine으로 DTMF 수신 대기
+	go func() {
+		// OnDTMF callback 설정
+		dtmfReader.OnDTMF(func(digit rune) error {
+			// ExpectedDigit 필터링
+			if expectedDigit != "" {
+				if string(digit) != expectedDigit {
+					ex.engine.emitActionLog(node.ID, instanceID,
+						fmt.Sprintf("Received DTMF: %c (waiting for %s, continuing)", digit, expectedDigit), "info")
+					return nil // 계속 대기
+				}
+			}
+
+			// Digit 매칭됨
+			receivedCh <- digit
+			return fmt.Errorf("digit received") // Listen 루프 중단 신호
+		})
+
+		// Read 루프
+		buf := make([]byte, 1024)
+		for {
+			select {
+			case <-ctx.Done():
+				errCh <- ctx.Err()
+				return
+			default:
+			}
+
+			if _, err := dtmfReader.Read(buf); err != nil {
+				if err.Error() == "digit received" {
+					return // 정상 종료
+				}
+				errCh <- err
+				return
+			}
+		}
+	}()
+
+	// 결과 대기
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case digit := <-receivedCh:
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("Received DTMF: %c", digit), "info")
+		return nil
+	case err := <-errCh:
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("DTMF receive error: %v", err), "error")
+		return fmt.Errorf("DTMF receive failed: %w", err)
+	case <-time.After(node.Timeout):
+		ex.engine.emitActionLog(node.ID, instanceID, "DTMF receive timeout", "warning")
+		return fmt.Errorf("timeout waiting for DTMF")
+	}
+}
+
+// isValidDTMF는 DTMF digit이 유효한지 검증한다 (0-9, *, #, A-D)
+func isValidDTMF(r rune) bool {
+	switch r {
+	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '#':
+		return true
+	case 'A', 'B', 'C', 'D': // RFC 2833 extended digits
+		return true
+	default:
+		return false
+	}
 }
