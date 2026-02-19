@@ -57,10 +57,11 @@ func (e *Engine) emitNodeState(nodeID, prevState, newState string) {
 // ActionLogOption은 emitActionLog의 functional option이다
 type ActionLogOption func(data map[string]interface{})
 
-// WithSIPMessage는 SIP 메시지 상세 정보를 포함하는 옵션이다
-func WithSIPMessage(direction, method string, responseCode int, callID, from, to string) ActionLogOption {
+// WithSIPMessage는 SIP 메시지 상세 정보를 포함하는 옵션이다.
+// note는 선택적 파라미터로, SDP 방향(sendonly/recvonly/sendrecv 등) 등 추가 메모를 전달한다.
+func WithSIPMessage(direction, method string, responseCode int, callID, from, to string, note ...string) ActionLogOption {
 	return func(data map[string]interface{}) {
-		data["sipMessage"] = map[string]interface{}{
+		msg := map[string]interface{}{
 			"direction":    direction,
 			"method":       method,
 			"responseCode": responseCode,
@@ -68,6 +69,10 @@ func WithSIPMessage(direction, method string, responseCode int, callID, from, to
 			"from":         from,
 			"to":           to,
 		}
+		if len(note) > 0 && note[0] != "" {
+			msg["note"] = note[0]
+		}
+		data["sipMessage"] = msg
 	}
 }
 

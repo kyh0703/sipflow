@@ -18,6 +18,7 @@ type SessionStore struct {
 	mu             sync.RWMutex
 	dialogs        map[string]diago.DialogSession          // instanceID -> dialog session
 	serverSessions map[string]*diago.DialogServerSession   // instanceID -> incoming server session
+	sipEventSubs   map[string][]chan struct{}              // "{instanceID}:{eventType}" -> 구독 채널 목록
 }
 
 // NewSessionStore는 새로운 SessionStore를 생성한다
@@ -25,6 +26,7 @@ func NewSessionStore() *SessionStore {
 	return &SessionStore{
 		dialogs:        make(map[string]diago.DialogSession),
 		serverSessions: make(map[string]*diago.DialogServerSession),
+		sipEventSubs:   make(map[string][]chan struct{}),
 	}
 }
 
@@ -79,6 +81,50 @@ func (ss *SessionStore) CloseAll() {
 
 	for _, dialog := range ss.dialogs {
 		_ = dialog.Close()
+	}
+}
+
+// emitSIPEvent는 특정 인스턴스의 SIP 이벤트를 구독 채널들에 non-blocking으로 전송한다
+func (ss *SessionStore) emitSIPEvent(instanceID, eventType string) {
+	key := instanceID + ":" + eventType
+	ss.mu.RLock()
+	subs := ss.sipEventSubs[key]
+	ss.mu.RUnlock()
+
+	for _, ch := range subs {
+		select {
+		case ch <- struct{}{}:
+		default:
+			// 채널이 가득 찬 경우 드랍 (non-blocking)
+		}
+	}
+}
+
+// SubscribeSIPEvent는 특정 인스턴스의 SIP 이벤트를 구독하는 채널을 생성하고 반환한다
+func (ss *SessionStore) SubscribeSIPEvent(instanceID, eventType string) chan struct{} {
+	key := instanceID + ":" + eventType
+	ch := make(chan struct{}, 1)
+
+	ss.mu.Lock()
+	ss.sipEventSubs[key] = append(ss.sipEventSubs[key], ch)
+	ss.mu.Unlock()
+
+	return ch
+}
+
+// UnsubscribeSIPEvent는 SIP 이벤트 구독을 해제한다
+func (ss *SessionStore) UnsubscribeSIPEvent(instanceID, eventType string, ch chan struct{}) {
+	key := instanceID + ":" + eventType
+
+	ss.mu.Lock()
+	defer ss.mu.Unlock()
+
+	subs := ss.sipEventSubs[key]
+	for i, sub := range subs {
+		if sub == ch {
+			ss.sipEventSubs[key] = append(subs[:i], subs[i+1:]...)
+			break
+		}
 	}
 }
 

@@ -16,6 +16,7 @@ type Engine struct {
 	repo        *scenario.Repository
 	emitter     EventEmitter
 	im          *InstanceManager
+	executor    *Executor
 	mu          sync.Mutex
 	running     bool
 	scenarioID  string
@@ -93,8 +94,8 @@ func (e *Engine) StartScenario(scenarioID string) error {
 	// 7. 시나리오 시작 이벤트 발행
 	e.emitScenarioStarted(scenarioID)
 
-	// 8. Executor 생성
-	executor := NewExecutor(e, e.im)
+	// 8. Executor 생성 (필드로 승격하여 emitSIPEvent에서 접근 가능)
+	e.executor = NewExecutor(e, e.im)
 
 	// 9. 각 인스턴스마다 goroutine 실행
 	errCh := make(chan error, len(graph.Instances))
@@ -104,7 +105,7 @@ func (e *Engine) StartScenario(scenarioID string) error {
 		go func(id string, ch *InstanceChain) {
 			defer e.wg.Done()
 			for _, startNode := range ch.StartNodes {
-				if err := executor.ExecuteChain(execCtx, id, startNode); err != nil {
+				if err := e.executor.ExecuteChain(execCtx, id, startNode); err != nil {
 					errCh <- fmt.Errorf("instance %s: %w", id, err)
 					cancel() // 전체 중단
 					return
@@ -117,7 +118,7 @@ func (e *Engine) StartScenario(scenarioID string) error {
 	go func() {
 		e.wg.Wait()
 		// cleanup
-		e.cleanup(executor)
+		e.cleanup()
 
 		// 결과 판단
 		e.mu.Lock()
@@ -195,22 +196,37 @@ func (e *Engine) cleanupOnError() {
 }
 
 // cleanup은 시나리오 실행 종료 시 모든 리소스를 정리한다
-func (e *Engine) cleanup(executor *Executor) {
+func (e *Engine) cleanup() {
 	// 액션 로그 발행: "Starting cleanup"
 	e.emitActionLog("", "", "Starting cleanup", "info")
 
 	// HangupAll - 5초 타임아웃으로 모든 활성 세션 Hangup
 	ctx := context.Background()
-	executor.sessions.HangupAll(ctx)
+	e.executor.sessions.HangupAll(ctx)
 
 	// CloseAll - 모든 세션 Close
-	executor.sessions.CloseAll()
+	e.executor.sessions.CloseAll()
 
 	// InstanceManager cleanup - 모든 UA 정리
 	e.im.Cleanup()
 
 	// 액션 로그 발행: "Cleanup completed"
 	e.emitActionLog("", "", "Cleanup completed", "info")
+
+	// executor 참조 해제 (GC 허용)
+	e.mu.Lock()
+	e.executor = nil
+	e.mu.Unlock()
+}
+
+// emitSIPEvent는 SessionStore의 SIP 이벤트 버스에 이벤트를 전달한다
+func (e *Engine) emitSIPEvent(instanceID, eventType string) {
+	e.mu.Lock()
+	ex := e.executor
+	e.mu.Unlock()
+	if ex != nil {
+		ex.sessions.emitSIPEvent(instanceID, eventType)
+	}
 }
 
 // IsRunning은 시나리오가 실행 중인지 확인한다

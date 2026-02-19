@@ -30,20 +30,21 @@ type FlowEdge struct {
 
 // GraphNode는 실행 그래프 노드
 type GraphNode struct {
-	ID            string
-	Type          string // command|event
-	InstanceID    string
-	Command       string        // MakeCall|Answer|Release|PlayAudio|SendDTMF (command 노드 전용)
-	TargetURI     string        // MakeCall 대상 URI (command 노드 전용)
-	FilePath      string        // PlayAudio WAV 파일 경로 (command 노드 전용)
-	Digits        string        // SendDTMF 전송할 DTMF digit 문자열 (command 노드 전용)
-	IntervalMs    float64       // SendDTMF digit 간 전송 간격 ms (command 노드 전용)
-	Event         string        // INCOMING|DISCONNECTED|RINGING|TIMEOUT|DTMFReceived (event 노드 전용)
-	ExpectedDigit string        // DTMFReceived 대기할 특정 digit (event 노드 전용)
-	Timeout       time.Duration // 타임아웃 (기본 10초)
-	SuccessNext   *GraphNode    // 성공 분기 다음 노드
-	FailureNext   *GraphNode    // 실패 분기 다음 노드
-	Data          map[string]interface{} // 원본 노드 데이터 (executePlayAudio에서 필요)
+	ID             string
+	Type           string // command|event
+	InstanceID     string
+	Command        string        // MakeCall|Answer|Release|PlayAudio|SendDTMF (command 노드 전용)
+	TargetURI      string        // MakeCall 대상 URI (command 노드 전용)
+	FilePath       string        // PlayAudio WAV 파일 경로 (command 노드 전용)
+	Digits         string        // SendDTMF 전송할 DTMF digit 문자열 (command 노드 전용)
+	IntervalMs     float64       // SendDTMF digit 간 전송 간격 ms (command 노드 전용)
+	Event          string        // INCOMING|DISCONNECTED|RINGING|TIMEOUT|DTMFReceived (event 노드 전용)
+	ExpectedDigit  string        // DTMFReceived 대기할 특정 digit (event 노드 전용)
+	Timeout        time.Duration // 타임아웃 (기본 10초)
+	TransferTarget string        // BlindTransfer 대상 URI (Phase 11 대비)
+	SuccessNext    *GraphNode    // 성공 분기 다음 노드
+	FailureNext    *GraphNode    // 실패 분기 다음 노드
+	Data           map[string]interface{} // 원본 노드 데이터 (executePlayAudio에서 필요)
 }
 
 // SipInstanceConfig는 SIP Instance 설정
@@ -127,6 +128,7 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 				gnode.FilePath = getStringField(node.Data, "filePath", "")
 				gnode.Digits = getStringField(node.Data, "digits", "")
 				gnode.IntervalMs = getFloatField(node.Data, "intervalMs", 100)
+				gnode.TransferTarget = getStringField(node.Data, "transferTarget", "")
 				timeoutMs := getFloatField(node.Data, "timeout", 10000)
 				gnode.Timeout = time.Duration(timeoutMs) * time.Millisecond
 			} else if node.Type == "event" {
