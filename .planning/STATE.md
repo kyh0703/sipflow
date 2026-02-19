@@ -2,9 +2,9 @@
 
 ## 현재 상태
 - **마일스톤**: v1.2 — Transfer + UI 개선
-- **페이즈**: 11 - BlindTransfer + TransferEvent Backend (진행 중)
-- **상태**: `in_progress`
-- **최근 활동**: 2026-02-19 — 11-01-PLAN.md 완료 (executeBlindTransfer() 구현 + TRANSFERRED 이벤트 라우팅)
+- **페이즈**: 11 - BlindTransfer + TransferEvent Backend (완료)
+- **상태**: `phase_complete`
+- **최근 활동**: 2026-02-19 — 11-02-PLAN.md 완료 (OnRefer 콜백 완전 구현 + BlindTransfer/TRANSFERRED 에러 경로 + 이벤트 라우팅 테스트)
 
 ## 프로젝트 참조
 
@@ -24,21 +24,21 @@ SIP 통화 보류(Hold/Retrieve)와 블라인드 전환(BlindTransfer)을 구현
 
 **요구사항:** XFER-01, XFER-02
 
-**계획:** 1/2 완료
+**계획:** 2/2 완료
 
-**상태:** 진행 중
+**상태:** 완료
 
 **진행:**
 ```
-Phase 11: [█████     ] 50%
+Phase 11: [██████████] 100%
 ```
 
 ### 전체 마일스톤 진행
 ```
-v1.2 Roadmap: [███       ] 1.5/4 phases (phase 10 complete, phase 11 in progress)
+v1.2 Roadmap: [█████     ] 2/4 phases complete
 
 ✅ Phase 10: Hold/Retrieve Backend [완료 - 2/2 plans]
-🔄 Phase 11: BlindTransfer + TransferEvent Backend [진행 중 - 1/2 plans]
+✅ Phase 11: BlindTransfer + TransferEvent Backend [완료 - 2/2 plans]
 ⏳ Phase 12: UI 리디자인 [대기]
 ⏳ Phase 13: 새 노드 UI + 통합 & 품질 [대기]
 ```
@@ -47,12 +47,12 @@ v1.2 Roadmap: [███       ] 1.5/4 phases (phase 10 complete, phase 11 in pr
 
 ### v1.2 마일스톤
 - **총 페이즈**: 4
-- **완료된 페이즈**: 1
+- **완료된 페이즈**: 2
 - **진행 중 페이즈**: 0
 - **총 요구사항**: 12
-- **완료된 요구사항**: 4 (HOLD-01~04)
-- **총 계획**: 2+ (Phase 10: 2 완료, Phase 11-13: 예정)
-- **완료된 계획**: 2
+- **완료된 요구사항**: 6 (HOLD-01~04, XFER-01, XFER-02)
+- **총 계획**: 4+ (Phase 10: 2 완료, Phase 11: 2 완료, Phase 12-13: 예정)
+- **완료된 계획**: 4
 
 ### 프로젝트 전체
 - **완료된 마일스톤**: 2 (v1.0, v1.1)
@@ -88,9 +88,9 @@ v1.2 Roadmap: [███       ] 1.5/4 phases (phase 10 complete, phase 11 in pr
 
 ## 세션 연속성
 - **Last session:** 2026-02-19
-- **Stopped at:** Phase 11, Plan 01 완료 (executeBlindTransfer() 구현 + TRANSFERRED 이벤트 라우팅)
+- **Stopped at:** Phase 11, Plan 02 완료 (OnRefer 콜백 완전 구현 + BlindTransfer/TRANSFERRED 에러 경로 + 이벤트 라우팅 테스트)
 - **Resume file:** None
-- **다음 단계:** Phase 11 Plan 02 실행 (11-02-PLAN.md)
+- **다음 단계:** Phase 12 계획 수립 (UI 리디자인)
 
 ## 프로젝트 메모리
 
@@ -280,6 +280,9 @@ v1.2 Roadmap: [███       ] 1.5/4 phases (phase 10 complete, phase 11 in pr
 | 11-01 | referrer 인터페이스 로컬 정의 | diago DialogSession에 Refer() 미포함 → Phase 10 reInviter 패턴과 동일하게 로컬 인터페이스 어서션 | executeBlindTransfer 구현 |
 | 11-01 | REFER 후 즉시 BYE 전송 | BlindTransfer 완료 후 호출자가 통화에서 이탈 필요, BYE 실패는 경고만 | executeBlindTransfer BYE 처리 |
 | 11-01 | TRANSFERRED 케이스 executeWaitSIPEvent 재사용 | Phase 10 SIP 이벤트 버스가 제네릭 설계, eventType만 다르면 재사용 가능 | executeEvent TRANSFERRED 라우팅 |
+| 11-02 | sip.Request.Recipient 필드로 URI 추출 | sip.Request에 RequestURI() 메서드 없음 — Recipient 필드가 request-line URI | OnRefer Refer-To URI 추출 |
+| 11-02 | StoreDialog 이후 emitSIPEvent(TRANSFERRED) | SessionStore 교체 후 이벤트 발행하여 후속 노드가 올바른 dialog 사용 보장 | OnRefer 이벤트 발행 순서 |
+| 11-02 | Invite 실패 시 에러 반환 → TRANSFERRED 미발행 | 전달 미완료 상태 TRANSFERRED 발행은 거짓 성공 → 타임아웃 유도 의도적 | OnRefer 에러 처리 |
 
 ## 차단 요소 / 우려사항
 
