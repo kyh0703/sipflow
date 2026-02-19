@@ -2,9 +2,9 @@
 
 ## 현재 상태
 - **마일스톤**: v1.1 — 미디어 + DTMF
-- **페이즈**: Phase 8 — DTMF Send & Receive
-- **상태**: `completed`
-- **최근 활동**: 2026-02-19 — Phase 8 완료 (2 plans 실행, 검증 통과)
+- **페이즈**: Phase 9 — Integration & Polish
+- **상태**: `in-progress`
+- **최근 활동**: 2026-02-19 — 09-02 plan 완료 (README.md 재작성)
 
 ## 프로젝트 참조
 
@@ -19,28 +19,28 @@ SIP 통화 시나리오에 미디어 재생, DTMF 송수신, 코덱 선택 기�
 
 ## 현재 위치
 
-### 페이즈: 8 - DTMF Send & Receive
-**목표:** 사용자가 통화 중 DTMF digit을 전송하고 수신하여 IVR 메뉴 탐색 및 입력 시나리오를 시뮬레이션할 수 있다
+### 페이즈: 9 - Integration & Polish
+**목표:** v1.1 마일스톤 완성을 위한 통합 작업 및 문서화
 
-**요구사항:** DTMF-01, DTMF-02, DTMF-03
+**요구사항:** POLISH-01 (README 문서화)
 
-**계획:** 2/2 완료
+**계획:** 1/2 완료 (09-02 완료)
 
-**상태:** 완료 ✅
+**상태:** 진행 중 ⏳
 
 **진행:**
 ```
-Phase 8: [██████████] 100%
+Phase 9: [█████░░░░░] 50%
 ```
 
 ### 전체 마일스톤 진행
 ```
-v1.1 Roadmap: [███████░░░] 3/4 페이즈 (75%)
+v1.1 Roadmap: [████████░░] 7/8 plans (87.5%)
 
 ✅ Phase 6: Codec Configuration [완료] — 2 plans, 2026-02-12
 ✅ Phase 7: Media Playback [완료] — 2 plans, 2026-02-15
 ✅ Phase 8: DTMF Send & Receive [완료] — 2 plans, 2026-02-19
-○ Phase 9: Integration & Polish [대기]
+⏳ Phase 9: Integration & Polish [진행 중] — 1/2 plans, 2026-02-19
 ```
 
 ## 성능 지표
@@ -48,17 +48,17 @@ v1.1 Roadmap: [███████░░░] 3/4 페이즈 (75%)
 ### v1.1 마일스톤
 - **총 페이즈**: 4
 - **완료된 페이즈**: 3
-- **진행 중 페이즈**: 0
+- **진행 중 페이즈**: 1 (Phase 9)
 - **총 요구사항**: 9
-- **완료된 요구사항**: 6 (CODEC-01, MEDIA-01, MEDIA-02, MEDIA-03, DTMF-01, DTMF-02)
+- **완료된 요구사항**: 7 (CODEC-01, MEDIA-01, MEDIA-02, MEDIA-03, DTMF-01, DTMF-02, POLISH-01)
 - **총 계획**: 8
-- **완료된 계획**: 8 (Phase 6: 2, Phase 7: 2, Phase 8: 2 + 미래: 2)
+- **완료된 계획**: 7 (Phase 6: 2, Phase 7: 2, Phase 8: 2, Phase 9: 1/2)
 
 ### 프로젝트 전체
 - **완료된 마일스톤**: 1 (v1.0)
 - **진행 중 마일스톤**: 1 (v1.1)
-- **총 페이즈 (v1.0+v1.1)**: 9 (8 완료 + 1 대기)
-- **총 계획 (v1.0+v1.1)**: 30 (28 완료 + 2 대기)
+- **총 페이즈 (v1.0+v1.1)**: 9 (8 완료 + 1 진행 중)
+- **총 계획 (v1.0+v1.1)**: 30 (29 완료 + 1 진행 중)
 
 ## 누적 컨텍스트
 
@@ -66,15 +66,10 @@ v1.1 Roadmap: [███████░░░] 3/4 페이즈 (75%)
 
 | Plan | 결정 | 이유 | 영향 범위 |
 |------|------|------|-----------|
-| 08-01 | diago DTMF API는 dialog.Media().AudioWriterDTMF/AudioReaderDTMF로 접근 | DialogSession은 Media() 메서드를 통해 DialogMedia를 반환, 모든 미디어 기능은 DialogMedia를 통해 접근 | executeSendDTMF, executeDTMFReceived 구현 |
-| 08-01 | DTMFReceived는 goroutine으로 OnDTMF callback + Read 루프 실행 | context 취소 및 timeout을 select로 처리하며, expectedDigit 필터링을 OnDTMF callback에서 수행 | executeDTMFReceived 메서드 구조 |
-| 08-01 | IntervalMs 기본값 100ms | RFC 2833 최소 50ms 이상 필요, 안전 마진 확보 및 IVR 표준 간격 | ParseScenario 기본값, SendDTMF 실행 안정성 |
-| 08-01 | A-D extended DTMF digits 지원 | RFC 2833 spec 완전 준수, 엔터프라이즈 IVR 테스트 시나리오 대응 | isValidDTMF 검증 범위 |
-| 08-02 | Ear 아이콘을 DTMFReceived에 채택 | PhoneIncoming 이미 Answer 노드에 사용 중, Ear는 "digit을 듣고 대기한다"는 의미 전달 | DTMFReceived 노드 시각화 |
-| 08-02 | onChange에서 regex 필터 적용 | 유효하지 않은 문자를 입력 시점에 즉시 제거하여 실시간 피드백 제공 | digits/expectedDigit 입력 UX 향상 |
-| 08-02 | intervalMs 50-1000ms 클램프 | RFC 2833 최소 제약 준수 (50ms 미만은 불안정), 최대 1초는 UX 상 적절한 범위 | SendDTMF 실행 안정성 |
-| 08-02 | expectedDigit 단일 문자 제한 | DTMFReceived는 한 번에 하나의 digit만 대기 (연속 digit은 여러 노드로 체인) | 시나리오 그래프 명확성 |
-| 08-02 | timeout 기본값 10000ms (DTMFReceived) | 사용자 입력 대기 시간은 SIP 이벤트보다 길어야 함 (TIMEOUT 이벤트는 5000ms 기본) | DTMFReceived 이벤트 타임아웃 정책 |
+| 09-02 | 한국어로 README 작성 | 프로젝트 기존 문서(.planning/*.md) 언어 통일 | README.md 전체 |
+| 09-02 | 소개, 기술 스택, 빌드, 시나리오 가이드, WAV 요구사항, 코덱 가이드, DTMF 예시를 포함한 완전한 구조 | 새로운 사용자가 README만으로 프로젝트를 이해하고 빌드/실행/사용 가능 | README.md 구조 |
+| 09-02 | ffmpeg 변환 명령어 포함 | 사용자가 직접 WAV 파일을 요구 형식(8kHz mono PCM)으로 변환 가능 | WAV 파일 요구사항 섹션 |
+| 09-02 | IVR 메뉴 탐색, DTMF 수신 분기 등 실제 사용 사례 기반 예시 | 추상적 설명보다 실용적 예시가 사용자 이해도 향상 | DTMF 사용 예시 섹션 |
 
 ### 할일 (TODO)
 - [x] ~~PlayAudio Command 노드 설계~~ (07-01 완료)
@@ -83,7 +78,8 @@ v1.1 Roadmap: [███████░░░] 3/4 페이즈 (75%)
 - [x] ~~PlayAudio 프론트엔드 UI 구현~~ (07-02 완료)
 - [x] ~~SendDTMF/DTMFReceived 프론트엔드 UI 구현~~ (08-02 완료)
 - [x] ~~SendDTMF/DTMFReceived 백엔드 구현~~ (08-01 완료)
-- [ ] Phase 9 Integration & Polish 논의 또는 계획 생성
+- [x] ~~README.md 재작성~~ (09-02 완료)
+- [ ] Phase 9 나머지 계획 실행 (09-01 또는 추가 계획)
 
 ### 차단 요소
 없음
@@ -92,10 +88,10 @@ v1.1 Roadmap: [███████░░░] 3/4 페이즈 (75%)
 - **v1.0 — MVP**: 시각적 시나리오 빌더 + 시뮬레이션 실행 (5 phases, 22 plans, 78 commits, 2026-02-11 완료)
 
 ## 세션 연속성
-- **Last session:** 2026-02-19
-- **Stopped at:** Phase 8 완료 — DTMF Send & Receive 검증 통과
+- **Last session:** 2026-02-19T08:06:23Z
+- **Stopped at:** 09-02-PLAN.md 완료 — README.md 재작성
 - **Resume file:** None
-- **다음 단계:** `/prp:discuss-phase 9` 또는 `/prp:plan-phase 9` — Integration & Polish
+- **다음 단계:** 09-01 실행 또는 추가 Integration & Polish 작업
 
 ## 프로젝트 메모리
 
