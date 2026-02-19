@@ -575,3 +575,126 @@ func TestExecuteWaitSIPEvent_Timeout(t *testing.T) {
 		t.Errorf("expected 'timeout' error, got: %v", err)
 	}
 }
+
+// TestExecuteBlindTransfer_EmptyTargetUser는 targetUser가 비어 있을 때 에러를 반환하는지 테스트한다
+func TestExecuteBlindTransfer_EmptyTargetUser(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:         "test-node",
+		Type:       "command",
+		Command:    "BlindTransfer",
+		TargetUser: "",
+		TargetHost: "192.168.1.100:5060",
+	}
+	err := ex.executeBlindTransfer(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error for empty targetUser")
+	}
+	if !strings.Contains(err.Error(), "targetUser is required") {
+		t.Errorf("expected 'targetUser is required' error, got: %v", err)
+	}
+}
+
+// TestExecuteBlindTransfer_EmptyTargetHost는 targetHost가 비어 있을 때 에러를 반환하는지 테스트한다
+func TestExecuteBlindTransfer_EmptyTargetHost(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:         "test-node",
+		Type:       "command",
+		Command:    "BlindTransfer",
+		TargetUser: "carol",
+		TargetHost: "",
+	}
+	err := ex.executeBlindTransfer(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error for empty targetHost")
+	}
+	if !strings.Contains(err.Error(), "targetHost is required") {
+		t.Errorf("expected 'targetHost is required' error, got: %v", err)
+	}
+}
+
+// TestExecuteBlindTransfer_NoDialog는 dialog가 없을 때 executeBlindTransfer가 에러를 반환하는지 테스트한다
+func TestExecuteBlindTransfer_NoDialog(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:         "test-node",
+		Type:       "command",
+		Command:    "BlindTransfer",
+		TargetUser: "carol",
+		TargetHost: "192.168.1.100:5060",
+	}
+	err := ex.executeBlindTransfer(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error for missing dialog")
+	}
+	if !strings.Contains(err.Error(), "no active dialog") {
+		t.Errorf("expected 'no active dialog' error, got: %v", err)
+	}
+}
+
+// TestExecuteCommand_BlindTransferSwitch는 executeCommand switch가 BlindTransfer를 executeBlindTransfer로 라우팅하는지 테스트한다
+func TestExecuteCommand_BlindTransferSwitch(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:         "test-node",
+		Type:       "command",
+		Command:    "BlindTransfer",
+		InstanceID: "inst-1",
+		TargetUser: "carol",
+		TargetHost: "192.168.1.100:5060",
+	}
+	err := ex.executeCommand(context.Background(), "inst-1", node)
+	// dialog 없으므로 에러는 예상되지만, BlindTransfer 핸들러까지 도달 확인
+	if err == nil {
+		t.Fatal("expected error (no active dialog)")
+	}
+	if !strings.Contains(err.Error(), "no active dialog") {
+		t.Errorf("expected 'no active dialog' (BlindTransfer handler reached), got: %v", err)
+	}
+}
+
+// TestExecuteEvent_TransferredSwitch는 executeEvent switch가 TRANSFERRED를 executeWaitSIPEvent로 라우팅하는지 테스트한다
+func TestExecuteEvent_TransferredSwitch(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:         "test-node",
+		Type:       "event",
+		Event:      "TRANSFERRED",
+		InstanceID: "inst-1",
+		Timeout:    100 * time.Millisecond,
+	}
+	err := ex.executeEvent(context.Background(), "inst-1", node)
+	// 이벤트 발행 없으므로 타임아웃 에러 예상
+	if err == nil {
+		t.Fatal("expected timeout error")
+	}
+	if !strings.Contains(err.Error(), "TRANSFERRED event timeout") {
+		t.Errorf("expected 'TRANSFERRED event timeout' error, got: %v", err)
+	}
+}
+
+// TestExecuteWaitSIPEvent_Transferred_Success는 TRANSFERRED 이벤트가 제때 발행될 때 성공하는지 테스트한다
+func TestExecuteWaitSIPEvent_Transferred_Success(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+
+	// goroutine으로 50ms 후 TRANSFERRED 이벤트 발행
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		ex.sessions.emitSIPEvent("inst-1", "TRANSFERRED")
+	}()
+
+	node := &GraphNode{
+		ID:      "test-node",
+		Type:    "event",
+		Event:   "TRANSFERRED",
+		Timeout: 2 * time.Second,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	err := ex.executeWaitSIPEvent(ctx, "inst-1", node, "TRANSFERRED", 2*time.Second)
+	if err != nil {
+		t.Errorf("expected no error, got: %v", err)
+	}
+}

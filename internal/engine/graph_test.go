@@ -782,3 +782,65 @@ func TestParseScenario_DTMFReceivedNoExpectedDigit(t *testing.T) {
 		t.Errorf("expected empty expectedDigit, got '%s'", evt1.ExpectedDigit)
 	}
 }
+
+// TestParseScenario_BlindTransferFields tests BlindTransfer command field parsing
+func TestParseScenario_BlindTransferFields(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100"
+      }
+    },
+    {
+      "id": "cmd-1",
+      "type": "command",
+      "position": {"x": 100, "y": 250},
+      "data": {
+        "command": "BlindTransfer",
+        "sipInstanceId": "inst-a",
+        "targetUser": "carol",
+        "targetHost": "192.168.1.100:5060"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "inst-a",
+      "target": "cmd-1",
+      "sourceHandle": "success"
+    }
+  ]
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	cmd1 := graph.Nodes["cmd-1"]
+	if cmd1 == nil {
+		t.Fatal("cmd-1 not found")
+	}
+
+	// 검증: Command == "BlindTransfer"
+	if cmd1.Command != "BlindTransfer" {
+		t.Errorf("expected command 'BlindTransfer', got '%s'", cmd1.Command)
+	}
+
+	// 검증: TargetUser 파싱됨
+	if cmd1.TargetUser != "carol" {
+		t.Errorf("expected targetUser 'carol', got '%s'", cmd1.TargetUser)
+	}
+
+	// 검증: TargetHost 파싱됨
+	if cmd1.TargetHost != "192.168.1.100:5060" {
+		t.Errorf("expected targetHost '192.168.1.100:5060', got '%s'", cmd1.TargetHost)
+	}
+}
