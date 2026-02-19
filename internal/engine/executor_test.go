@@ -416,3 +416,162 @@ func TestWithSIPMessage_EmptyNote(t *testing.T) {
 		t.Error("note should not be present when empty string provided")
 	}
 }
+
+// TestExecuteHold_NoDialog는 dialog가 없을 때 executeHold가 에러를 반환하는지 테스트한다
+func TestExecuteHold_NoDialog(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:      "test-node",
+		Type:    "command",
+		Command: "Hold",
+	}
+	err := ex.executeHold(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error for missing dialog")
+	}
+	if !strings.Contains(err.Error(), "no active dialog") {
+		t.Errorf("expected 'no active dialog' error, got: %v", err)
+	}
+}
+
+// TestExecuteRetrieve_NoDialog는 dialog가 없을 때 executeRetrieve가 에러를 반환하는지 테스트한다
+func TestExecuteRetrieve_NoDialog(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:      "test-node",
+		Type:    "command",
+		Command: "Retrieve",
+	}
+	err := ex.executeRetrieve(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error for missing dialog")
+	}
+	if !strings.Contains(err.Error(), "no active dialog") {
+		t.Errorf("expected 'no active dialog' error, got: %v", err)
+	}
+}
+
+// TestExecuteCommand_HoldSwitch는 executeCommand switch가 Hold를 executeHold로 라우팅하는지 테스트한다
+func TestExecuteCommand_HoldSwitch(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:         "test-node",
+		Type:       "command",
+		Command:    "Hold",
+		InstanceID: "inst-1",
+	}
+	err := ex.executeCommand(context.Background(), "inst-1", node)
+	// dialog 없으므로 에러는 예상되지만, Hold 핸들러까지 도달 확인
+	if err == nil {
+		t.Fatal("expected error (no active dialog)")
+	}
+	if !strings.Contains(err.Error(), "no active dialog") {
+		t.Errorf("expected 'no active dialog' (Hold handler reached), got: %v", err)
+	}
+}
+
+// TestExecuteCommand_RetrieveSwitch는 executeCommand switch가 Retrieve를 executeRetrieve로 라우팅하는지 테스트한다
+func TestExecuteCommand_RetrieveSwitch(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:         "test-node",
+		Type:       "command",
+		Command:    "Retrieve",
+		InstanceID: "inst-1",
+	}
+	err := ex.executeCommand(context.Background(), "inst-1", node)
+	// dialog 없으므로 에러는 예상되지만, Retrieve 핸들러까지 도달 확인
+	if err == nil {
+		t.Fatal("expected error (no active dialog)")
+	}
+	if !strings.Contains(err.Error(), "no active dialog") {
+		t.Errorf("expected 'no active dialog' (Retrieve handler reached), got: %v", err)
+	}
+}
+
+// TestExecuteEvent_HeldSwitch는 executeEvent switch가 HELD를 executeWaitSIPEvent로 라우팅하는지 테스트한다
+func TestExecuteEvent_HeldSwitch(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:         "test-node",
+		Type:       "event",
+		Event:      "HELD",
+		InstanceID: "inst-1",
+		Timeout:    100 * time.Millisecond,
+	}
+	err := ex.executeEvent(context.Background(), "inst-1", node)
+	// 이벤트 발행 없으므로 타임아웃 에러 예상
+	if err == nil {
+		t.Fatal("expected timeout error")
+	}
+	if !strings.Contains(err.Error(), "HELD event timeout") {
+		t.Errorf("expected 'HELD event timeout' error, got: %v", err)
+	}
+}
+
+// TestExecuteEvent_RetrievedSwitch는 executeEvent switch가 RETRIEVED를 executeWaitSIPEvent로 라우팅하는지 테스트한다
+func TestExecuteEvent_RetrievedSwitch(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:         "test-node",
+		Type:       "event",
+		Event:      "RETRIEVED",
+		InstanceID: "inst-1",
+		Timeout:    100 * time.Millisecond,
+	}
+	err := ex.executeEvent(context.Background(), "inst-1", node)
+	// 이벤트 발행 없으므로 타임아웃 에러 예상
+	if err == nil {
+		t.Fatal("expected timeout error")
+	}
+	if !strings.Contains(err.Error(), "RETRIEVED event timeout") {
+		t.Errorf("expected 'RETRIEVED event timeout' error, got: %v", err)
+	}
+}
+
+// TestExecuteWaitSIPEvent_Success는 이벤트가 제때 발행될 때 executeWaitSIPEvent가 성공하는지 테스트한다
+func TestExecuteWaitSIPEvent_Success(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+
+	// goroutine으로 50ms 후 HELD 이벤트 발행
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		ex.sessions.emitSIPEvent("inst-1", "HELD")
+	}()
+
+	node := &GraphNode{
+		ID:      "test-node",
+		Type:    "event",
+		Event:   "HELD",
+		Timeout: 2 * time.Second,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	err := ex.executeWaitSIPEvent(ctx, "inst-1", node, "HELD", 2*time.Second)
+	if err != nil {
+		t.Errorf("expected no error, got: %v", err)
+	}
+}
+
+// TestExecuteWaitSIPEvent_Timeout은 이벤트가 발행되지 않을 때 타임아웃 에러가 반환되는지 테스트한다
+func TestExecuteWaitSIPEvent_Timeout(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+
+	node := &GraphNode{
+		ID:      "test-node",
+		Type:    "event",
+		Event:   "HELD",
+		Timeout: 100 * time.Millisecond,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	err := ex.executeWaitSIPEvent(ctx, "inst-1", node, "HELD", 100*time.Millisecond)
+	if err == nil {
+		t.Fatal("expected timeout error")
+	}
+	if !strings.Contains(err.Error(), "timeout") {
+		t.Errorf("expected 'timeout' error, got: %v", err)
+	}
+}
