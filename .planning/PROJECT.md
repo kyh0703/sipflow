@@ -95,32 +95,35 @@ SIPFLOW는 SIP(Session Initiation Protocol) 콜플로우를 시각적으로 구�
 
 ## Current State
 
-**Released**: v1.0 — MVP — 시각적 시나리오 빌더 + 시뮬레이션 실행 (2026-02-11)
+**Latest Release**: v1.1 — 미디어 + DTMF (2026-02-19)
 
-v1.0에서 달성한 것:
+<details>
+<summary>v1.0 — MVP (2026-02-11)</summary>
+
 - 풀스택 Wails v2 데스크톱 앱 (Go + React + TypeScript)
 - XYFlow 기반 시각적 시나리오 빌더 (Command/Event/SIP Instance 노드)
 - diago 기반 SIP 실행 엔진 (멀티 인스턴스 병렬 실행)
 - 실시간 실행 시각화 (엣지 애니메이션, 로그 패널, SIP 래더 다이어그램)
 - 프로덕션 UI (다크모드, 자동 저장, shadcn/ui)
 - 22+ Go 테스트, E2E 통합 테스트
+</details>
 
-## Current Milestone: v1.1 미디어 + 녹음
+v1.1에서 달성한 것:
+- SIP Instance별 코덱 선택 및 우선순위 설정 (PCMU/PCMA, 드래그 정렬)
+- PlayAudio Command 노드 — WAV 파일 RTP 재생 (8kHz mono PCM 검증)
+- SendDTMF Command 노드 — RFC 2833 DTMF 전송 (0-9, *, #, A-D)
+- DTMFReceived Event 노드 — DTMF 수신 및 expectedDigit 필터링
+- telephone-event 자동 추가 (코덱 설정과 무관하게 DTMF 보장)
+- 44개 Go 테스트, v1.0 호환성 통합 테스트, README 전체 재작성
 
-**목표:** SIP 통화 시나리오에 미디어 재생, 통화 녹음, DTMF 송수신, 코덱 선택 기능을 추가하여 실제 SIP 미디어 워크플로우를 시뮬레이션/실행할 수 있도록 확장
-
-**타겟 기능:**
-- WAV 미디어 재생 (통화 중 오디오 파일 재생)
-- 통화 녹음 (RTP 스트림 캡처 → WAV 저장)
-- DTMF 송신/수신 노드 (RTP DTMF 이벤트)
-- 코덱 선택 UI (PCMU, PCMA, Opus 등)
+## Current Milestone: 없음 (다음 마일스톤 미정)
 
 ### Next Milestone Goals
 
 향후 마일스톤 후보:
-- 고급 시나리오 (조건 분기, 반복, 템플릿)
-- SIP 래더 다이어그램 시각화 강화
-- 멀티플랫폼 빌드
+- **v1.2**: 통화 녹음 + 미디어 확장 (StartRecording/StopRecording, stopOnDTMF, 재생 진행률)
+- **v2.0**: 고급 시나리오 (조건 분기, 반복, 템플릿) + SIP 래더 다이어그램 시각화
+- **v3.0**: 멀티플랫폼 빌드 + 자동 업데이트 + 시나리오 공유
 
 ---
 

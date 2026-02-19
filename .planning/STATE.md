@@ -1,10 +1,10 @@
 # SIPFLOW Project State
 
 ## 현재 상태
-- **마일스톤**: v1.1 — 미디어 + DTMF
-- **페이즈**: Phase 9 — Integration & Polish
-- **상태**: `completed`
-- **최근 활동**: 2026-02-19 — Phase 9 완료 (2 plans 완료: 백엔드 테스트 + README 재작성)
+- **마일스톤**: 없음 (v1.1 완료, 다음 미정)
+- **페이즈**: 없음
+- **상태**: `milestone_archived`
+- **최근 활동**: 2026-02-19 — v1.1 마일스톤 아카이브 완료
 
 ## 프로젝트 참조
 
@@ -94,13 +94,13 @@ v1.1 마일스톤의 모든 요구사항 (CODEC-01, MEDIA-01~03, DTMF-01~02, POL
 
 ### 완료된 마일스톤
 - **v1.0 — MVP**: 시각적 시나리오 빌더 + 시뮬레이션 실행 (5 phases, 22 plans, 78 commits, 2026-02-11 완료)
-- **v1.1 — 미디어 + DTMF**: 미디어 재생, DTMF 송수신, 코덱 선택 (4 phases, 8 plans, 2026-02-19 완료)
+- **v1.1 — 미디어 + DTMF**: 미디어 재생, DTMF 송수신, 코덱 선택 (4 phases, 8 plans, 36 commits, 2026-02-19 완료)
 
 ## 세션 연속성
-- **Last session:** 2026-02-19T03:04:50Z
-- **Stopped at:** Phase 9 완료 — 백엔드 테스트 + README 재작성
+- **Last session:** 2026-02-19
+- **Stopped at:** v1.1 마일스톤 아카이브 완료
 - **Resume file:** None
-- **다음 단계:** v1.1 마일스톤 완료 ✅ — 다음 마일스톤 계획 또는 프로덕션 준비
+- **다음 단계:** `/prp:new-milestone`으로 다음 마일스톤 시작
 
 ## 프로젝트 메모리
 
