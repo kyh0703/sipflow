@@ -2,6 +2,8 @@ package engine
 
 import (
 	"testing"
+
+	"github.com/emiago/diago/media"
 )
 
 func TestAllocatePort_Sequential(t *testing.T) {
@@ -225,5 +227,35 @@ func TestReset(t *testing.T) {
 	// 검증: nextPort가 리셋되었는지
 	if im.nextPort != im.basePort {
 		t.Errorf("Expected nextPort to be reset to basePort (%d), got %d", im.basePort, im.nextPort)
+	}
+}
+
+// TestStringToCodecs는 stringToCodecs 함수의 코덱 변환을 테스트한다
+func TestStringToCodecs(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        []string
+		expectedLen  int
+		lastIsTelEvt bool
+	}{
+		{"PCMU and PCMA", []string{"PCMU", "PCMA"}, 3, true},
+		{"PCMU only", []string{"PCMU"}, 2, true},
+		{"empty", []string{}, 1, true},
+		{"invalid codec ignored", []string{"INVALID", "PCMU"}, 2, true},
+		{"all invalid", []string{"INVALID", "UNKNOWN"}, 1, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := stringToCodecs(tt.input)
+			if len(result) != tt.expectedLen {
+				t.Errorf("stringToCodecs(%v): expected %d codecs, got %d", tt.input, tt.expectedLen, len(result))
+			}
+			if tt.lastIsTelEvt && len(result) > 0 {
+				last := result[len(result)-1]
+				if last != media.CodecTelephoneEvent8000 {
+					t.Errorf("stringToCodecs(%v): last codec should be CodecTelephoneEvent8000", tt.input)
+				}
+			}
+		})
 	}
 }
