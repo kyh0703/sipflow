@@ -25,9 +25,9 @@
 
 ### 비기능 요구사항
 
-- [ ] **NF-01**: 새 Command/Event 노드가 기존 노드 팔레트의 드래그앤드롭 패턴과 일관되게 동작함
-- [ ] **NF-02**: 미디어 관련 Go 코드에 단위 테스트가 포함됨
-- [ ] **NF-03**: 기존 시나리오(MakeCall→Answer→Release)가 미디어 기능 추가 후에도 정상 동작함 (회귀 방지)
+- [x] **NF-01**: 새 Command/Event 노드가 기존 노드 팔레트의 드래그앤드롭 패턴과 일관되게 동작함
+- [x] **NF-02**: 미디어 관련 Go 코드에 단위 테스트가 포함됨
+- [x] **NF-03**: 기존 시나리오(MakeCall→Answer→Release)가 미디어 기능 추가 후에도 정상 동작함 (회귀 방지)
 
 ---
 
@@ -78,6 +78,6 @@
 | MEDIA-03 | Phase 7 | 07-01 | Complete |
 | DTMF-01 | Phase 8 | 08-01, 08-02 | Complete |
 | DTMF-02 | Phase 8 | 08-01, 08-02 | Complete |
-| NF-01 | Phase 9 | 대기 | 대기 |
-| NF-02 | Phase 9 | 대기 | 대기 |
-| NF-03 | Phase 9 | 대기 | 대기 |
+| NF-01 | Phase 9 | 09-01 | Complete |
+| NF-02 | Phase 9 | 09-01 | Complete |
+| NF-03 | Phase 9 | 09-01 | Complete |

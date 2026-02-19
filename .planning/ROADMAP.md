@@ -5,7 +5,7 @@
 
 ---
 
-## v1.1: 미디어 + DTMF (진행 중)
+## v1.1: 미디어 + DTMF ✅
 
 **목표:** SIP 통화 시나리오에 미디어 재생, DTMF 송수신, 코덱 선택 기능을 추가하여 실제 SIP 미디어 워크플로우를 시뮬레이션/실행할 수 있도록 확장
 
@@ -87,7 +87,7 @@ Plans:
 
 ---
 
-### Phase 9: Integration & Polish
+### Phase 9: Integration & Polish ✅
 
 **목표:** 새 미디어 기능이 기존 시나리오와 통합되어 안정적으로 동작하고, 프로덕션 사용을 위한 품질 기준을 충족한다
 
@@ -106,6 +106,11 @@ Plans:
 4. 실제 SIP 서버 (Asterisk/FreeSWITCH) 연동 E2E 테스트에서 미디어 재생과 DTMF 송수신이 성공함
 5. 사용자 문서에 WAV 파일 요구사항, 코덱 선택 가이드, DTMF 사용 예시가 포함됨
 
+**Plans:** 2 plans
+Plans:
+- [x] 09-01-PLAN.md — Backend 테스트 스위트 (단위 테스트 + 통합 테스트 + NF 검증)
+- [x] 09-02-PLAN.md — README.md 프로젝트 문서화
+
 ---
 
 ## 진행 현황
@@ -115,9 +120,9 @@ Plans:
 | 6 - Codec Configuration | 코덱 선택 및 SDP 협상 | CODEC-01 | 2/2 | ✅ 완료 |
 | 7 - Media Playback | WAV 재생 | MEDIA-01, MEDIA-02, MEDIA-03 | 2/2 | ✅ 완료 |
 | 8 - DTMF Send & Receive | DTMF 송수신 | DTMF-01, DTMF-02 | 2/2 | ✅ 완료 |
-| 9 - Integration & Polish | 통합 테스트 및 품질 | NF-01, NF-02, NF-03 | 0/? | 대기 |
+| 9 - Integration & Polish | 통합 테스트 및 품질 | NF-01, NF-02, NF-03 | 2/2 | ✅ 완료 |
 
-**전체:** 3/4 페이즈 완료
+**전체:** 4/4 페이즈 완료
 
 ---
 
