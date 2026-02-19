@@ -321,11 +321,40 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 				}
 			}()
 		},
-		// OnRefer: BlindTransfer 감지를 위한 콜백 (Phase 11 대비 스텁)
+		// OnRefer: 상대방 REFER 수신 시 콜백 (Refer-To URI 추출 + 새 dialog 활성화 + SessionStore 교체)
 		OnRefer: func(referDialog *diago.DialogClientSession) error {
+			// 1. Refer-To URI 추출 (ROADMAP 성공기준 4번)
+			referToURIStr := "<unknown>"
+			if referDialog.InviteRequest != nil {
+				referToURIStr = referDialog.InviteRequest.Recipient.String()
+			}
+
+			// 2. ActionLog에 Refer-To URI 기록 (수신 로그)
+			ex.engine.emitActionLog(node.ID, instanceID,
+				fmt.Sprintf("REFER received: Refer-To=%s", referToURIStr), "info",
+				WithSIPMessage("received", "REFER", 202, "", "", referToURIStr))
+
+			// 3. 새 dialog (referDialog)로 INVITE 전송 + ACK
+			inviteCtx := referDialog.Context()
+			if err := referDialog.Invite(inviteCtx, diago.InviteClientOptions{}); err != nil {
+				ex.engine.emitActionLog(node.ID, instanceID,
+					fmt.Sprintf("TransferEvent: Invite to Refer-To failed: %v", err), "error")
+				return fmt.Errorf("TransferEvent: referDialog Invite failed: %w", err)
+			}
+			if err := referDialog.Ack(inviteCtx); err != nil {
+				ex.engine.emitActionLog(node.ID, instanceID,
+					fmt.Sprintf("TransferEvent: Ack failed: %v", err), "error")
+				return fmt.Errorf("TransferEvent: referDialog Ack failed: %w", err)
+			}
+
+			// 4. SessionStore 교체 (기존 dialog → referDialog)
+			ex.sessions.StoreDialog(instanceID, referDialog)
+
+			// 5. TRANSFERRED 이벤트 발행 (executeWaitSIPEvent 대기 해제)
 			ex.engine.emitSIPEvent(instanceID, "TRANSFERRED")
-			ex.engine.emitActionLog(node.ID, instanceID, "REFER received (transfer)", "info",
-				WithSIPMessage("received", "REFER", 0, "", "", ""))
+
+			ex.engine.emitActionLog(node.ID, instanceID,
+				fmt.Sprintf("TransferEvent: session replaced with new dialog (Refer-To: %s)", referToURIStr), "info")
 			return nil
 		},
 	}
