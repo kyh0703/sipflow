@@ -132,3 +132,40 @@ func TestSessionStore_ThreadSafety(t *testing.T) {
 	store.HangupAll(ctx)
 	store.CloseAll()
 }
+
+// TestIsValidDTMF는 isValidDTMF 함수의 유효/무효 문자 검증을 테스트한다
+func TestIsValidDTMF(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    rune
+		expected bool
+	}{
+		// 유효 문자
+		{"digit 0", '0', true},
+		{"digit 1", '1', true},
+		{"digit 5", '5', true},
+		{"digit 9", '9', true},
+		{"star", '*', true},
+		{"hash", '#', true},
+		{"letter A", 'A', true},
+		{"letter B", 'B', true},
+		{"letter C", 'C', true},
+		{"letter D", 'D', true},
+		// 무효 문자
+		{"letter E", 'E', false},
+		{"lowercase a", 'a', false},
+		{"lowercase b", 'b', false},
+		{"at sign", '@', false},
+		{"space", ' ', false},
+		{"exclamation", '!', false},
+		{"letter Z", 'Z', false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isValidDTMF(tt.input)
+			if result != tt.expected {
+				t.Errorf("isValidDTMF(%c) = %v, expected %v", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
