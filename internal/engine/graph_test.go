@@ -521,3 +521,264 @@ func TestParseScenario_CodecsInvalid(t *testing.T) {
 		}
 	}
 }
+
+// TestParseScenario_PlayAudioFields tests PlayAudio command field parsing
+func TestParseScenario_PlayAudioFields(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100"
+      }
+    },
+    {
+      "id": "cmd-1",
+      "type": "command",
+      "position": {"x": 100, "y": 250},
+      "data": {
+        "command": "PlayAudio",
+        "sipInstanceId": "inst-a",
+        "filePath": "/path/to/audio.wav"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "inst-a",
+      "target": "cmd-1",
+      "sourceHandle": "success"
+    }
+  ]
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	cmd1 := graph.Nodes["cmd-1"]
+	if cmd1 == nil {
+		t.Fatal("cmd-1 not found")
+	}
+
+	// 검증: Command == "PlayAudio"
+	if cmd1.Command != "PlayAudio" {
+		t.Errorf("expected command 'PlayAudio', got '%s'", cmd1.Command)
+	}
+
+	// 검증: FilePath 파싱됨
+	if cmd1.FilePath != "/path/to/audio.wav" {
+		t.Errorf("expected filePath '/path/to/audio.wav', got '%s'", cmd1.FilePath)
+	}
+}
+
+// TestParseScenario_SendDTMFFields tests SendDTMF command field parsing
+func TestParseScenario_SendDTMFFields(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100"
+      }
+    },
+    {
+      "id": "cmd-1",
+      "type": "command",
+      "position": {"x": 100, "y": 250},
+      "data": {
+        "command": "SendDTMF",
+        "sipInstanceId": "inst-a",
+        "digits": "123*#",
+        "intervalMs": 200
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "inst-a",
+      "target": "cmd-1",
+      "sourceHandle": "success"
+    }
+  ]
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	cmd1 := graph.Nodes["cmd-1"]
+	if cmd1 == nil {
+		t.Fatal("cmd-1 not found")
+	}
+
+	// 검증: Command == "SendDTMF"
+	if cmd1.Command != "SendDTMF" {
+		t.Errorf("expected command 'SendDTMF', got '%s'", cmd1.Command)
+	}
+
+	// 검증: Digits 파싱됨
+	if cmd1.Digits != "123*#" {
+		t.Errorf("expected digits '123*#', got '%s'", cmd1.Digits)
+	}
+
+	// 검증: IntervalMs 파싱됨
+	if cmd1.IntervalMs != 200 {
+		t.Errorf("expected intervalMs 200, got %f", cmd1.IntervalMs)
+	}
+}
+
+// TestParseScenario_SendDTMFDefaults tests SendDTMF default intervalMs
+func TestParseScenario_SendDTMFDefaults(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100"
+      }
+    },
+    {
+      "id": "cmd-1",
+      "type": "command",
+      "position": {"x": 100, "y": 250},
+      "data": {
+        "command": "SendDTMF",
+        "sipInstanceId": "inst-a",
+        "digits": "1"
+      }
+    }
+  ],
+  "edges": []
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	cmd1 := graph.Nodes["cmd-1"]
+	if cmd1 == nil {
+		t.Fatal("cmd-1 not found")
+	}
+
+	// 검증: IntervalMs 기본값 100
+	if cmd1.IntervalMs != 100 {
+		t.Errorf("expected default intervalMs 100, got %f", cmd1.IntervalMs)
+	}
+}
+
+// TestParseScenario_DTMFReceivedFields tests DTMFReceived event field parsing
+func TestParseScenario_DTMFReceivedFields(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100"
+      }
+    },
+    {
+      "id": "evt-1",
+      "type": "event",
+      "position": {"x": 100, "y": 250},
+      "data": {
+        "event": "DTMFReceived",
+        "sipInstanceId": "inst-a",
+        "expectedDigit": "5"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "inst-a",
+      "target": "evt-1",
+      "sourceHandle": "success"
+    }
+  ]
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	evt1 := graph.Nodes["evt-1"]
+	if evt1 == nil {
+		t.Fatal("evt-1 not found")
+	}
+
+	// 검증: Event == "DTMFReceived"
+	if evt1.Event != "DTMFReceived" {
+		t.Errorf("expected event 'DTMFReceived', got '%s'", evt1.Event)
+	}
+
+	// 검증: ExpectedDigit 파싱됨
+	if evt1.ExpectedDigit != "5" {
+		t.Errorf("expected expectedDigit '5', got '%s'", evt1.ExpectedDigit)
+	}
+}
+
+// TestParseScenario_DTMFReceivedNoExpectedDigit tests DTMFReceived without expectedDigit
+func TestParseScenario_DTMFReceivedNoExpectedDigit(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100"
+      }
+    },
+    {
+      "id": "evt-1",
+      "type": "event",
+      "position": {"x": 100, "y": 250},
+      "data": {
+        "event": "DTMFReceived",
+        "sipInstanceId": "inst-a"
+      }
+    }
+  ],
+  "edges": []
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	evt1 := graph.Nodes["evt-1"]
+	if evt1 == nil {
+		t.Fatal("evt-1 not found")
+	}
+
+	// 검증: ExpectedDigit는 빈 문자열 (기본값)
+	if evt1.ExpectedDigit != "" {
+		t.Errorf("expected empty expectedDigit, got '%s'", evt1.ExpectedDigit)
+	}
+}
