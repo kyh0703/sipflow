@@ -2,9 +2,9 @@
 
 ## 현재 상태
 - **마일스톤**: v1.2 — Transfer + UI 개선
-- **페이즈**: 시작되지 않음 (요구사항 정의 중)
-- **상태**: `requirements_defining`
-- **최근 활동**: 2026-02-19 — 마일스톤 v1.2 시작
+- **페이즈**: 10 - Hold/Retrieve Backend (시작 전)
+- **상태**: `roadmap_ready`
+- **최근 활동**: 2026-02-19 — v1.2 로드맵 생성 완료
 
 ## 프로젝트 참조
 
@@ -14,80 +14,69 @@
 - **N개 SIP 인스턴스**: 다중 SIP UA를 동시에 생성하여 복잡한 시나리오 검증
 - **이중 모드**: 로컬 시뮬레이션 모드 + 실제 SIP 트래픽 생성 모드
 
-### 현재 초점 (v1.1)
-SIP 통화 시나리오에 미디어 재생, DTMF 송수신, 코덱 선택 기능을 추가하여 실제 SIP 미디어 워크플로우를 시뮬레이션/실행할 수 있도록 확장
+### 현재 초점 (v1.2)
+SIP 통화 보류(Hold/Retrieve)와 블라인드 전환(BlindTransfer)을 구현하고, Activity Bar + Resizable 사이드바로 UI를 리디자인하여 노드 에디터 완성도를 높인다.
 
 ## 현재 위치
 
-### 페이즈: 9 - Integration & Polish
-**목표:** v1.1 마일스톤 완성을 위한 통합 작업 및 문서화
+### 페이즈: 10 - Hold/Retrieve Backend
+**목표:** 사용자가 활성 통화를 보류하고 해제하며, 상대방의 보류/해제를 감지할 수 있다
 
-**요구사항:** POLISH-01 (README 문서화)
+**요구사항:** HOLD-01, HOLD-02, HOLD-03, HOLD-04
 
-**계획:** 2/2 완료 (09-01, 09-02 완료)
+**계획:** 0/? 완료 (계획 예정)
 
-**상태:** 완료 ✅
+**상태:** 대기 중
 
 **진행:**
 ```
-Phase 9: [██████████] 100%
+Phase 10: [          ] 0%
 ```
 
 ### 전체 마일스톤 진행
 ```
-v1.1 Roadmap: [██████████] 8/8 plans (100%)
+v1.2 Roadmap: [          ] 0/4 phases
 
-✅ Phase 6: Codec Configuration [완료] — 2 plans, 2026-02-12
-✅ Phase 7: Media Playback [완료] — 2 plans, 2026-02-15
-✅ Phase 8: DTMF Send & Receive [완료] — 2 plans, 2026-02-19
-✅ Phase 9: Integration & Polish [완료] — 2 plans, 2026-02-19
+⏳ Phase 10: Hold/Retrieve Backend [대기]
+⏳ Phase 11: BlindTransfer + TransferEvent Backend [대기]
+⏳ Phase 12: UI 리디자인 [대기]
+⏳ Phase 13: 새 노드 UI + 통합 & 품질 [대기]
 ```
 
 ## 성능 지표
 
-### v1.1 마일스톤
+### v1.2 마일스톤
 - **총 페이즈**: 4
-- **완료된 페이즈**: 4
+- **완료된 페이즈**: 0
 - **진행 중 페이즈**: 0
-- **총 요구사항**: 9
-- **완료된 요구사항**: 9 (CODEC-01, MEDIA-01, MEDIA-02, MEDIA-03, DTMF-01, DTMF-02, POLISH-01, NF-01, NF-02, NF-03)
-- **총 계획**: 8
-- **완료된 계획**: 8 (Phase 6: 2, Phase 7: 2, Phase 8: 2, Phase 9: 2)
+- **총 요구사항**: 12
+- **완료된 요구사항**: 0
+- **총 계획**: 미정
+- **완료된 계획**: 0
 
 ### 프로젝트 전체
 - **완료된 마일스톤**: 2 (v1.0, v1.1)
-- **진행 중 마일스톤**: 0
+- **진행 중 마일스톤**: 1 (v1.2)
 - **총 페이즈 (v1.0+v1.1)**: 9 (모두 완료)
 - **총 계획 (v1.0+v1.1)**: 30 (모두 완료)
 
 ## 누적 컨텍스트
 
-### Phase 9 결정사항
+### v1.2 핵심 설계 결정 (사전 리서치)
 
-| Plan | 결정 | 이유 | 영향 범위 |
-|------|------|------|-----------|
-| 09-01 | validateWAVFormat 순수 함수 추출 | Wails runtime 의존성 없이 단위 테스트 가능하게 함 | media_binding.go 리팩토링 |
-| 09-01 | go-audio/wav로 프로그래밍 방식 WAV 생성 | 외부 파일 의존성 제거, createTestWAV 헬퍼 재사용 | media_binding_test.go |
-| 09-01 | newTestExecutor 헬퍼 추가 | Executor 에러 경로 테스트 환경 구성 로직 재사용 | executor_test.go |
-| 09-01 | TestEventEmitter를 integration_test.go에 정의 | 패키지 내 재사용, executor_test.go와 integration_test.go 공유 | engine 패키지 테스트 인프라 |
-| 09-02 | 한국어로 README 작성 | 프로젝트 기존 문서(.planning/*.md) 언어 통일 | README.md 전체 |
-| 09-02 | 소개, 기술 스택, 빌드, 시나리오 가이드, WAV 요구사항, 코덱 가이드, DTMF 예시를 포함한 완전한 구조 | 새로운 사용자가 README만으로 프로젝트를 이해하고 빌드/실행/사용 가능 | README.md 구조 |
-| 09-02 | ffmpeg 변환 명령어 포함 | 사용자가 직접 WAV 파일을 요구 형식(8kHz mono PCM)으로 변환 가능 | WAV 파일 요구사항 섹션 |
-| 09-02 | IVR 메뉴 탐색, DTMF 수신 분기 등 실제 사용 사례 기반 예시 | 추상적 설명보다 실용적 예시가 사용자 이해도 향상 | DTMF 사용 예시 섹션 |
+| 항목 | 결정 | 이유 |
+|------|------|------|
+| Hold 구현 | MediaSession.Mode + ReInvite() 조합 | diago 공식 Hold() API 없음 |
+| HeldEvent/RetrievedEvent | AnswerOptions.OnMediaUpdate 콜백 | 상대방 Re-INVITE 수신 감지 방법 |
+| TransferEvent | AnswerOptions.OnRefer 콜백 | REFER 수신 감지 방법 |
+| executeAnswer() 리팩토링 | Answer() → AnswerOptions() 변경 필수 | 콜백 수신을 위한 전제조건 |
+| BlindTransfer | diago Refer() API 직접 사용 | API 존재 확인, 즉시 구현 가능 |
+| UI | Activity Bar + shadcn Resizable | 현재 고정 200px 사이드바 대체 |
+| 신규 라이브러리 | 0개 | 기존 스택으로 모두 구현 가능 |
 
 ### 할일 (TODO)
-- [x] ~~PlayAudio Command 노드 설계~~ (07-01 완료)
-- [x] ~~WAV 파일 선택 다이얼로그 구현~~ (07-01 완료)
-- [x] ~~WAV 포맷 검증 (8kHz mono PCM)~~ (07-01 완료)
-- [x] ~~PlayAudio 프론트엔드 UI 구현~~ (07-02 완료)
-- [x] ~~SendDTMF/DTMFReceived 프론트엔드 UI 구현~~ (08-02 완료)
-- [x] ~~SendDTMF/DTMFReceived 백엔드 구현~~ (08-01 완료)
-- [x] ~~README.md 재작성~~ (09-02 완료)
-- [x] ~~미디어/DTMF 백엔드 테스트~~ (09-01 완료)
-- [x] ~~v1.0 호환성 검증~~ (09-01 완료)
-
-### v1.1 완료
-v1.1 마일스톤의 모든 요구사항 (CODEC-01, MEDIA-01~03, DTMF-01~02, POLISH-01, NF-01~03)이 완료되었습니다.
+- [ ] Phase 10 계획 수립 (`/prp:plan-phase 10`)
+- [ ] Phase 12 계획 수립 (백엔드와 병렬 진행 가능)
 
 ### 차단 요소
 없음
@@ -98,9 +87,9 @@ v1.1 마일스톤의 모든 요구사항 (CODEC-01, MEDIA-01~03, DTMF-01~02, POL
 
 ## 세션 연속성
 - **Last session:** 2026-02-19
-- **Stopped at:** v1.1 마일스톤 아카이브 완료
+- **Stopped at:** v1.2 로드맵 생성 완료
 - **Resume file:** None
-- **다음 단계:** `/prp:new-milestone`으로 다음 마일스톤 시작
+- **다음 단계:** `/prp:plan-phase 10`으로 Hold/Retrieve Backend 계획 수립
 
 ## 프로젝트 메모리
 
@@ -118,14 +107,20 @@ v1.1 마일스톤의 모든 요구사항 (CODEC-01, MEDIA-01~03, DTMF-01~02, POL
 - SDP 협상 완료 후에만 dialog.Media() 호출 가능 (RTP 세션 초기화 순서)
 - SIP/RTP는 표준적으로 8kHz mono G.711 사용 (PCMU=0, PCMA=8)
 - RFC 2833 RTP telephone-event가 DTMF 표준 (In-band보다 신뢰성 높음)
+- diago Refer() API 존재 확인 — BlindTransfer 즉시 구현 가능
+- diago Hold() 공식 API 없음 — MediaSession.Mode + ReInvite() 조합 필요
+- AnswerOptions.OnMediaUpdate 콜백 — HeldEvent/RetrievedEvent 감지에 사용
+- AnswerOptions.OnRefer 콜백 — TransferEvent 감지에 사용
+- Answer() → AnswerOptions() 전환 필수 (이벤트 콜백 수신 전제조건)
 
 ### 기술적 제약
 - Wails v2 Windows hot reload 불안정 (Linux에서 개발 권장)
-- diago Hold/Unhold: 빈 SDP 처리 이슈 (#110)
+- diago Hold/Unhold: 빈 SDP 처리 이슈 (#110) — Re-INVITE로 우회
 - XYFlow stroke-dasharray 성능 문제 → SVG animateMotion 사용
 - diago Bridge는 코덱 호환성 필수 (양측 공통 코덱 없으면 488 Not Acceptable)
 - WAV 파일 포맷 불일치 시 재생 속도 왜곡 (8kHz mono PCM 필수)
 - CGO 의존성 회피를 위해 Opus 코덱 제외 (v1.1)
+- AttendedTransfer 제외 — SessionStore 복합 키 리팩토링 + diago Replaces 미지원 (v1.3으로 연기)
 
 ### 의사결정 로그
 - [2026-02-09] 프로젝트 초기화, MVP 범위 확정
@@ -159,7 +154,6 @@ v1.1 마일스톤의 모든 요구사항 (CODEC-01, MEDIA-01~03, DTMF-01~02, POL
 - [2026-02-10] Record<string, State> Zustand 패턴 (03-05)
 - [2026-02-10] ActionLog 최대 500개 제한 (03-05)
 - [2026-02-10] 실행 상태가 검증 오류보다 우선 (03-07)
-- [2026-02-10] 로그 패널 auto-scroll + conditional rendering (03-07)
 - [2026-02-11] Functional Options 패턴으로 emitActionLog 확장 (04-01)
 - [2026-02-11] sipMessages 별도 배열로 필터링 최적화 (04-01)
 - [2026-02-11] 컴포넌트 레벨 엣지 애니메이션 생명주기 관리 (04-01)
@@ -196,6 +190,10 @@ v1.1 마일스톤의 모든 요구사항 (CODEC-01, MEDIA-01~03, DTMF-01~02, POL
 - [2026-02-12] go-audio/wav 라이브러리 채택 (07-01)
 - [2026-02-12] SelectWAVFile에서 즉시 검증 (07-01)
 - [2026-02-12] pb.Play() bytesPlayed 로깅 (07-01)
+- [2026-02-19] v1.2 범위 확정: BlindTransfer + Hold/Retrieve + UI 리디자인
+- [2026-02-19] AttendedTransfer v1.3으로 연기 (SessionStore 복합 키 + diago Replaces 미지원)
+- [2026-02-19] executeAnswer() → AnswerOptions() 리팩토링 필수 (Phase 10 선결)
+- [2026-02-19] Activity Bar + shadcn Resizable로 UI 리디자인 결정
 
 ## 결정사항 누적
 
@@ -267,6 +265,7 @@ v1.1 마일스톤의 모든 요구사항 (CODEC-01, MEDIA-01~03, DTMF-01~02, POL
 | 08-02 | intervalMs 50-1000ms 클램프 | RFC 2833 최소 제약 준수 (50ms 미만은 불안정), 최대 1초는 UX 상 적절한 범위 | SendDTMF 실행 안정성 |
 | 08-02 | expectedDigit 단일 문자 제한 | DTMFReceived는 한 번에 하나의 digit만 대기 (연속 digit은 여러 노드로 체인) | 시나리오 그래프 명확성 |
 | 08-02 | timeout 기본값 10000ms (DTMFReceived) | 사용자 입력 대기 시간은 SIP 이벤트보다 길어야 함 (TIMEOUT 이벤트는 5000ms 기본) | DTMFReceived 이벤트 타임아웃 정책 |
+
 ## 차단 요소 / 우려사항
 
 ### 해결됨
@@ -277,3 +276,4 @@ v1.1 마일스톤의 모든 요구사항 (CODEC-01, MEDIA-01~03, DTMF-01~02, POL
 - libwebkit 시스템 의존성 누락 (Linux 프로덕션 빌드 시 필요, 개발은 가능)
 - npm audit moderate 취약점 (프로덕션 전 수정 필요)
 - diago Call-ID 미지원 (04-01에서 문서화, 향후 diago 업데이트 대기)
+- diago Hold/Unhold 빈 SDP 이슈 (#110) — Re-INVITE sendonly/sendrecv로 우회 (Phase 10에서 검증 필요)
