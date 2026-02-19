@@ -3,8 +3,8 @@
 ## 현재 상태
 - **마일스톤**: v1.1 — 미디어 + DTMF
 - **페이즈**: Phase 9 — Integration & Polish
-- **상태**: `in-progress`
-- **최근 활동**: 2026-02-19 — 09-02 plan 완료 (README.md 재작성)
+- **상태**: `completed`
+- **최근 활동**: 2026-02-19 — Phase 9 완료 (2 plans 완료: 백엔드 테스트 + README 재작성)
 
 ## 프로젝트 참조
 
@@ -24,48 +24,52 @@ SIP 통화 시나리오에 미디어 재생, DTMF 송수신, 코덱 선택 기�
 
 **요구사항:** POLISH-01 (README 문서화)
 
-**계획:** 1/2 완료 (09-02 완료)
+**계획:** 2/2 완료 (09-01, 09-02 완료)
 
-**상태:** 진행 중 ⏳
+**상태:** 완료 ✅
 
 **진행:**
 ```
-Phase 9: [█████░░░░░] 50%
+Phase 9: [██████████] 100%
 ```
 
 ### 전체 마일스톤 진행
 ```
-v1.1 Roadmap: [████████░░] 7/8 plans (87.5%)
+v1.1 Roadmap: [██████████] 8/8 plans (100%)
 
 ✅ Phase 6: Codec Configuration [완료] — 2 plans, 2026-02-12
 ✅ Phase 7: Media Playback [완료] — 2 plans, 2026-02-15
 ✅ Phase 8: DTMF Send & Receive [완료] — 2 plans, 2026-02-19
-⏳ Phase 9: Integration & Polish [진행 중] — 1/2 plans, 2026-02-19
+✅ Phase 9: Integration & Polish [완료] — 2 plans, 2026-02-19
 ```
 
 ## 성능 지표
 
 ### v1.1 마일스톤
 - **총 페이즈**: 4
-- **완료된 페이즈**: 3
-- **진행 중 페이즈**: 1 (Phase 9)
+- **완료된 페이즈**: 4
+- **진행 중 페이즈**: 0
 - **총 요구사항**: 9
-- **완료된 요구사항**: 7 (CODEC-01, MEDIA-01, MEDIA-02, MEDIA-03, DTMF-01, DTMF-02, POLISH-01)
+- **완료된 요구사항**: 9 (CODEC-01, MEDIA-01, MEDIA-02, MEDIA-03, DTMF-01, DTMF-02, POLISH-01, NF-01, NF-02, NF-03)
 - **총 계획**: 8
-- **완료된 계획**: 7 (Phase 6: 2, Phase 7: 2, Phase 8: 2, Phase 9: 1/2)
+- **완료된 계획**: 8 (Phase 6: 2, Phase 7: 2, Phase 8: 2, Phase 9: 2)
 
 ### 프로젝트 전체
-- **완료된 마일스톤**: 1 (v1.0)
-- **진행 중 마일스톤**: 1 (v1.1)
-- **총 페이즈 (v1.0+v1.1)**: 9 (8 완료 + 1 진행 중)
-- **총 계획 (v1.0+v1.1)**: 30 (29 완료 + 1 진행 중)
+- **완료된 마일스톤**: 2 (v1.0, v1.1)
+- **진행 중 마일스톤**: 0
+- **총 페이즈 (v1.0+v1.1)**: 9 (모두 완료)
+- **총 계획 (v1.0+v1.1)**: 30 (모두 완료)
 
 ## 누적 컨텍스트
 
-### 현재 페이즈 결정사항
+### Phase 9 결정사항
 
 | Plan | 결정 | 이유 | 영향 범위 |
 |------|------|------|-----------|
+| 09-01 | validateWAVFormat 순수 함수 추출 | Wails runtime 의존성 없이 단위 테스트 가능하게 함 | media_binding.go 리팩토링 |
+| 09-01 | go-audio/wav로 프로그래밍 방식 WAV 생성 | 외부 파일 의존성 제거, createTestWAV 헬퍼 재사용 | media_binding_test.go |
+| 09-01 | newTestExecutor 헬퍼 추가 | Executor 에러 경로 테스트 환경 구성 로직 재사용 | executor_test.go |
+| 09-01 | TestEventEmitter를 integration_test.go에 정의 | 패키지 내 재사용, executor_test.go와 integration_test.go 공유 | engine 패키지 테스트 인프라 |
 | 09-02 | 한국어로 README 작성 | 프로젝트 기존 문서(.planning/*.md) 언어 통일 | README.md 전체 |
 | 09-02 | 소개, 기술 스택, 빌드, 시나리오 가이드, WAV 요구사항, 코덱 가이드, DTMF 예시를 포함한 완전한 구조 | 새로운 사용자가 README만으로 프로젝트를 이해하고 빌드/실행/사용 가능 | README.md 구조 |
 | 09-02 | ffmpeg 변환 명령어 포함 | 사용자가 직접 WAV 파일을 요구 형식(8kHz mono PCM)으로 변환 가능 | WAV 파일 요구사항 섹션 |
@@ -79,19 +83,24 @@ v1.1 Roadmap: [████████░░] 7/8 plans (87.5%)
 - [x] ~~SendDTMF/DTMFReceived 프론트엔드 UI 구현~~ (08-02 완료)
 - [x] ~~SendDTMF/DTMFReceived 백엔드 구현~~ (08-01 완료)
 - [x] ~~README.md 재작성~~ (09-02 완료)
-- [ ] Phase 9 나머지 계획 실행 (09-01 또는 추가 계획)
+- [x] ~~미디어/DTMF 백엔드 테스트~~ (09-01 완료)
+- [x] ~~v1.0 호환성 검증~~ (09-01 완료)
+
+### v1.1 완료
+v1.1 마일스톤의 모든 요구사항 (CODEC-01, MEDIA-01~03, DTMF-01~02, POLISH-01, NF-01~03)이 완료되었습니다.
 
 ### 차단 요소
 없음
 
 ### 완료된 마일스톤
 - **v1.0 — MVP**: 시각적 시나리오 빌더 + 시뮬레이션 실행 (5 phases, 22 plans, 78 commits, 2026-02-11 완료)
+- **v1.1 — 미디어 + DTMF**: 미디어 재생, DTMF 송수신, 코덱 선택 (4 phases, 8 plans, 2026-02-19 완료)
 
 ## 세션 연속성
-- **Last session:** 2026-02-19T08:06:23Z
-- **Stopped at:** 09-02-PLAN.md 완료 — README.md 재작성
+- **Last session:** 2026-02-19T03:04:50Z
+- **Stopped at:** Phase 9 완료 — 백엔드 테스트 + README 재작성
 - **Resume file:** None
-- **다음 단계:** 09-01 실행 또는 추가 Integration & Polish 작업
+- **다음 단계:** v1.1 마일스톤 완료 ✅ — 다음 마일스톤 계획 또는 프로덕션 준비
 
 ## 프로젝트 메모리
 
