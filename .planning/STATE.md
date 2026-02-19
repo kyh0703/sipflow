@@ -2,9 +2,9 @@
 
 ## 현재 상태
 - **마일스톤**: v1.2 — Transfer + UI 개선
-- **페이즈**: 10 - Hold/Retrieve Backend (진행 중)
-- **상태**: `in_progress`
-- **최근 활동**: 2026-02-19 — 10-01-PLAN.md 완료 (AnswerOptions 리팩토링 + SIP 이벤트 버스)
+- **페이즈**: 10 - Hold/Retrieve Backend (완료)
+- **상태**: `phase_complete`
+- **최근 활동**: 2026-02-19 — 10-02-PLAN.md 완료 (Hold/Retrieve Command + HeldEvent/RetrievedEvent 핸들러)
 
 ## 프로젝트 참조
 
@@ -24,20 +24,20 @@ SIP 통화 보류(Hold/Retrieve)와 블라인드 전환(BlindTransfer)을 구현
 
 **요구사항:** HOLD-01, HOLD-02, HOLD-03, HOLD-04
 
-**계획:** 1/2 완료
+**계획:** 2/2 완료
 
-**상태:** 진행 중
+**상태:** 완료
 
 **진행:**
 ```
-Phase 10: [█████     ] 50%
+Phase 10: [██████████] 100%
 ```
 
 ### 전체 마일스톤 진행
 ```
-v1.2 Roadmap: [█         ] 1/4 phases (in progress)
+v1.2 Roadmap: [██        ] 1/4 phases (phase 10 complete)
 
-🔄 Phase 10: Hold/Retrieve Backend [진행 중 - 1/2 plans]
+✅ Phase 10: Hold/Retrieve Backend [완료 - 2/2 plans]
 ⏳ Phase 11: BlindTransfer + TransferEvent Backend [대기]
 ⏳ Phase 12: UI 리디자인 [대기]
 ⏳ Phase 13: 새 노드 UI + 통합 & 품질 [대기]
@@ -86,10 +86,10 @@ v1.2 Roadmap: [█         ] 1/4 phases (in progress)
 - **v1.1 — 미디어 + DTMF**: 미디어 재생, DTMF 송수신, 코덱 선택 (4 phases, 8 plans, 36 commits, 2026-02-19 완료)
 
 ## 세션 연속성
-- **Last session:** 2026-02-19 19:51 UTC
-- **Stopped at:** 10-01-PLAN.md 완료 (AnswerOptions 리팩토링 + SIP 이벤트 버스)
+- **Last session:** 2026-02-19 10:58 UTC
+- **Stopped at:** 10-02-PLAN.md 완료 (Hold/Retrieve Command + HeldEvent/RetrievedEvent 핸들러)
 - **Resume file:** None
-- **다음 단계:** 10-02-PLAN.md 실행 (HeldEvent/RetrievedEvent 노드 구현)
+- **다음 단계:** Phase 11 - BlindTransfer + TransferEvent Backend
 
 ## 프로젝트 메모리
 
@@ -273,6 +273,9 @@ v1.2 Roadmap: [█         ] 1/4 phases (in progress)
 | 10-01 | executor 필드 승격 | cleanup() 등 여러 메서드에서 executor 참조 필요, 필드로 승격하여 일관된 접근 | Engine 내부 설계 |
 | 10-01 | variadic note 파라미터 | 기존 WithSIPMessage 호출 코드 변경 없이 SDP 방향 정보 추가 | ActionLog SDP 정보 확장 |
 | 10-01 | OnRefer 스텁 | Phase 11에서 실제 구현, 현재는 TRANSFERRED 이벤트 발행만 | Phase 11 BlindTransfer 인터페이스 확보 |
+| 10-02 | reInviter 인터페이스 로컬 정의 | diago DialogSession에 ReInvite() 미포함 → 로컬 인터페이스 어서션으로 타입 안전성 확보 | executeHold/executeRetrieve 구현 |
+| 10-02 | Hold 실패 시 Mode 복원 | ReInvite 실패 시 sendrecv 복원으로 미디어 세션 일관성 유지 | executeHold 에러 처리 |
+| 10-02 | executeWaitSIPEvent defer Unsubscribe | 성공/실패/타임아웃 모든 경로에서 구독 정리 보장 | SIP 이벤트 버스 리소스 관리 |
 
 ## 차단 요소 / 우려사항
 
