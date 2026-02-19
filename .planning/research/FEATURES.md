@@ -1,613 +1,685 @@
-# 기능 환경: SIP 미디어 재생/녹음/DTMF/코덱
+# Features Research: Transfer/Hold + UI 개선 (v1.2)
 
-**도메인:** SIP Call Flow Simulator — 미디어 확장 기능
-**리서치일:** 2026-02-11
-**프로젝트:** SIPFLOW v1.1 마일스톤
-
----
-
-## 요약
-
-SIP 미디어 기능(재생, 녹음, DTMF, 코덱)은 IVR 시뮬레이션과 실제 VoIP 테스트에서 필수적입니다. 이 리서치는 SIP 테스팅 툴에서 일반적으로 기대되는 미디어 기능과 SIPFLOW의 시나리오 빌더에 통합하는 방법을 정의합니다.
-
-**핵심 발견:**
-- **미디어 재생:** IVR 프롬프트/메뉴를 위해 통화 중 WAV 파일 재생
-- **통화 녹음:** RTP 스트림 캡처 → WAV 저장 (stereo/mixed 포맷)
-- **DTMF:** RFC 2833 (RTP telephone-event) 방식이 표준, SIP INFO는 폴백
-- **코덱 협상:** SDP m= 라인 순서가 우선순위, 동적 payload type 처리 필요
-- **노드 통합:** Command/Event 아키텍처에 맞춰 미디어 Command + DTMF Event 추가
+**도메인:** SIP Call Flow Simulator — Transfer/Hold + UI 개선
+**리서치일:** 2026-02-19
+**프로젝트:** SIPFLOW v1.2 마일스톤
+**신뢰도:** HIGH (diago 라이브러리 소스 직접 확인, RFC 3515/3891/5589/3264 공식 문서 교차 검증)
 
 ---
 
-## 필수 기능 (Table Stakes)
+## Executive Summary
 
-사용자가 SIP 미디어 테스팅 툴에서 기대하는 기본 기능들.
-
-| 기능 | 기대 이유 | 복잡도 | 참고 |
-|------|-----------|--------|------|
-| **WAV 파일 재생** | IVR/메뉴 시뮬레이션의 기본 | 중간 | 통화 중 PCMA/PCMU 인코딩된 WAV 파일을 RTP로 스트리밍 |
-| **통화 녹음 (전체)** | QA/디버깅용 통화 내용 저장 | 중간 | RTP 스트림 → WAV 저장. 통화 시작부터 종료까지 |
-| **DTMF 송신** | IVR 메뉴 탐색 자동화 | 낮음 | RFC 2833 RTP telephone-event 송신 |
-| **DTMF 수신 이벤트** | IVR 입력 검증 | 낮음 | 이미 DTMFReceived Event 있음, 강화 필요 |
-| **코덱 선택 (기본)** | G.711 A-law/μ-law 지원 | 낮음 | SDP m= 라인에 선호 코덱 명시 (PCMA=8, PCMU=0) |
-| **RTP 스트림 처리** | 미디어 송수신 인프라 | 높음 | diago의 RTP 핸들링 활용 |
-
-### 상세: WAV 파일 재생
-
-**동작:**
-- Command 노드에서 WAV 파일 경로 지정
-- 통화 연결 후(CallConnected 이벤트 후) 재생 시작
-- RTP 패킷으로 인코딩하여 원격 엔드포인트로 전송
-- 재생 완료 시 다음 노드로 진행
-
-**패턴:**
-- **MP3StreamPlayback 패턴 (Ozeki SDK 참조):** 오디오 파일을 마이크처럼 취급, 미디어 sender로 attach
-- **StartStreaming() 메서드:** 재생 시작 명시적 제어
-- **지원 포맷:** WAV (PCM 8kHz 16-bit mono), MP3 (선택적)
-
-**노드 속성:**
-```typescript
-{
-  command: "PlayAudio",
-  sipInstanceId: "instance-1",
-  audioFile: "/path/to/prompt.wav",  // 파일 경로
-  loop: false,                        // 반복 재생 여부
-  stopOnDTMF: true,                   // DTMF 수신 시 중단
-}
-```
-
-**참고:**
-- 전화 네트워크는 PCM 8kHz, 16-bit, mono가 표준
-- stereo 오디오는 전화망에서 재생 불가
-- 파일은 미리 적절한 코덱(PCMA/PCMU)으로 인코딩되어야 함
-
-### 상세: 통화 녹음
-
-**동작:**
-- Command 노드로 녹음 시작/중지 제어
-- RTP 스트림을 실시간 캡처하여 WAV 파일로 저장
-- 녹음 파일은 사용자 지정 경로에 저장
-
-**포맷 옵션:**
-- **Mono (mixed):** 양측 오디오를 하나의 모노 트랙으로 믹싱 (기본)
-- **Stereo (separate):** Local/Remote를 좌/우 채널로 분리 (QA/훈련용)
-- **WAV:** PCM 포맷, 고품질이지만 용량 큼
-- **MP3/OGG:** 압축 포맷 (선택적, 향후 확장)
-
-**노드 속성:**
-```typescript
-// StartRecording Command
-{
-  command: "StartRecording",
-  sipInstanceId: "instance-1",
-  outputPath: "/recordings/call-001.wav",
-  format: "stereo",  // "mono" | "stereo"
-}
-
-// StopRecording Command
-{
-  command: "StopRecording",
-  sipInstanceId: "instance-1",
-}
-```
-
-**참고:**
-- 통화 중 언제든지 녹음 시작/중지 가능 (부분 녹음 지원)
-- G.711 코덱: 10분 오디오 ≈ 6MB (PCAP 기준)
-- VoIPmonitor와 같은 도구는 G.711/G.722/G.729/Opus 등 다양한 코덱 지원
-
-### 상세: DTMF 송신
-
-**동작:**
-- Command 노드로 DTMF digits 전송
-- RFC 2833 (RTP telephone-event) 방식 우선
-- SIP INFO는 폴백 (협상 실패 시)
-
-**RFC 2833 vs SIP INFO:**
-- **RFC 2833 (권장):** RTP 패킷에 DTMF 이벤트 인코딩, 패킷 손실에 강함 (redundancy)
-- **SIP INFO:** SIP signaling 경로로 전송, RFC 2833 불가 시 사용
-- **In-band:** 오디오 톤으로 전송, G.729/Opus 같은 압축 코덱에서 왜곡됨 (피해야 함)
-
-**협상:**
-- SDP에서 `telephone-event` payload type 협상 (dynamic 96-127)
-- 협상 성공 시 RFC 2833, 실패 시 SIP INFO 사용
-
-**노드 속성:**
-```typescript
-{
-  command: "SendDTMF",
-  sipInstanceId: "instance-1",
-  digits: "1234",         // 전송할 DTMF digits
-  method: "auto",         // "auto" | "rfc2833" | "sip_info"
-  duration: 100,          // ms per digit (optional)
-  interval: 100,          // ms between digits (optional)
-}
-```
-
-**참고:**
-- IVR 메뉴 탐색의 핵심 기능
-- `stopOnDTMF` (PlayAudio) 옵션과 함께 사용하여 인터럽트 가능 프롬프트 구현
-
-### 상세: DTMF 수신 이벤트
-
-**현재 상태:**
-- `DTMFReceived` Event 노드 이미 존재 (PROJECT.md 참조)
-
-**강화 필요:**
-- 수신된 digit 값 캡처
-- timeout 설정 (입력 대기 시간)
-- digit 패턴 매칭 (예: "1", "2-5", "*" 등)
-
-**노드 속성:**
-```typescript
-{
-  event: "DTMFReceived",
-  sipInstanceId: "instance-1",
-  expectedDigit?: "1",    // 특정 digit 대기 (optional)
-  timeout: 5000,          // ms
-}
-```
-
-**이벤트 데이터:**
-```typescript
-{
-  digit: "1",             // 수신된 DTMF digit
-  method: "rfc2833",      // "rfc2833" | "sip_info"
-  timestamp: "2026-02-11T10:30:00Z",
-}
-```
-
-### 상세: 코덱 선택
-
-**동작:**
-- SIP Instance 노드에서 선호 코덱 목록 설정
-- SDP Offer/Answer 협상 시 우선순위 적용
-- m= 라인에 코덱을 선호도 순서로 나열
-
-**SDP 협상:**
-- **Offer:** 코덱을 선호도 순서로 나열 (첫 번째가 가장 선호)
-- **Answer:** Offer와 일치하는 코덱만 포함, 순서는 answerer의 선호도
-- **최종 선택:** Answer의 첫 번째 코덱 사용
-
-**Static vs Dynamic Payload Type:**
-- **Static (0-95):** G.711 μ-law (0), G.711 A-law (8), G.729 (18)
-- **Dynamic (96-127):** Opus, telephone-event 등. 런타임에 협상됨
-
-**노드 속성 (SipInstance 확장):**
-```typescript
-{
-  // 기존 SipInstance 속성
-  mode: "DN",
-  dn: "1001",
-  register: true,
-
-  // 새 미디어 속성
-  codecs: [
-    { name: "PCMA", priority: 1 },   // G.711 A-law
-    { name: "PCMU", priority: 2 },   // G.711 μ-law
-    { name: "Opus", priority: 3 },   // (선택적)
-  ],
-  enableDTMF: true,  // telephone-event 협상 활성화
-}
-```
-
-**코덱 선택 전략:**
-- **기본:** PCMU (G.711 μ-law) — 가장 넓은 호환성
-- **고품질:** Opus — 낮은 레이턴시, 좋은 품질 (최신 시스템)
-- **대역폭 절약:** G.729 — 압축률 높지만 라이센스 이슈 (MVP에서 제외)
-
-**참고:**
-- Opus는 dynamic payload type (96-127) 사용, inbound/outbound map id 매칭 필요
-- 코덱 mismatch → 통화 실패 또는 오디오 왜곡
+SIP Transfer(Blind/Attended)와 Hold/Retrieve는 프로토콜 관점에서 명확하게 정의된 기능이다. diago v0.26.2 소스 코드를 직접 확인한 결과, Blind Transfer(`Refer()`)와 Hold를 위한 Re-INVITE 지원이 이미 라이브러리에 구현되어 있다. Attended Transfer는 `Replaces` 헤더를 수동으로 구성해야 하며 diago에서 직접 지원하지 않는다(현재 주석 처리됨). 노드 팔레트는 v1.1에서 이미 Section 기반 그룹화를 구현했으며, v1.2에서는 Search 입력과 팔레트 노드 수 증가 대응이 핵심 UI 과제다.
 
 ---
 
-## 차별화 기능 (Differentiators)
+## Transfer 기능
 
-경쟁 SIP 테스팅 툴과 차별화되는 기능들.
+### Blind Transfer (블라인드 전환)
 
-| 기능 | 가치 제안 | 복잡도 | 참고 |
-|------|-----------|--------|------|
-| **시각적 미디어 플로우** | 미디어 Command를 시각적으로 배치 | 낮음 | 기존 XYFlow 노드 확장 |
-| **부분 녹음 제어** | 특정 구간만 녹음 (민감 정보 제외) | 중간 | StartRecording/StopRecording 쌍으로 구현 |
-| **DTMF 패턴 검증** | IVR 메뉴 탐색 자동 검증 | 중간 | DTMFReceived Event에 패턴 매칭 |
-| **미디어 재생 + DTMF 인터럽트** | stopOnDTMF로 사용자 입력 시뮬레이션 | 중간 | PlayAudio + DTMFReceived 조합 |
-| **코덱별 시나리오 분기** | 협상 결과에 따른 분기 플로우 | 높음 | CodecNegotiated Event (향후) |
+**분류: 테이블 스테이크** — SIP 테스팅 툴에서 가장 기본적인 Transfer 시나리오
 
-### 상세: 시각적 미디어 플로우
+#### SIP 프로토콜 흐름 (RFC 3515 / RFC 5589)
 
-**가치:**
-- SIPp는 XML 스크립트 기반 — 복잡한 미디어 플로우 이해 어려움
-- SIPFLOW는 XYFlow로 미디어 재생/녹음/DTMF를 시각적으로 배치
-- 실행 시 엣지 애니메이션으로 미디어 플로우 실시간 추적
-
-**구현:**
-- 기존 Command/Event 노드 아키텍처에 자연스럽게 통합
-- PlayAudio → DTMFReceived → SendDTMF 플로우를 노드로 표현
-
-**예시 시나리오:**
 ```
-[SIPInstance] → [MakeCall] → [CallConnected Event]
-                    ↓
-           [PlayAudio: menu.wav]
-                    ↓
-      [DTMFReceived: "1"] → [PlayAudio: option1.wav]
-                    ↓
-      [DTMFReceived: "2"] → [PlayAudio: option2.wav]
-```
-
-### 상세: 부분 녹음 제어
-
-**가치:**
-- 민감 정보(신용카드 번호 등) 입력 구간 녹음 제외
-- 특정 구간만 QA용 녹음
-
-**구현:**
-```
-[CallConnected] → [StartRecording]
-                    ↓
-         [PlayAudio: prompt.wav]
-                    ↓
-            [DTMFReceived: "1"]
-                    ↓
-              [StopRecording]  ← 녹음 중지
-                    ↓
-    [PlayAudio: sensitive_prompt.wav]  ← 녹음 안 됨
-                    ↓
-            [DTMFReceived: "1234"]
-                    ↓
-              [StartRecording]  ← 재개
+Transferor (A)        Transferee (B)        Transfer Target (C)
+      |                     |                       |
+      |<---- INVITE --------|                       |
+      |------ 200 OK ------>|                       |
+      |<------ ACK ---------|                       |
+      |                     |                       |
+      | [Optionally Hold B] |                       |
+      |--- Re-INVITE(hold)->|                       |
+      |<--- 200 OK(hold) ---|                       |
+      |------ ACK --------->|                       |
+      |                     |                       |
+      |--- REFER ---------->| Refer-To: sip:C       |
+      |<-- 202 Accepted ----|                       |
+      |<-- NOTIFY(100) -----|                       |
+      |--- 200 OK --------->|                       |
+      |                     |--- INVITE ----------->|
+      |                     |<-- 200 OK ------------|
+      |                     |--- ACK -------------->|
+      |<-- NOTIFY(200 OK) --|                       |
+      |--- 200 OK --------->|                       |
+      |--- BYE ------------>|                       |
+      |<-- 200 OK ----------|                       |
 ```
 
-**경쟁 우위:**
-- 대부분의 도구는 전체 녹음만 지원
-- SIPFLOW는 Command 노드로 세밀한 제어 가능
+**핵심 메시지:**
+- `REFER` 요청에 `Refer-To: <sip:target@host>` 헤더 포함
+- Transferee는 `202 Accepted` 응답 (비동기 처리 예약)
+- NOTIFY 바디: `message/sipfrag;version=2.0` Content-Type으로 `SIP/2.0 100 Trying` → `SIP/2.0 200 OK` 진행
+- Transfer 성공(200 OK NOTIFY 수신) 후 Transferor가 BYE 전송
 
-### 상세: DTMF 패턴 검증
+#### diago 라이브러리 지원 (HIGH 신뢰도 — 소스 직접 확인)
 
-**가치:**
-- IVR 메뉴가 올바른 digit만 수락하는지 검증
-- 잘못된 입력 시 플로우 분기 (error 핸들링)
+```go
+// DialogClientSession.Refer() — Blind Transfer 전용 (dialog_client_session.go:553)
+func (d *DialogClientSession) Refer(ctx context.Context, referTo sip.Uri) error {
+    cont := d.InviteResponse.Contact()
+    return dialogRefer(ctx, d, cont.Address, referTo)
+}
 
-**구현:**
-```typescript
-{
-  event: "DTMFReceived",
-  expectedDigit: "1-9",  // 패턴: 1~9 중 하나
-  timeout: 5000,
-  onInvalidDigit: "error-branch",  // 잘못된 digit 수신 시 분기
+// DialogServerSession.Refer() — 헤더 추가 지원 (dialog_server_session.go:349)
+func (d *DialogServerSession) Refer(ctx context.Context, referTo sip.Uri, headers ...sip.Header) error {
+    cont := d.InviteRequest.Contact()
+    return dialogRefer(ctx, d, cont.Address, referTo, headers...)
+}
+
+// 내부 dialogRefer — REFER 전송 및 202 Accepted 확인
+func dialogRefer(ctx context.Context, d DialogSession, recipient sip.Uri, referTo sip.Uri, headers ...sip.Header) error {
+    req := sip.NewRequest(sip.REFER, recipient)
+    req.AppendHeader(sip.NewHeader("Refer-To", referTo.String()))
+    res, err := d.Do(ctx, req)
+    if res.StatusCode != sip.StatusAccepted { /* error */ }
+    return nil
 }
 ```
 
-**분기:**
-- success edge: 기대한 digit 수신
-- failure edge: timeout 또는 잘못된 digit
+NOTIFY 수신은 `dialogHandleReferNotify()`가 자동 처리하며, `SIP/2.0 200` sipfrag 수신 시 `d.Hangup()` 자동 호출.
+
+#### Command 노드 설계
+
+```typescript
+// BlindTransfer Command 노드 속성
+{
+  command: "BlindTransfer",
+  sipInstanceId: "instance-1",
+  targetUri: "sip:1002@192.168.1.100",  // Transfer 대상 URI
+  timeout: 30000,                         // ms (기본 30초)
+}
+```
+
+**의존성:** 활성 Dialog 필요 (MakeCall + CONNECTED 또는 INCOMING + Answer 이후)
+
+#### 예상 사용자 시나리오
+
+```
+[SIP Instance A] → [MakeCall: sip:B] → [INCOMING on A... 미사용]
+[SIP Instance B] → [INCOMING] → [Answer] → [BlindTransfer: sip:C]
+```
+
+**복잡도: 낮음** — diago `Refer()` 메서드 직접 사용, NOTIFY 자동 처리
 
 ---
 
-## 안티 기능 (Anti-Features)
+### Attended Transfer (어텐디드 전환)
 
-명시적으로 빌드하지 않을 기능들.
+**분류: 차별화 요소** — Blind Transfer보다 복잡하지만 실무 PBX 테스트에 필수
+
+#### SIP 프로토콜 흐름 (RFC 3891 + RFC 5589)
+
+```
+Transferor (A)     Transferee (B)     Consultation (C)    Transfer Target (C)
+      |                 |                   |                      |
+      | [통화 중: A-B] |                   |                      |
+      |                 |                   |                      |
+      | [상담 통화 시작]|                   |                      |
+      |--- INVITE ----------------------------------------->|      |
+      |<-- 200 OK ------------------------------------------|      |
+      |--- ACK --------------------------------------------->|      |
+      |                 |                   |                      |
+      | [B를 상담통화로 Transfer]                                   |
+      |--- REFER ------->|                                          |
+      |   Refer-To: <sip:C?Replaces=dialog-id>                    |
+      |<-- 202 Accepted--|                                          |
+      |<-- NOTIFY(100) --|                                          |
+      |                  |--- INVITE (Replaces: dialog-C) -------->|
+      |                  |<-- 200 OK ------------------------------|
+      |                  |--- ACK --------------------------------->|
+      |<-- NOTIFY(200) --|                                          |
+      |--- BYE --------->|  (A-B 통화 종료)                        |
+      |--- BYE -------------------------------------------->|  (A-C 종료)
+```
+
+**핵심 차이점 (Blind vs Attended):**
+- REFER의 `Refer-To` 헤더에 `?Replaces=call-id%3Btag%3D...` 파라미터 포함
+- `Replaces` 헤더 (RFC 3891): Transferee가 기존 A-C dialog를 교체하는 새 dialog 생성
+
+#### diago 라이브러리 지원 상태 (MEDIUM 신뢰도)
+
+```go
+// diago.go:397 — Replaces 지원은 현재 주석 처리됨
+// res.AppendHeader(sip.NewHeader("Supported", "replaces, 100rel"))
+
+// DialogServerSession.Refer()는 headers ...sip.Header 지원 — 수동으로 Replaces 전달 가능
+func (d *DialogServerSession) Refer(ctx context.Context, referTo sip.Uri, headers ...sip.Header) error
+```
+
+`sipgo` 레벨에서 Replaces 헤더를 수동으로 구성 후 DialogSIP()의 Call-ID, From-tag, To-tag를 조합해 전달하는 방식으로 구현 가능하다. diago가 직접 AttendedTransfer 메서드를 제공하지 않으므로, 구현 복잡도가 높다.
+
+#### Command 노드 설계
+
+```typescript
+// AttendedTransfer Command 노드 속성
+{
+  command: "AttendedTransfer",
+  sipInstanceId: "instance-1",    // Transfer를 수행하는 인스턴스 (Transferor)
+  consultationCallId: "instance-2", // 상담 통화를 보유한 인스턴스 ID (Consultation Dialog)
+  timeout: 30000,
+}
+```
+
+**의존성:**
+- 두 개의 활성 Dialog 필요 (원래 통화 + 상담 통화)
+- SessionStore가 인스턴스별 복수 Dialog를 관리할 수 있어야 함
+- 현재 `SessionStore`는 `instanceID -> dialog` 1:1 매핑 — 확장 필요
+
+**복잡도: 높음**
+- SessionStore 확장 (1:N dialog 지원)
+- Replaces 헤더 수동 구성 (Call-ID, from-tag, to-tag 추출)
+- 두 개의 dialog lifecycle 동시 관리
+
+---
+
+### TransferEvent (REFER 수신 이벤트)
+
+**분류: 테이블 스테이크** — 프론트엔드에 `TRANSFERRED` 이벤트 타입 이미 존재, 백엔드 미구현
+
+#### 동작
+
+Transferee로 동작하는 인스턴스가 REFER를 수신하는 시나리오 대기:
+
+```
+[SIP Instance B] → [INCOMING] → [Answer] → [TRANSFERRED Event]
+                                                    ↓
+                                        Refer-To URI 캡처
+                                                    ↓
+                                        [MakeCall: capturedUri]
+```
+
+#### diago 지원
+
+`dialogHandleRefer()` 내부에서 `onReferDialog` 콜백을 통해 새 dialog 제공. `AnswerOptions.OnRefer`로 등록:
+
+```go
+serverSession.AnswerOptions(diago.AnswerOptions{
+    OnRefer: func(referDialog *diago.DialogClientSession) {
+        // Transferee가 새 통화를 받아 처리
+    },
+})
+```
+
+**이벤트 데이터 (프론트엔드 → 백엔드):**
+```typescript
+{
+  event: "TRANSFERRED",
+  sipInstanceId: "instance-1",
+  timeout: 30000,
+}
+```
+
+**이벤트 결과 데이터 (백엔드 → 프론트엔드 로그):**
+```
+[instance-1] TRANSFERRED event received, Refer-To: sip:1003@host
+[instance-1] Auto-dialing transfer target: sip:1003@host
+```
+
+**복잡도: 중간** — diago `AnswerOptions.OnRefer` 연결 + 새 dialog를 SessionStore에 저장
+
+---
+
+### NOTIFY Event (Transfer 진행 상태)
+
+**분류: 차별화 요소** — Transfer 중 진행 상태 추적
+
+프론트엔드에 `NOTIFY` 이벤트 타입이 이미 존재. REFER 이후 Transferor가 NOTIFY 수신을 대기하는 시나리오:
+
+```
+[BlindTransfer] → [NOTIFY Event] → (성공/실패 분기)
+                        ↓ success: SIP/2.0 200 sipfrag
+                        ↓ failure: SIP/2.0 503/603 sipfrag
+```
+
+diago의 `dialogHandleReferNotify()`는 자동으로 처리하고 `200 OK` sipfrag 수신 시 Hangup을 호출한다. 별도 NOTIFY Event 노드가 필요한 경우는 Transfer 이후 상태를 명시적으로 로깅/분기하고 싶을 때다.
+
+**현재 판단:** NOTIFY Event 노드를 별도로 구현하는 것은 복잡도 대비 가치가 낮다. BlindTransfer Command 내부에서 NOTIFY 상태를 로그로 발행하는 것으로 충분. 프론트엔드 팔레트에는 노드 유지하되 v1.2에서는 구현하지 않는다.
+
+**복잡도: 높음** (별도 Event 노드로 구현 시) / 낮음 (BlindTransfer 로그 내장 시)
+
+---
+
+## Hold/Retrieve 기능
+
+### Hold (통화 보류)
+
+**분류: 테이블 스테이크** — SIP 테스팅 툴의 핵심 시나리오
+
+#### SIP 프로토콜 흐름 (RFC 3264 / RFC 6337)
+
+```
+Holding UA (A)           Held UA (B)
+       |                      |
+       |--- Re-INVITE -------->|
+       |    a=sendonly         |
+       |<-- 200 OK ------------|
+       |    a=recvonly         |
+       |--- ACK -------------->|
+       |                      |
+       | [보류 중: A는 전송만, B는 수신만]
+       | [Hold Music: B에서 재생 가능]
+```
+
+**SDP 방향 속성 규칙 (RFC 3264):**
+
+| 상태 | Holding UA SDP | Held UA 응답 |
+|------|----------------|--------------|
+| 활성 통화 | `a=sendrecv` | `a=sendrecv` |
+| Hold 시작 | `a=sendonly` | `a=recvonly` |
+| Hold 해제 | `a=sendrecv` | `a=sendrecv` |
+| 완전 차단 | `a=inactive` | `a=inactive` |
+
+#### diago 구현 방법 (HIGH 신뢰도 — 소스 직접 확인)
+
+```go
+// 1. MediaSession.Mode를 sendonly로 변경
+dialog.Media().MediaSession().Mode = sdp.ModeSendonly
+
+// 2. Re-INVITE 전송 (DialogClientSession.ReInvite 또는 DialogServerSession.ReInvite)
+err := dialog.(*diago.DialogClientSession).ReInvite(ctx)
+
+// 3. RTP 쓰기 중단 (선택적 — sendonly이므로 RTP 수신은 유지)
+dialog.Media().StopRTP(2, 0) // 2 = write stop
+```
+
+`ReInvite()` 메서드는 `DialogClientSession`과 `DialogServerSession` 모두에 구현되어 있으며, 현재 `d.mediaSession.LocalSDP()`를 사용한다. `Mode`를 변경한 후 `ReInvite()`를 호출하면 `sendonly` SDP가 생성된다.
+
+**주의:** `ReInvite()` 후 `mediaSession`이 Fork되고 내부적으로 업데이트됨 — Mode 변경은 `ReInvite()` 직전에 수행해야 함.
+
+#### Command 노드 설계
+
+```typescript
+{
+  command: "Hold",
+  sipInstanceId: "instance-1",
+  timeout: 10000,
+}
+```
+
+**복잡도: 중간**
+- `DialogClientSession` vs `DialogServerSession` 타입 분기 필요 (현재 `SessionStore`는 `DialogSession` 인터페이스로 저장)
+- `SessionStore`에서 concrete type assertion 필요
+- SDP Mode 조작 후 ReInvite 순서 정확히 지켜야 함
+
+---
+
+### Retrieve (보류 해제)
+
+**분류: 테이블 스테이크** — Hold와 쌍으로 구현
+
+#### SIP 프로토콜 흐름
+
+```
+Holding UA (A)           Held UA (B)
+       |                      |
+       |--- Re-INVITE -------->|
+       |    a=sendrecv         |
+       |<-- 200 OK ------------|
+       |    a=sendrecv         |
+       |--- ACK -------------->|
+       |                      |
+       | [통화 재개]
+```
+
+#### diago 구현 방법
+
+```go
+// 1. Mode를 sendrecv로 복원
+dialog.Media().MediaSession().Mode = sdp.ModeSendrecv
+
+// 2. Re-INVITE 전송
+err := dialog.(*diago.DialogClientSession).ReInvite(ctx)
+
+// 3. RTP 쓰기 재개 (Hold에서 StopRTP 사용했다면)
+dialog.Media().StartRTP(2)
+```
+
+**복잡도: 낮음** — Hold와 동일한 패턴, Mode만 `sendrecv`로 변경
+
+---
+
+### HoldEvent (Re-INVITE 수신 이벤트)
+
+**분류: 테이블 스테이크** — 프론트엔드에 `HELD` / `RETRIEVED` 이벤트 타입 이미 존재
+
+#### 동작
+
+Held UA (B)로 동작하는 인스턴스가 Re-INVITE(sendonly)를 수신하는 시나리오 대기:
+
+```
+[SIP Instance B] → [INCOMING] → [Answer] → [HELD Event]
+                                                ↓
+                                       Re-INVITE(sendonly) 수신 후 다음 노드
+```
+
+#### diago 지원
+
+`AnswerOptions.OnMediaUpdate` 콜백으로 Re-INVITE 수신 감지:
+
+```go
+serverSession.AnswerOptions(diago.AnswerOptions{
+    OnMediaUpdate: func(d *diago.DialogMedia) {
+        mode := d.MediaSession().Mode
+        if mode == sdp.ModeSendonly { // 상대방이 sendonly → 내가 recvonly → Hold됨
+            // HELD 이벤트 발행
+        } else if mode == sdp.ModeSendrecv {
+            // RETRIEVED 이벤트 발행
+        }
+    },
+})
+```
+
+**이벤트 노드 속성:**
+```typescript
+{
+  event: "HELD",       // 또는 "RETRIEVED"
+  sipInstanceId: "instance-1",
+  timeout: 30000,
+}
+```
+
+**복잡도: 중간** — `OnMediaUpdate` 콜백 등록 + goroutine channel 통신으로 Event 노드 블로킹
+
+---
+
+## UI 개선
+
+### 노드 팔레트 개선
+
+#### 테이블 스테이크: 검색 기능
+
+**문제:** v1.2에서 Command 노드가 5개 → 9개로 증가, Event 노드도 9개 유지. 총 18-19개 팔레트 항목은 스크롤 없이 표시 불가.
+
+**해결:** 팔레트 상단 검색 입력 추가
+
+```
+[ Search nodes... ] (input)
+---
+SIP Instance
+  [ SIP Instance ]
+Commands (5/9개)
+  [ MakeCall    ]
+  ...
+Events (3/9개)
+  [ INCOMING    ]
+```
+
+**동작:**
+- 실시간 필터링 (onChange)
+- 대소문자 무시 (`toLowerCase().includes()`)
+- 검색 결과가 있으면 Section 자동 펼침, 없으면 Empty state ("No nodes found")
+- 검색 중에는 Section 헤더 미표시 (결과만 flat 목록)
+
+**구현:** `useState<string>("")` + `PaletteItem` 목록 filter
+
+**복잡도: 낮음**
+
+#### 테이블 스테이크: 노드 수 배지
+
+각 Section 헤더에 포함된 노드 수 표시:
+
+```
+Commands (9)  ▼
+```
+
+**복잡도: 낮음** — Section 컴포넌트에 `count` prop 추가
+
+#### 차별화: 검색 하이라이팅
+
+검색 쿼리와 매칭되는 텍스트 부분 강조:
+
+```
+검색: "transfer"
+결과: [BlindTrans[fer]] [AttendedTrans[fer]] [TRANS[fer]RED]
+```
+
+**복잡도: 중간** — 텍스트 split + span 렌더링
+
+#### 차별화: 최근 사용 노드 (v1.2 이후)
+
+드래그한 노드를 localStorage에 기록, 팔레트 상단에 "Recently Used" 섹션 표시.
+
+**이 마일스톤에서는 제외 — 구현 복잡도 대비 가치 낮음**
+
+---
+
+### 실행 모니터 개선
+
+#### 테이블 스테이크: 로그 Copy 버튼
+
+현재 로그는 선택/복사가 불편함. 전체 로그를 클립보드로 복사하는 버튼:
+
+```
+[INFO] [WARN] [ERROR]           [14/22 entries] [Copy All]
+```
+
+**복잡도: 낮음** — `navigator.clipboard.writeText()`
+
+#### 테이블 스테이크: 로그 Clear 버튼
+
+실행 종료 후 로그 수동 클리어:
+
+```
+[Clear]  버튼 → executionStore.clearLogs() action
+```
+
+**복잡도: 낮음** — store action 추가
+
+#### 테이블 스테이크: SIP 래더 다이어그램 개선 — from/to 정확화
+
+현재 `execution-timeline.tsx`에서 sent/received 방향에 따라 `(fromIndex + 1) % lanes.length`로 대상 lane을 추정 — 이 로직은 3개 이상 인스턴스에서 정확하지 않음.
+
+**개선:** `emitActionLog`의 `sipMessage`에 `fromInstanceId`, `toInstanceId` 필드 추가:
+
+```typescript
+// 현재 SIPMessage 구조
+{
+  direction: "sent" | "received",
+  method: "INVITE" | "REFER" | ...,
+  responseCode?: number,
+}
+
+// 개선 후
+{
+  direction: "sent" | "received",
+  method: string,
+  responseCode?: number,
+  fromUser?: string,   // 발신자 DN/user
+  toUser?: string,     // 수신자 DN/user
+}
+```
+
+REFER, Re-INVITE 등 새 메시지를 SIP 래더에 표시하려면 fromUser/toUser가 있어야 화살표 방향이 정확함.
+
+**복잡도: 중간** — 백엔드 events.go + 프론트엔드 types 수정
+
+#### 테이블 스테이크: 새 SIP 메시지 타입 래더 지원
+
+Transfer/Hold 구현 시 다음 메시지가 새로 추가됨:
+- `REFER` (Blind Transfer 전송)
+- `Re-INVITE` (Hold/Retrieve)
+- `NOTIFY` (Transfer 진행 상태)
+
+SIP 래더에서 이 메시지들이 올바른 방향/색상으로 표시되어야 함.
+
+**색상 규칙 제안:**
+- REFER → 보라색 (`#a855f7`)
+- Re-INVITE → 노란색 (`#f59e0b`)
+- NOTIFY → 회색 (`#6b7280`)
+
+**복잡도: 낮음** — `execution-timeline.tsx` 색상 조건 확장
+
+#### 차별화: 로그 검색 필터
+
+로그 패널에 텍스트 검색 입력 추가. 키워드로 로그 필터링:
+
+**복잡도: 낮음** — 현재 level filter 옆에 text input 추가
+
+#### 차별화: 실행 타이밍 표시
+
+각 노드의 실행 시작/완료 시간을 로그에 표시하여 성능 프로파일링 지원:
+
+```
+[10:30:01.234] [A] MakeCall started
+[10:30:01.567] [A] MakeCall completed (333ms)
+```
+
+**복잡도: 낮음** — Executor에서 시작 시간 기록 후 완료 시 elapsed 계산
+
+---
+
+### 전반적 UI 폴리시
+
+#### 테이블 스테이크: 노드 아이콘 일관성
+
+v1.2에서 추가되는 노드 아이콘 선택 (Lucide Icons):
+
+| 노드 | 아이콘 | 이유 |
+|------|--------|------|
+| Hold | `PauseCircle` | 보류 = 일시정지 |
+| Retrieve | `PlayCircle` | 재개 = 재생 |
+| BlindTransfer | `ArrowRightLeft` 또는 `Forward` | 전환 방향 |
+| AttendedTransfer | `PhoneForwarded` | 전화 전달 |
+| HELD Event | `PauseCircle` (amber) | Hold 상태 |
+| RETRIEVED Event | `PlayCircle` (amber) | Retrieve 상태 |
+
+**주의:** 현재 `RETRIEVED` Event 노드가 `Play` 아이콘을 사용 중이라 `Retrieve` Command와 충돌 가능 → `PlayCircle`로 통일하거나 Command는 `CirclePlay` 사용.
+
+**복잡도: 낮음**
+
+#### 테이블 스테이크: Properties Panel Hold/Transfer 전용 UI
+
+Hold Command:
+- 별도 파라미터 없음 (sipInstanceId만)
+- 현재 상태 표시: "Hold this instance's active call"
+
+BlindTransfer Command:
+- `targetUri` 필드 (필수, sip: 접두사 검증)
+- 현재 MakeCall의 targetUri 컴포넌트 재사용
+
+AttendedTransfer Command:
+- `consultationCallId` 드롭다운 (현재 시나리오의 다른 SIP Instance 목록)
+- 복잡한 UX — v1.2 범위 내에서는 텍스트 입력으로 단순화
+
+**복잡도: 낮음~중간**
+
+#### 차별화: 캔버스 미니맵 토글
+
+XYFlow의 `<MiniMap>` 컴포넌트를 조건부 표시. 노드가 많아질수록 유용.
+
+**복잡도: 낮음** — `<MiniMap>` prop 추가 + 토글 버튼
+
+---
+
+## 안티 기능 (의도적 제외)
 
 | 안티 기능 | 피하는 이유 | 대신 할 것 |
 |-----------|-------------|------------|
-| **실시간 오디오 입력 (마이크)** | 테스팅 툴에 불필요, 복잡도 높음 | WAV 파일 재생으로 시뮬레이션 |
-| **TTS (Text-to-Speech)** | 외부 의존성, MVP 범위 밖 | 사전 녹음된 WAV 파일 사용 |
-| **Video (RTP video)** | SIP 통화 테스트 중심, 비디오는 범위 밖 | 오디오 전용 |
-| **In-band DTMF** | 압축 코덱에서 신뢰성 낮음 | RFC 2833/SIP INFO만 지원 |
-| **FAX over IP (T.38)** | 니치 기능, 복잡도 매우 높음 | MVP 이후 고려 |
-| **실시간 코덱 transcoding** | 복잡도 높고 성능 이슈 | 협상된 코덱 그대로 사용 |
-| **멀티파티 믹싱 (Conference)** | 복잡도 높음, v1.1 범위 밖 | 1:1 통화만 지원 (향후 확장) |
-
-### 근거: 실시간 오디오 입력 제외
-
-**이유:**
-- SIPFLOW는 자동화된 테스트 시나리오 실행이 목표
-- 실시간 마이크 입력은 자동화 불가 (사람 개입 필요)
-- 크로스 플랫폼 오디오 캡처는 복잡도 높음 (PortAudio 등 필요)
-
-**대안:**
-- 사전 녹음된 WAV 파일로 모든 오디오 시뮬레이션
-- 테스트 시나리오 반복 실행 가능
-
-### 근거: TTS 제외
-
-**이유:**
-- TTS 엔진 (Google TTS, Amazon Polly) 외부 의존성
-- 오프라인 사용 불가
-- 비용 발생 가능
-- MVP에서 과도한 복잡도
-
-**대안:**
-- 사용자가 TTS 서비스로 미리 WAV 생성
-- 또는 직접 녹음한 오디오 사용
-
-### 근거: In-band DTMF 제외
-
-**이유:**
-- G.729, Opus 같은 압축 코덱에서 DTMF 톤 왜곡됨
-- 신뢰성 낮음 (패킷 손실, 압축)
-- RFC 2833이 표준이자 권장 방식
-
-**대안:**
-- RFC 2833 (RTP telephone-event) 기본
-- SIP INFO 폴백
+| **3자 통화 (Conference)** | B2BUA 미디어 믹싱 필요, 완전히 다른 아키텍처 | v1.2 범위 외, v2.0 고려 |
+| **Music on Hold (MoH) 자동 재생** | Hold 시 자동 WAV 재생은 별도 PlayAudio + Hold 조합으로 표현 가능 | Hold Command + PlayAudio 조합 노드 |
+| **SIP Park / Pickup** | 특수 PBX 기능, 표준 SIPFLOW 시나리오 범위 외 | 지원 안 함 |
+| **a=inactive Hold 모드** | `sendonly`가 표준, `inactive`는 엣지 케이스 | sendonly만 지원 |
+| **NOTIFY Event 노드 완전 구현** | BlindTransfer 내부 로그로 충분, 별도 노드는 복잡도 추가 | Transfer Command 내 로그 발행 |
+| **AttendedTransfer v1.2 우선구현** | SessionStore 구조 변경 + Replaces 헤더 수동 구성 필요, 높은 복잡도 | v1.2에서 BlindTransfer 우선, Attended는 v1.3 |
+| **팔레트 AI 노드 추천** | SIPFLOW 규모에 불필요한 복잡도 | 검색 + 그룹화로 충분 |
+| **팔레트 드래그 재정렬** | 사용자가 팔레트 순서를 바꿀 필요 없음 (고정 그룹화로 충분) | 고정 그룹 순서 유지 |
+| **로그 실시간 Export (파일 저장)** | Wails의 파일 저장 다이얼로그 추가 필요, v1.2 범위 외 | 클립보드 복사로 충분 |
 
 ---
 
 ## 기능 의존성
 
 ```
-[SIP Instance with Codec Config]
-         ↓
-    [MakeCall]
-         ↓
-  [CallConnected Event] ← RTP 세션 수립됨
-         ↓
-   ┌─────┴─────────────────────┐
-   │                           │
-[PlayAudio]             [StartRecording]
-   ↓                           ↓
-[SendDTMF]                [StopRecording]
-   ↓
-[DTMFReceived Event]
-```
-
-**의존성 규칙:**
-1. **미디어 Command → CallConnected 이후:** 통화 연결 전에는 미디어 재생/녹음 불가
-2. **DTMF → telephone-event 협상:** SDP 협상에서 telephone-event 활성화되어야 RFC 2833 사용 가능
-3. **코덱 → SIP Instance 설정:** 코덱 선택은 INVITE 전에 SIP Instance에서 설정
-4. **녹음 → RTP 세션 활성:** RTP 스트림이 흐를 때만 녹음 가능
-
----
-
-## MVP (v1.1) 권장
-
-v1.1 마일스톤에 우선순위:
-
-### 필수 (Phase 1)
-1. **PlayAudio Command** — WAV 파일 재생 (PCMA/PCMU만)
-2. **SendDTMF Command** — RFC 2833 DTMF 송신
-3. **DTMFReceived Event 강화** — digit 값 캡처, timeout
-4. **코덱 선택 (기본)** — SIP Instance에 PCMA/PCMU 우선순위 설정
-
-### 필수 (Phase 2)
-5. **StartRecording/StopRecording Command** — 통화 녹음 (stereo WAV)
-
-### MVP 이후로 연기
-- **Opus 코덱 지원:** dynamic payload type 처리 복잡도 (v1.2 고려)
-- **DTMF SIP INFO 폴백:** RFC 2833만으로 대부분 시나리오 커버
-- **DTMF 패턴 검증:** 기본 expectedDigit만 구현, 정규식 패턴은 향후
-- **코덱 협상 이벤트:** CodecNegotiated Event는 고급 시나리오 (향후)
-- **MP3 재생 지원:** WAV만으로 충분, 향후 확장
-
----
-
-## 노드 통합 설계
-
-### 새 Command 노드
-
-| Command | 용도 | 속성 |
-|---------|------|------|
-| **PlayAudio** | WAV 파일 재생 | audioFile, loop, stopOnDTMF |
-| **SendDTMF** | DTMF 송신 | digits, method, duration, interval |
-| **StartRecording** | 녹음 시작 | outputPath, format |
-| **StopRecording** | 녹음 중지 | (없음) |
-
-### 강화할 Event 노드
-
-| Event | 강화 내용 |
-|-------|-----------|
-| **DTMFReceived** | digit 값 캡처, expectedDigit 속성, timeout |
-
-### SIP Instance 노드 확장
-
-| 새 속성 | 용도 |
-|---------|------|
-| **codecs** | 선호 코덱 목록 + 우선순위 |
-| **enableDTMF** | telephone-event 협상 활성화 |
-
----
-
-## TypeScript 타입 정의 (예시)
-
-```typescript
-// 기존 COMMAND_TYPES 확장
-export const COMMAND_TYPES = [
-  'MakeCall', 'Answer', 'Release',
-  'PlayAudio', 'SendDTMF', 'StartRecording', 'StopRecording',
-] as const;
-
-// PlayAudio Command 속성
-export interface PlayAudioCommandData extends CommandNodeData {
-  command: 'PlayAudio';
-  audioFile: string;           // 파일 경로
-  loop?: boolean;              // 기본: false
-  stopOnDTMF?: boolean;        // 기본: false
-}
-
-// SendDTMF Command 속성
-export interface SendDTMFCommandData extends CommandNodeData {
-  command: 'SendDTMF';
-  digits: string;              // "1234", "*", "#" 등
-  method?: 'auto' | 'rfc2833' | 'sip_info';  // 기본: 'auto'
-  duration?: number;           // ms per digit, 기본: 100
-  interval?: number;           // ms between digits, 기본: 100
-}
-
-// StartRecording Command 속성
-export interface StartRecordingCommandData extends CommandNodeData {
-  command: 'StartRecording';
-  outputPath: string;          // WAV 파일 경로
-  format?: 'mono' | 'stereo';  // 기본: 'mono'
-}
-
-// StopRecording Command 속성
-export interface StopRecordingCommandData extends CommandNodeData {
-  command: 'StopRecording';
-}
-
-// DTMFReceived Event 강화
-export interface DTMFReceivedEventData extends EventNodeData {
-  event: 'DTMFReceived';
-  expectedDigit?: string;      // "1", "2-5", "*" 등 (optional)
-  timeout: number;             // ms
-}
-
-// SipInstance 노드 미디어 속성 확장
-export interface SipInstanceNodeData extends Record<string, unknown> {
-  // 기존 속성
-  label: string;
-  mode: 'DN' | 'Endpoint';
-  dn?: string;
-  register: boolean;
-  serverId?: string;
-  color: string;
-
-  // 새 미디어 속성
-  codecs?: Array<{ name: string; priority: number }>;
-  enableDTMF?: boolean;        // 기본: true
-}
-```
-
----
-
-## UI/UX 권장사항
-
-### Properties Panel
-
-**PlayAudio Command:**
-- 파일 경로 입력란 + "Browse..." 버튼 (Wails 파일 다이얼로그)
-- loop 체크박스
-- stopOnDTMF 체크박스
-- 미리듣기 버튼 (선택적, 향후)
-
-**SendDTMF Command:**
-- digits 입력란 (텍스트)
-- method 드롭다운 (auto/rfc2833/sip_info)
-- duration/interval 슬라이더 (50-500ms)
-
-**StartRecording Command:**
-- outputPath 입력란 + "Browse..." 버튼
-- format 라디오 버튼 (mono/stereo)
-
-**SIP Instance (코덱 설정):**
-- 코덱 목록 (드래그로 우선순위 변경)
-- enableDTMF 체크박스
-
-### Node Palette
-
-**Media Commands 섹션 추가:**
-```
-📁 Media Commands
-  ▶ PlayAudio
-  ▶ SendDTMF
-  ▶ StartRecording
-  ▶ StopRecording
-```
-
-### Execution Timeline
-
-**미디어 이벤트 로깅:**
-- `[10:30:01.234] [instance-1] PlayAudio: menu.wav started`
-- `[10:30:03.456] [instance-1] DTMF Received: "1" (rfc2833)`
-- `[10:30:05.678] [instance-1] Recording started: /recordings/call-001.wav`
-
----
-
-## 참고 구현: diago 라이브러리
-
-**diago의 미디어 기능 확인 필요:**
-- RTP 스트림 송수신 API
-- DTMF (RFC 2833) 송수신 메서드
-- 코덱 협상 제어 (SDP manipulation)
-- 오디오 파일 → RTP 패킷 변환
-
-**예상 구현 레이어:**
-```
-[Frontend: PlayAudio 노드]
-       ↓ Wails Binding
-[Backend: PlayAudioCommand]
+[SIP Instance]
        ↓
-[diago: RTP sender + WAV decoder]
-       ↓ RTP packets
-[원격 SIP UA]
+[MakeCall 또는 INCOMING+Answer]
+       ↓
+   [활성 Dialog]
+       ├──→ [Hold] ──→ [Retrieve]
+       ├──→ [BlindTransfer] ──→ [NOTIFY 자동처리(내부)]
+       └──→ [AttendedTransfer] (두 번째 Dialog 필요)
+                    ↓
+            [다른 Dialog (상담 통화)]
 ```
 
-**리서치 플래그:**
-- diago가 RTP 미디어를 직접 지원하는지 확인
-- 지원 안 하면 RTP 라이브러리 (pion/webrtc) 추가 필요
-- 이 부분은 Phase별 리서치에서 상세 조사 필요 (HIGH 우선순위)
+**SessionStore 확장 필요성:**
+
+현재: `instanceID → 단일 DialogSession`
+
+Attended Transfer를 위해서는: `instanceID → []DialogSession` (복수 dialog 지원)
+
+이 변경은 Hold/BlindTransfer에 영향 없음 (단일 dialog 사용). AttendedTransfer가 v1.2 범위에 포함된다면 SessionStore 리팩토링이 필요하다.
+
+**판단: v1.2는 BlindTransfer + Hold/Retrieve에 집중. AttendedTransfer는 SessionStore 리팩토링 후 v1.3에서 구현.**
 
 ---
 
-## 복잡도 평가
+## MVP (v1.2) 우선순위
 
-| 기능 | 복잡도 | 주요 챌린지 |
-|------|--------|-------------|
-| PlayAudio | **중간** | WAV 디코딩, RTP 패킷 생성, 타이밍 제어 |
-| SendDTMF | **낮음** | RFC 2833 이벤트 생성만, diago 지원 예상 |
-| DTMFReceived 강화 | **낮음** | 이벤트 속성 확장, 프론트엔드 UI 추가 |
-| StartRecording | **중간** | RTP 스트림 캡처, WAV 인코딩, 파일 쓰기 |
-| StopRecording | **낮음** | 녹음 세션 종료, 파일 닫기 |
-| 코덱 선택 | **낮음** | SDP m= 라인 조작, diago API 활용 |
-| Opus 코덱 | **높음** | dynamic payload type 협상, 디코딩 복잡도 |
+### Phase 1 — 백엔드 Transfer/Hold 구현
 
----
+1. **Hold Command** — `Mode=sendonly` + `ReInvite()` (복잡도: 중간)
+2. **Retrieve Command** — `Mode=sendrecv` + `ReInvite()` (복잡도: 낮음)
+3. **BlindTransfer Command** — `Refer()` 메서드 직접 사용 (복잡도: 낮음)
+4. **HELD/RETRIEVED Event** — `OnMediaUpdate` 콜백 (복잡도: 중간)
+5. **TRANSFERRED Event** — `OnRefer` 콜백 (복잡도: 중간)
 
-## 소스
+### Phase 2 — 노드 팔레트 + UI 개선
 
-### SIP 미디어 재생
-- [VoIP Media Session - sipsorcery](https://sipsorcery-org.github.io/sipsorcery/articles/voipmediasession.html)
-- [How to play an mp3 file into a voice call using csharp](https://voip-sip-sdk.com/p_7345-how-to-play-an-mp3-file-into-a-voice-call-using-csharp.html)
-- [SIP IVR - Sonetel](https://sonetel.com/en/sip-trunking/help/sip-ivr/)
+6. **팔레트 검색 기능** (복잡도: 낮음)
+7. **새 노드 등록** (Hold, Retrieve, BlindTransfer) (복잡도: 낮음)
+8. **SIP 래더 다이어그램 개선** (REFER/Re-INVITE 표시) (복잡도: 중간)
+9. **로그 Copy/Clear 버튼** (복잡도: 낮음)
+10. **Properties Panel UI** (새 Command 설정) (복잡도: 낮음~중간)
 
-### 통화 녹음
-- [How to record voip sip voice call](https://voip-sip-sdk.com/p_7362-how-to-record-voip-sip-voice-call.html)
-- [VoIPmonitor® | VoIP & SIP Monitoring & Call Recording](https://www.voipmonitor.org/)
-- [Call Recordings | PortSIP Knowledge Base](https://support.portsip.com/portsip-communications-solution/portsip-pbx-administration-guide/20-cdr-and-call-recordings/call-recordings)
+### v1.2 이후로 연기
 
-### DTMF
-- [RFC 2833: RTP Payload for DTMF Digits](https://datatracker.ietf.org/doc/html/rfc2833)
-- [DTMF over IP – SIP INFO, Inband & RTP Events](https://nickvsnetworking.com/dtmf-over-ip-sip-info-inband-rtp-events/)
-- [Understand the DTMF in SIP Call – Yeastar Support](https://support.yeastar.com/hc/en-us/articles/360038941513-Understand-the-DTMF-in-SIP-Call)
-
-### 코덱 협상
-- [SIP - The Offer/Answer Model](https://www.tutorialspoint.com/session_initiation_protocol/session_initiation_protocol_the_offer_answer_model.htm)
-- [Understanding Media in SIP Session Description Protocol (SDP)](https://teraquant.com/understand-media-sip-session-description-protocol/)
-- [Understanding codec negotiation](https://wiki.4psa.com/display/KB/Understanding+codec+negotiation)
-
-### IVR 패턴
-- [IVR Call Flow: Benefits and Best Practices](https://getvoip.com/blog/ivr-call-flow/)
-- [DTMF IVR Explained: What Is are DTMF Tones & How They Works](https://upfirst.ai/blog/dtmf-ivr)
-- [IVR Workflow Steps - Dialpad](https://help.dialpad.com/docs/workflow-steps)
-
-### SIP 테스팅 툴
-- [MAPS™ SIP Protocol Emulator](https://www.gl.com/sip-rtp-protocol-simulator-maps.html)
-- [StarTrinity SIP Tester™](http://startrinity.com/VoIP/SipTester/SipTester.aspx)
-- [Handling media with SIPp](https://sipp.readthedocs.io/en/latest/media.html)
-
-### VoIP 함정
-- [Most Common VoIP Problems and How to Fix Them in 2026](https://telxi.com/blog/voip-problems/)
-- [Debugging and troubleshooting VoIP problems](https://www.voip-info.org/how-to-debug-and-troubleshoot-voip/)
+- **AttendedTransfer Command** — SessionStore 리팩토링 필요, v1.3
+- **NOTIFY Event 노드** — BlindTransfer 내부 로그로 v1.2 대체
+- **팔레트 검색 하이라이팅** — v1.3 폴리시
+- **로그 파일 Export** — v1.3
 
 ---
 
 ## 신뢰도 평가
 
-| 영역 | 신뢰도 | 이유 |
+| 영역 | 신뢰도 | 근거 |
 |------|--------|------|
-| PlayAudio | **MEDIUM** | 패턴은 명확하지만 diago RTP 지원 확인 필요 |
-| Recording | **MEDIUM** | RTP 캡처는 표준이지만 구현 디테일 검증 필요 |
-| DTMF | **HIGH** | RFC 2833은 표준, 여러 소스 일치 |
-| 코덱 협상 | **HIGH** | SDP offer/answer는 표준 (RFC 3264) |
-| 노드 통합 | **HIGH** | 기존 Command/Event 아키텍처 확장만 |
+| Blind Transfer 프로토콜 흐름 | **HIGH** | RFC 3515 + RFC 5589 공식 문서 + diago 소스 직접 확인 |
+| diago `Refer()` API | **HIGH** | `dialog_client_session.go:553`, `dialog_server_session.go:349` 직접 확인 |
+| Hold SDP 방향 속성 | **HIGH** | RFC 3264 + RFC 6337 공식 문서 확인 |
+| diago `ReInvite()` + Mode 변경 | **HIGH** | `dialog_client_session.go:426`, `dialog_server_session.go:321`, `media_session.go:101` 직접 확인 |
+| Attended Transfer 구현 | **MEDIUM** | RFC 3891 문서 확인, diago Replaces 미지원(주석) 확인, 수동 구현 방법은 검증 안 됨 |
+| OnMediaUpdate Hold 감지 | **MEDIUM** | `dialog_server_session.go:148-165` AnswerOptions 확인, Mode 변경 감지 패턴은 검증 필요 |
+| 팔레트 검색 UX | **HIGH** | 기존 XYFlow 기반 코드 구조 직접 확인, 표준 React 패턴 |
+| SIP 래더 REFER/Re-INVITE | **HIGH** | 기존 `execution-timeline.tsx` 코드 직접 확인, 확장 경로 명확 |
 
-**LOW 신뢰도 항목:**
-- diago의 정확한 RTP API (문서 부족, 소스 코드 확인 필요)
-- Opus dynamic payload type 처리 디테일
+---
 
-**검증 필요:**
-- diago 라이브러리 RTP 미디어 기능 (Context7/GitHub 확인)
-- WAV 파일 → RTP 변환 구현 방법
-- 녹음 파일 포맷 상세 (WAV 헤더, PCM 인코딩)
+## Sources
+
+### SIP Transfer
+- [RFC 3515 — The SIP REFER Method](https://datatracker.ietf.org/doc/html/rfc3515)
+- [RFC 5589 — SIP Call Control Transfer](https://datatracker.ietf.org/doc/html/rfc5589)
+- [RFC 3891 — The SIP Replaces Header](https://www.rfc-editor.org/rfc/rfc3891)
+- [RFC 3892 — Referred-By Header](https://datatracker.ietf.org/doc/html/rfc3892)
+
+### SIP Hold
+- [RFC 3264 — Offer/Answer Model](https://www.ietf.org/rfc/rfc3264.txt)
+- [RFC 6337 — SIP Usage of Offer/Answer](https://www.rfc-editor.org/rfc/rfc6337.html)
+- [SIP Hold with RFC 6337 — Nick vs Networking](https://nickvsnetworking.com/sip-hold-with-rfc6337/)
+
+### diago 라이브러리 (직접 확인)
+- `/home/overthinker/go/pkg/mod/github.com/emiago/diago@v0.26.2/dialog_session.go` — `dialogRefer()`, `dialogHandleReferNotify()`
+- `/home/overthinker/go/pkg/mod/github.com/emiago/diago@v0.26.2/dialog_client_session.go` — `Refer()`, `ReInvite()`
+- `/home/overthinker/go/pkg/mod/github.com/emiago/diago@v0.26.2/dialog_server_session.go` — `Refer()`, `ReInvite()`, `AnswerOptions`
+- `/home/overthinker/go/pkg/mod/github.com/emiago/diago@v0.26.2/dialog_media.go` — `StopRTP()`, `StartRTP()`
+- `/home/overthinker/go/pkg/mod/github.com/emiago/diago@v0.26.2/media/sdp/utils.go` — `ModeSendonly`, `ModeSendrecv`, `ModeRecvonly`
+- `/home/overthinker/go/pkg/mod/github.com/emiago/diago@v0.26.2/diago.go` — Replaces 주석 확인 (`:397`)
+
+### UI/UX 참조
+- [Node-RED Palette Management](https://nodered.org/docs/user-guide/editor/palette/)
+- [FlowFuse Enhanced Palette Integration](https://flowfuse.com/changelog/2026/01/ff-expert-manage-palette/)
+- [xyflow awesome-node-based-uis](https://github.com/xyflow/awesome-node-based-uis)
+- [SIP Call Hold and Transfer (sipsorcery)](https://sipsorcery-org.github.io/sipsorcery/articles/callholdtransfer.html)

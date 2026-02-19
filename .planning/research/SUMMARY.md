@@ -1,25 +1,18 @@
-# Research Summary: SIP Media Features (v1.1)
+# Research Summary: Transfer/Hold + UI 개선 (v1.2)
 
-**Project:** SIPFLOW v1.1 — Media Playback + Recording Milestone
-**Research Date:** 2026-02-11
+**Project:** SIPFLOW v1.2
+**Research Date:** 2026-02-19
 **Overall Confidence:** HIGH
 
 ---
 
 ## Executive Summary
 
-SIPFLOW v1.1은 기존 시나리오 빌더에 SIP 미디어 기능(재생, 녹음, DTMF, 코덱 선택)을 추가하는 마일스톤입니다. **핵심 발견:** 기존 diago v0.27.0 스택이 모든 필요한 미디어 API를 이미 제공하므로 새로운 SIP/RTP 라이브러리 추가는 불필요합니다. 단지 3개의 WAV/코덱 라이브러리만 추가하고, 기존 Command/Event 아키텍처를 확장하면 됩니다.
+diago v0.27.0은 Blind Transfer(`Refer()`/`ReferOptions()`), Hold/Retrieve(Re-INVITE + `MediaSession.Mode` 조작), REFER/Re-INVITE 수신 감지(`AnswerOptions.OnRefer`, `OnMediaUpdate`)를 완전히 구현하고 있으며 새 라이브러리 추가는 불필요하다. 단, Hold에는 미해결 버그(이슈 #110, #125)가 있어 HoldEvent 수신 측 SDP 방향 감지는 로컬 패치 없이 신뢰할 수 없고, Attended Transfer는 `sipgo.Dialog.Replaces` 미지원으로 Replaces 헤더를 수동 구성해야 한다. UI 개선(팔레트 검색, SIP 래더 확장, 로그 Copy/Clear)은 기존 shadcn/ui + XYFlow 스택으로 완전히 구현 가능하다.
 
-**추천 접근법:** 기존 v1.0 아키텍처를 재사용하며 점진적 확장. diago의 `DialogMedia` API가 재생/녹음/DTMF를 모두 지원하므로, backend는 `executePlayMedia()`, `executeSendDTMF()`, `executeRecord()` 등의 새 command handler만 추가하면 됩니다. Frontend는 새 Command/Event 노드를 팔레트에 추가하고, 미디어 파일 선택을 위한 Wails 다이얼로그를 통합합니다.
+권장 구현 순서는 Hold/Retrieve → BlindTransfer → AttendedTransfer → UI 개선이다. Hold/Retrieve가 먼저인 이유는 Re-INVITE 패턴이 BlindTransfer의 pre-hold 단계와 AttendedTransfer 내부 hold 단계에서 모두 재사용되기 때문이다. AttendedTransfer는 SessionStore 1:N 구조 확장, `incomingCh` 버퍼 증설, Replaces 헤더 수동 구성이라는 세 가지 의존 과제를 Hold/BlindTransfer 이후에 처리하는 것이 리스크 최소화 경로다.
 
-**핵심 위험과 완화:**
-1. **DialogMedia 초기화 순서 오류** (치명적) → SDP 협상 완료 후에만 `Media()` 호출하도록 명시적 순서 강제
-2. **WAV 포맷 불일치** (치명적) → 파일 업로드 시 8kHz mono PCM 검증 로직 추가
-3. **코덱 협상 실패** (치명적) → PCMU를 기본 fallback으로, 코덱 교집합 사전 검증
-4. **녹음 파일 동시 쓰기** (중간) → 인스턴스 ID 기반 파일명 자동 생성으로 race condition 원천 차단
-5. **CGO 의존성** (회피 가능) → Opus 코덱을 v1.1에서 제외하여 크로스 컴파일 단순화
-
-리서치 결과 모든 기술 결정에 명확한 근거가 확보되었으며, 로드맵 생성에 충분한 정보가 수집되었습니다.
+핵심 위험은 두 가지다. 첫째, Hold 발신(ReInvite + sendonly) 자체는 버그 영향이 없지만 상대방이 보내는 Hold를 감지하는 HoldEvent는 diago 버그 #125로 인해 `ms.Mode`가 항상 `sendrecv`를 반환할 수 있어 PR #126 패치 없이는 신뢰 불가다. 둘째, Attended Transfer에서 consultation call의 dialog가 기존 primary dialog를 덮어쓰는 SessionStore 1:1 키 충돌이 발생하므로, AttendedTransfer 페이즈 착수 전에 복합 키(instanceID:role) 구조 확장이 필수다.
 
 ---
 
@@ -28,317 +21,255 @@ SIPFLOW v1.1은 기존 시나리오 빌더에 SIP 미디어 기능(재생, 녹�
 ### From STACK.md
 
 **핵심 기술 결정:**
-- **diago v0.27.0**: 이미 모든 미디어 API 내장 (PlaybackCreate, AudioStereoRecordingCreate, DTMF Reader/Writer). 추가 SIP 라이브러리 불필요.
-- **pion/rtp v1.8.18**: 이미 go.mod에 포함됨 (diago 내부 의존성). 명시적 사용 불필요.
-- **go-audio/wav v1.1.0+**: WAV 인코딩/디코딩용 battle-tested 라이브러리 (1200+ 의존자).
-- **zaf/g711 v1.4.0**: G.711 (PCMU/PCMA) 코덱 변환 필수 (WAV ↔ RTP).
-- **Opus 제외**: CGO 의존성으로 v1.1에서 제외 권장. v1.2+로 연기하여 크로스 컴파일 복잡도 회피.
 
-**버전 요구사항:**
-- go-audio/wav: v1.1.0 이상
-- go-audio/audio: v1.0.0 이상 (wav의 의존성)
-- zaf/g711: v1.4.0 (2024-01-09 릴리스)
-- diago: v0.27.0 (2026-02-08 릴리스, 기존 사용 중)
+| 기술 | 결정 | 근거 |
+|------|------|------|
+| diago v0.27.0 | 유지 | BlindTransfer, Hold, REFER 수신 API 완전 구현 확인 |
+| shadcn/ui | 유지 | Transfer/Hold UI 노드 신규 라이브러리 없이 구현 가능 |
+| XYFlow 12.x | 유지 | 노드 팔레트 확장 기존 패턴으로 충분 |
 
-**설치 명령어:**
-```bash
-go get github.com/go-audio/wav@latest
-go get github.com/go-audio/audio@latest
-go get github.com/zaf/g711@v1.4.0
-```
+**확인된 API 시그니처 (diago v0.27.0):**
 
-**통합 포인트:**
-- `internal/engine/executor.go`: diago DialogMedia API 사용 (`dialog.Media().PlaybackCreate()`)
-- `internal/binding/app.go`: Wails 파일 다이얼로그 추가 (SelectAudioFile, SelectRecordingPath)
-- 새 패키지 `internal/media/`: player.go, recorder.go, dtmf.go, codec.go (G.711 변환 유틸)
+- `DialogClientSession.Refer(ctx, referTo) error` — Blind Transfer 발신
+- `DialogClientSession.ReferOptions(ctx, referTo, ReferClientOptions) error` — NOTIFY 콜백 포함
+- `DialogServerSession.Refer(ctx, referTo, headers...) error` — REFER 발신(Server 측)
+- `DialogClientSession.ReInvite(ctx) error` — Hold/Retrieve Re-INVITE
+- `DialogServerSession.ReInvite(ctx) error` — Hold/Retrieve Re-INVITE (서버 측)
+- `AnswerOptions.OnRefer func(*DialogClientSession) error` — REFER 수신 감지
+- `AnswerOptions.OnMediaUpdate func(*DialogMedia)` — Re-INVITE 수신(HoldEvent) 감지
+- `MediaSession.Mode string` — "sendonly"/"sendrecv"/"recvonly" SDP direction 제어
+- `sdp.ModeSendonly`, `sdp.ModeSendrecv`, `sdp.ModeRecvonly` 상수
 
-**근거:** diago 공식 예제 (playback, wav_record, dtmf)와 소스 코드로 검증됨.
+**diago 버그 현황 (2026-02-19):**
+
+| 이슈 | 상태 | 영향 |
+|------|------|------|
+| #110 (빈 SDP nil) | OPEN | Hold 수신 시 body nil이면 `sdpUpdateUnsafe` 크래시 — "sdp update media remote SDP applying failed" |
+| #125 (SDP direction 오류) | CLOSED-duplicate | Hold 응답이 `a=recvonly` 대신 `a=sendrecv` 반환 — HoldEvent 감지 신뢰 불가 |
+| PR #126 | 리뷰 대기 | #110/#125 수정 PR — 미병합 |
+
+**결론:** Hold 발신(Re-INVITE + sendonly)은 버그 영향 없음. HoldEvent 수신 감지는 PR #126 적용 또는 에러 catch 방어 로직 필요.
 
 ---
 
 ### From FEATURES.md
 
-**필수 기능 (Table Stakes):**
-1. **WAV 파일 재생** (중간 복잡도) — IVR 프롬프트 시뮬레이션의 기본. 통화 중 PCMA/PCMU 인코딩된 WAV를 RTP로 스트리밍.
-2. **통화 녹음** (중간 복잡도) — QA/디버깅용. RTP → WAV 저장. Stereo (좌/우 채널로 Local/Remote 분리) 지원.
-3. **DTMF 송신** (낮은 복잡도) — RFC 2833 RTP telephone-event로 IVR 메뉴 자동 탐색.
-4. **DTMF 수신** (낮은 복잡도) — 기존 DTMFReceived Event 강화 (digit 값 캡처, expectedDigit 속성, timeout).
-5. **코덱 선택** (낮은 복잡도) — SDP m= 라인에 선호 코덱 명시 (PCMA=8, PCMU=0).
+**테이블 스테이크 (v1.2 필수):**
 
-**차별화 기능 (Differentiators):**
-- **시각적 미디어 플로우**: 기존 XYFlow 노드에 PlayAudio → DTMFReceived 플로우를 시각적으로 배치. SIPp(XML)보다 이해 쉬움.
-- **부분 녹음 제어**: StartRecording/StopRecording 쌍으로 민감 정보 구간만 녹음 제외.
-- **DTMF 패턴 검증**: expectedDigit 속성으로 IVR 입력 자동 검증.
+| 기능 | 복잡도 | 메커니즘 |
+|------|--------|----------|
+| Hold Command | 중간 | `Mode=sendonly` + `ReInvite()` |
+| Retrieve Command | 낮음 | `Mode=sendrecv` + `ReInvite()` |
+| BlindTransfer Command | 낮음 | `ReferOptions()` + OnNotify 콜백 |
+| HELD/RETRIEVED Event | 중간 | `OnMediaUpdate` 콜백 + sipEventSubs |
+| TRANSFERRED Event | 중간 | `OnRefer` 콜백 |
+| 팔레트 검색 기능 | 낮음 | `useState<string>` + filter |
+| 로그 Copy/Clear 버튼 | 낮음 | `navigator.clipboard.writeText()` |
+| SIP 래더 REFER/Re-INVITE 표시 | 중간 | 색상 조건 확장 + note 필드 |
 
-**명시적 제외 (Anti-Features):**
-- **실시간 마이크 입력**: 자동화 불가, 크로스 플랫폼 복잡도 높음. WAV 파일로 대체.
-- **TTS**: 외부 의존성, 비용 발생. 사전 녹음 파일 사용.
-- **In-band DTMF**: 압축 코덱에서 신뢰성 낮음. RFC 2833만 지원.
-- **Video**: SIP 오디오 테스트 중심. 비디오는 범위 밖.
-- **FAX (T.38)**: 니치 기능, MVP 이후 고려.
+**차별화 (v1.2 포함 권장):**
 
-**노드 통합:**
-- 새 Command 노드: PlayAudio, SendDTMF, StartRecording, StopRecording
-- 강화할 Event 노드: DTMFReceived (digit, expectedDigit, timeout 속성)
-- SIP Instance 확장: codecs (우선순위 목록), enableDTMF
+- 팔레트 노드 수 배지 (`Commands (9)`) — 낮음
+- 새 노드 아이콘 일관성 (Lucide Icons: PauseCircle, PlayCircle, ArrowRightLeft) — 낮음
+- SIP 래더 메서드별 색상 구분 (REFER=보라, Re-INVITE=노랑) — 낮음
+- 실행 로그 인스턴스 필터 드롭다운 — 낮음
 
-**MVP 권장:**
-- Phase 1: PlayAudio, SendDTMF, DTMFReceived (PCMA/PCMU만)
-- Phase 2: StartRecording/StopRecording (stereo WAV)
-- 연기: Opus 코덱, DTMF 패턴 정규식, MP3 재생
+**안티 기능 (의도적 제외):**
+
+| 제외 기능 | 이유 |
+|-----------|------|
+| AttendedTransfer v1.2 | SessionStore 리팩토링 + Replaces 수동 구성 고복잡도 — v1.3 |
+| NOTIFY Event 노드 별도 구현 | BlindTransfer 내부 로그로 충분 |
+| Music on Hold 자동 재생 | Hold + PlayAudio 조합으로 표현 |
+| 3자 통화 (Conference) | B2BUA 미디어 믹싱 — v2.0 |
+| 팔레트 검색 하이라이팅 | v1.3 폴리시 |
+| 로그 파일 Export | v1.3 |
+| a=inactive Hold 모드 | sendonly가 표준 — 엣지 케이스 제외 |
+
+**주의:** FEATURES.md는 AttendedTransfer를 안티 기능으로 분류(v1.3)했지만 ARCHITECTURE.md는 구현 코드를 포함하고 있다. 로드맵에서 Phase 3으로 포함하되 복잡도 경고를 명시하는 것이 권장 접근이다.
 
 ---
 
 ### From ARCHITECTURE.md
 
-**주요 컴포넌트와 책임:**
+**통합 패턴:**
 
-**Backend 확장 (Go):**
-1. **executor.go**: 새 command handler 추가
-   - `executePlayMedia()`: WAV 파일 열기 → `dialog.Media().PlaybackCreate()` → 완료 대기
-   - `executeRecord()` / `executeStopRecord()`: `AudioStereoRecordingCreate()` → SessionStore에 RecordingSession 저장
-   - `executeSendDTMF()`: `AudioWriterDTMF().WriteDTMF(digit)`
-   - `executeDTMFReceived()`: `AudioReaderDTMF().DTMF()` 채널 대기
+기존 executor/SessionStore 아키텍처와 자연스럽게 통합된다. 새로 생성할 파일 없음 — 모든 변경은 기존 파일 수정.
 
-2. **graph.go**: GraphNode 확장
-   - 새 필드: `MediaPath`, `RecordPath`, `DTMFDigits`, `DTMFDigit`, `CodecPrefs`
+**수정 대상 파일 (백엔드):**
 
-3. **instance_manager.go**: Codec 설정
-   - `SipInstanceConfig`에 `Codecs []string` 추가
-   - `diago.WithMediaConfig(mediaConfig)` 적용
+| 파일 | 변경 내용 |
+|------|-----------|
+| `internal/engine/graph.go` | `GraphNode`에 `TransferTarget`, `ConsultSessionKey` 필드 추가; 파싱 로직 확장 |
+| `internal/engine/executor.go` | SessionStore 복합 키(StoreDialogWithKey) + sipEventSubs 이벤트 버스; executeCommand() 스위치 확장; executeAnswer() AnswerOptions 전환; executeHold/Retrieve/BlindTransfer/AttendedTransfer 신규; executeWaitSIPEvent 신규 |
+| `internal/engine/engine.go` | `executor` 필드 승격 (`*Executor`); `emitSIPEvent()` 신규 메서드 |
+| `internal/engine/events.go` | `WithSIPMessage()` variadic `note` 파라미터 추가 |
 
-4. **session_store.go**: 녹음 세션 관리
-   - `recordings map[string]*RecordingSession` 추가
-   - `StartRecording()` / `StopRecording()` 메서드
+**수정 대상 파일 (프론트엔드):**
 
-5. **internal/media/ (신규 패키지)**:
-   - `asset_manager.go`: WAV 파일 검증, 경로 해석, 녹음 파일명 생성
-   - `player.go`, `recorder.go`, `dtmf.go`, `codec.go`: 미디어 로직 분리 (테스트 용이성)
+| 파일 | 변경 내용 |
+|------|-----------|
+| `frontend/src/.../types/scenario.ts` | `COMMAND_TYPES` 4개 추가; `CommandNodeData`에 `transferTarget`, `consultSessionKey` 추가 |
+| `frontend/src/.../types/execution.ts` | `SIPMessage.note?` 필드 추가 |
+| `frontend/src/.../components/node-palette.tsx` | SubSection 컴포넌트; Commands 3개 서브섹션(Call Control/Hold+Transfer/Media) 재구성 |
+| `frontend/src/.../components/properties/command-properties.tsx` | Hold/Retrieve 설명 UI; BlindTransfer/AttendedTransfer `transferTarget` 입력 |
+| `frontend/src/.../components/properties/event-properties.tsx` | HELD/RETRIEVED/TRANSFERRED/NOTIFY 속성 |
+| `frontend/src/.../components/execution-log.tsx` | 인스턴스 필터 드롭다운; Copy All / Clear 버튼 |
+| `frontend/src/.../components/execution-timeline.tsx` | 메서드별 색상 구분; note 필드 레이블 표시 |
 
-**Frontend 확장 (React + TypeScript):**
-1. **types/scenario.ts**: CommandNode/EventNode/SipInstanceNode 타입 확장
-   - Command에 `mediaPath`, `recordPath`, `dtmfDigits` 추가
-   - Event에 `dtmfDigit` 추가
-   - SipInstance에 `codecs` 추가
+**핵심 설계 결정:**
 
-2. **components/nodes/**: Command/Event 노드 아이콘과 상세 정보 추가
-   - 아이콘: PlayMedia (Play), SendDTMF (Hash), Record (Mic)
+1. **SessionStore 복합 키** — `instanceID:role` 패턴으로 primary/consultation dialog 분리. `HangupAll()`은 모든 키 순회하므로 consultation leg도 자동 정리.
+2. **SIP 이벤트 버스** — `SessionStore.sipEventSubs map[string][]chan struct{}`로 HELD/RETRIEVED/TRANSFERRED 이벤트를 `executeWaitSIPEvent`에서 블로킹 대기. 이 패턴은 기존 `executeIncoming`의 `incomingCh` 패턴과 일관성 있음.
+3. **Engine.executor 필드 승격** — `emitSIPEvent()`가 SessionStore에 접근하려면 Engine이 Executor 참조 보유 필요.
+4. **executeAnswer() Answer→AnswerOptions 전환** — `OnMediaUpdate`/`OnRefer` 콜백 등록. nil 콜백은 기존 동작과 동일(소스 `dialog_server_session.go:173-194` 확인) — 기존 테스트 영향 없음.
 
-3. **MediaConfigPanel.tsx (신규)**: WAV 파일 선택, DTMF digits 입력, 녹음 경로 설정
+**데이터 흐름 예시 (BlindTransfer):**
 
-4. **execution-store.ts**: 미디어 진행 상태 추가 (`mediaProgress` 맵)
-
-**핵심 패턴:**
-- **Command/Event 확장**: 기존 아키텍처를 그대로 유지하며 새 노드 타입만 추가.
-- **diago DialogMedia 활용**: `dialog.Media()`로 RTP 세션 접근 → 재생/녹음/DTMF API 사용.
-- **Asset Manager 패턴**: 파일 경로 해석과 검증을 별도 컴포넌트로 분리.
-- **Cleanup 순서**: Hangup → Close dialogs → Close recording files (defer 활용).
-
-**데이터 흐름 (예: PlayMedia):**
 ```
-Frontend: PlayMedia 노드 추가 + WAV 파일 선택
-    ↓
-Backend: ParseScenario() → GraphNode with MediaPath
-    ↓
-Executor.executePlayMedia():
-    1. SessionStore에서 dialog 획득
-    2. dialog.Media() → DialogMedia
-    3. os.Open(MediaPath) → WAV 파일
-    4. PlaybackCreate(file) → Playback 객체
-    5. <-playback.Done() 대기
-    6. 500ms마다 진행 상태 이벤트 emit
-    ↓
-Frontend: media-progress 이벤트 수신 → 프로그레스 바 업데이트
+executeBlindTransfer:
+  1. dialog.(referer).ReferOptions(ctx, referTo, ReferClientOptions{
+       OnNotify: func(statusCode) { notifyDone <- statusCode }
+     })
+     → SIP: REFER → 202 Accepted
+  2. NOTIFY(100 Trying) → OnNotify(100)
+     NOTIFY(200 OK)     → OnNotify(200) → notifyDone <- 200
+  3. <-notifyDone (또는 10초 타임아웃 fallback)
+  4. dialog.Hangup(ctx) → SIP: BYE
 ```
-
-**빌드 순서 권장:**
-1. Codec Configuration (기반)
-2. Asset Management (인프라)
-3. PlayMedia (핵심 기능)
-4. DTMF Sending (빠른 성과)
-5. DTMF Receiving (이벤트 확장)
-6. Recording (복잡한 기능)
-7. Polish & Documentation
 
 ---
 
 ### From PITFALLS.md
 
-**치명적 함정 Top 3:**
+**치명적 함정 Top 3 + 예방 전략:**
 
-1. **함정 1: diago DialogMedia 초기화 순서 오류** (치명적)
-   - **문제**: SDP 협상 완료 전에 `dialog.Media()` 호출 시 nil RTP 세션 오류.
-   - **원인**: `Invite()` 또는 `Answer()` 호출이 200 OK + ACK 완료까지 대기해야만 RTP 세션 초기화됨.
-   - **예방**: `Invite()`/`Answer()` 완료 후에만 `Media()` 호출. IncomingCall 시나리오에서 race condition 주의.
-   - **탐지**: "nil pointer dereference", "early media detected but RTP session not initialized" 로그.
+**함정 1: SessionStore 1:1 키 충돌 (AttendedTransfer)**
 
-2. **함정 2: WAV 파일 포맷 불일치** (치명적)
-   - **문제**: 44.1kHz stereo WAV를 8kHz mono RTP로 재생 시 속도 왜곡 (chipmunk voice).
-   - **원인**: SIP/RTP는 표준적으로 8kHz mono G.711 사용. 샘플레이트 불일치 시 재생 길이 2배 차이.
-   - **예방**: WAV 검증 로직 (8kHz, mono, PCM μ-law 체크). ffmpeg로 사전 변환.
-   - **탐지**: 재생 속도가 기대와 다름, RTP timestamp 증가량 이상.
+현재 `map[instanceID]dialog` 구조는 Attended Transfer에서 consultation dialog가 primary dialog를 조용히 덮어쓴다. 원래 통화가 유실되고 Release 노드가 잘못된 dialog를 종료한다.
 
-3. **함정 3: 코덱 불일치로 미디어 실패 (488)** (치명적)
-   - **문제**: 양쪽 인스턴스가 공통 코덱 없으면 SDP 협상 실패 → 488 Not Acceptable.
-   - **원인**: diago Bridge는 transcoding 미지원. 동일 코덱 협상 필수.
-   - **예방**: PCMU를 기본 fallback으로 항상 포함. 코덱 교집합 사전 검증.
-   - **탐지**: 488 응답, "no matching codec found in SDP answer" 로그.
+예방: `StoreDialogWithRole(instanceID, "primary"|"consultation", dialog)` 패턴으로 역할 기반 키 사용. AttendedTransfer 페이즈 착수 전 SessionStore 리팩토링 완료.
 
-**중간 함정:**
-- **함정 4: 녹음 파일 동시 쓰기 Race Condition** → 인스턴스별 고유 파일명 강제 (`recording_{{instanceID}}_{{timestamp}}.wav`).
-- **함정 5: RTP Timestamp 동기화 실패** → diago의 자동 timestamp 관리 활용, 수동 전송 시 160 샘플 단위 증가.
-- **함정 6: DTMF In-Band vs RFC 2833** → RFC 2833을 기본값으로, G.729 등 압축 코덱에서 in-band 신뢰성 낮음.
-- **함정 7: Early Media (183) 처리 누락** → v1.1에서는 연기, v1.2에서 Early Media Event 노드 추가 고려.
-- **함정 8: 파일 핸들 누수** → defer 패턴으로 녹음 파일 Close 보장, SessionStore.CloseAll()에 파일 정리 단계 추가.
-- **함정 9: 시뮬레이션 vs 실제 모드 차이** → RTP 포트 범위 분리 (시뮬레이션: 5060~5080, 실제: 10000~20000).
-- **함정 10: 포트 순차 할당 충돌** → SIP와 RTP 포트 범위 분리, RTP는 짝수/홀수 쌍으로 할당.
+**함정 2: REFER 후 BYE 타이밍 — NOTIFY 수신 전 dialog 닫힘**
 
-**사소한 함정:**
-- WAV 헤더 쓰기 타이밍 (diago API 사용 시 자동 처리됨)
-- DTMF 타임아웃 너무 짧음 (최소 500ms 권장)
-- 코덱 이름 대소문자 불일치 (항상 대문자로 정규화)
+`Refer()` 직후 즉시 `Hangup()`을 호출하면 최종 NOTIFY가 도착하기 전에 dialog가 닫혀 상대방이 "481 Call/Transaction Does Not Exist"를 받는다.
 
-**페이즈별 경고:**
-- Phase 1 (미디어 재생): 함정 1, 2, 5 주의 → WAV 검증 우선 구현
-- Phase 2 (녹음): 함정 4, 8 주의 → 인스턴스별 파일명, defer 패턴
-- Phase 3 (DTMF): 함정 6 주의 → RFC 2833 기본값
-- Phase 4 (코덱 선택): 함정 3 주의 → 협상 전 검증
-- Phase 5 (통합 테스트): 함정 9 주의 → 실제 SIP 서버 테스트
+예방: `ReferOptions.OnNotify` 콜백으로 200 OK sipfrag 수신 후 BYE. 10초 타임아웃 fallback — 타임아웃 시 경고 로그 후 BYE 강행.
+
+**함정 3: incomingCh 버퍼 포화 (AttendedTransfer 수신 측)**
+
+`incomingCh: make(chan ..., 1)` 버퍼 1이라 Attended Transfer 시나리오에서 동일 인스턴스에 두 번째 INVITE 도착 시 채널 포화로 `Serve` goroutine blocking 발생.
+
+예방: `incomingCh` 버퍼를 10으로 확장. non-blocking select + 포화 시 `StatusBusyHere` 응답 옵션.
+
+**추가 주의 함정:**
+
+- **diago #110 빈 SDP:** Hold 수신 시 빈 SDP body 처리 오류 — `"sdp update media remote SDP applying failed"`. 에러 catch 후 경고로 처리하여 크래시 방지.
+- **XYFlow DnD 회귀:** 팔레트 DOM 구조 변경 시 DnD 깨짐 위험. `draggable` 속성을 최하위 leaf 컴포넌트에만 적용, 리팩토링 후 즉시 DnD E2E 테스트.
+- **diago #91 Content-Length 버그:** v0.27.0에서 수정 여부 불명. BlindTransfer 착수 전 `Refer()` 동작 소규모 테스트 검증 필수.
+- **Hold + PlayAudio 충돌:** `PlayAudio` blocking 실행 중 Hold Re-INVITE 수신 시 race condition 가능. Hold 전 PlayAudio 완료 보장하는 시나리오 설계 가이드 필요.
 
 ---
 
 ## Roadmap Implications
 
-통합 리서치에 기반하여 다음 페이즈 구조를 제안합니다.
+의존성 분석에 기반한 4단계 구조를 권장한다.
 
-### Phase 1: Codec Configuration + Asset Management (기반)
+### Phase 1: Hold/Retrieve + SIP 이벤트 인프라
 
-**근거:** 모든 미디어 기능이 코덱 설정과 파일 관리에 의존하므로 가장 먼저 구축해야 합니다.
+**근거:** Re-INVITE 패턴이 가장 단순하고, 이후 모든 단계(BlindTransfer pre-hold, AttendedTransfer 내부 hold)에서 재사용된다. SessionStore 이벤트 버스(`sipEventSubs`)도 이 단계에서 구축해야 HELD/RETRIEVED Event 노드가 동작한다.
 
-**전달하는 것:**
-- SIP Instance 노드에 코덱 선택 UI (드래그로 우선순위 변경)
-- `InstanceManager.CreateInstances()`에서 `diago.WithMediaConfig()` 적용
-- `internal/media/asset_manager.go` 구현 (WAV 검증, 파일 목록, 경로 해석)
-- Wails 파일 다이얼로그 바인딩 (`SelectAudioFile`, `SelectRecordingPath`)
+**전달물:**
+- `executeHold()`, `executeRetrieve()` 구현
+- `executeAnswer()` → `AnswerOptions` 전환 (OnMediaUpdate/OnRefer 콜백 등록)
+- SessionStore `sipEventSubs` + `SubscribeSIPEvent`/`emitSIPEvent`
+- `executeWaitSIPEvent()` for HELD/RETRIEVED
+- `engine.go` executor 필드 승격
+- `events.go` `WithSIPMessage` note 파라미터
+- `graph.go` GraphNode 신규 필드(TransferTarget, ConsultSessionKey)
+- 프론트엔드: Hold/Retrieve 노드 + HELD/RETRIEVED Event 등록
 
-**포함하는 기능 (FEATURES.md):**
-- 코덱 선택 (PCMU, PCMA) — Opus는 제외
-- WAV 파일 검증 (8kHz, mono, PCM)
+**FEATURES.md 기능:** Hold Command, Retrieve Command, HELD Event, RETRIEVED Event
 
-**피해야 할 함정:**
-- 함정 3 (코덱 불일치) → PCMU를 기본값으로 항상 포함
-- 함정 2 (WAV 포맷 불일치) → 파일 업로드 시 자동 검증
+**피해야 할 함정:** 함정 2-빈SDP(#110) catch, 함정 10-ctx 취소 시 hold 상태 정리, 함정 5-PlayAudio 동시 실행 주의
 
-**리서치 플래그:** 리서치 충분. 표준 패턴 (Wails 다이얼로그, diago MediaConfig).
-
----
-
-### Phase 2: PlayAudio Command (핵심 기능)
-
-**근거:** 가장 사용자에게 가시적인 기능이며, 미디어 통합을 실증합니다.
-
-**전달하는 것:**
-- `executePlayMedia()` 구현 (diago PlaybackCreate API)
-- GraphNode에 `MediaPath` 필드 추가
-- Frontend: PlayAudio Command 노드 + MediaConfigPanel (파일 선택)
-- 미디어 진행 상태 이벤트 (500ms 간격)
-- 프로그레스 바 UI
-
-**포함하는 기능 (FEATURES.md):**
-- WAV 파일 재생 (필수)
-- 재생 완료 후 다음 노드 진행
-
-**피해야 할 함정:**
-- 함정 1 (초기화 순서) → `Invite()` 완료 후에만 `Media()` 호출
-- 함정 2 (WAV 포맷) → 8kHz mono 검증 로직 적용
-- 함정 5 (RTP 타이밍) → diago의 자동 timestamp 관리 활용
-
-**리서치 플래그:** 리서치 충분. diago 예제 (playback) 참고.
+**리서치 플래그:** 표준 Re-INVITE 패턴. 착수 전 `MediaSession.Mode + ReInvite()` 조합 소규모 실험 권장 (예상대로 sendonly SDP 생성되는지 확인).
 
 ---
 
-### Phase 3: DTMF Sending & Receiving (빠른 성과)
+### Phase 2: BlindTransfer
 
-**근거:** 복잡도 낮고, 파일 I/O 없으며, IVR 시뮬레이션의 핵심 기능입니다.
+**근거:** Hold 완료 후 REFER 패턴 추가. `ReferOptions.OnNotify` 콜백 패턴이 확립된 이후 Attended Transfer 구현이 더 용이해진다.
 
-**전달하는 것:**
-- `executeSendDTMF()` 구현 (AudioWriterDTMF)
-- `executeDTMFReceived()` 구현 (AudioReaderDTMF)
-- GraphNode에 `DTMFDigits`, `DTMFDigit` 필드 추가
-- Frontend: SendDTMF Command + DTMFReceived Event 강화 (expectedDigit, timeout)
+**전달물:**
+- `executeBlindTransfer()` with `OnNotify` 콜백 + 10초 타임아웃 fallback 후 BYE
+- TRANSFERRED Event (`AnswerOptions.OnRefer` 이미 Phase 1에서 등록됨 → executeWaitSIPEvent 재사용)
+- `node-palette.tsx` BlindTransfer 팔레트 항목
+- `command-properties.tsx` transferTarget 입력 (sip: 접두사 검증)
+- `execution-timeline.tsx` REFER 색상 (보라 `#8b5cf6`)
 
-**포함하는 기능 (FEATURES.md):**
-- DTMF 송신 (RFC 2833)
-- DTMF 수신 이벤트 (digit 값 캡처, timeout)
+**FEATURES.md 기능:** BlindTransfer Command, TRANSFERRED Event
 
-**피해야 할 함정:**
-- 함정 6 (In-band vs RFC 2833) → RFC 2833 기본값
-- 함정 12 (타임아웃 너무 짧음) → 최소 500ms
+**피해야 할 함정:** 함정 3(NOTIFY before BYE), 함정 7(diago #91 Content-Length 검증), 함정 8(out-of-dialog NOTIFY 타임아웃 fallback)
 
-**리서치 플래그:** 리서치 충분. 표준 패턴 (RFC 2833, diago DTMF API).
+**리서치 플래그:** diago v0.27.0에서 `Refer()` Content-Length 버그(#91) 수정 여부 검증 테스트 필수. 문제 발생 시 diago 최신 버전 업그레이드 고려.
 
 ---
 
-### Phase 4: Recording (복잡한 기능)
+### Phase 3: AttendedTransfer
 
-**근거:** 세션 라이프사이클 관리가 필요하므로 가장 복잡합니다. 앞선 페이즈의 안정화 후 진행.
+**근거:** Hold + BlindTransfer 모두 완료 후, 가장 복잡한 기능. SessionStore 복합 키, Replaces 헤더 수동 구성, incomingCh 버퍼 확장 세 가지 선행 과제 완료 후 착수.
 
-**전달하는 것:**
-- `executeRecord()` / `executeStopRecord()` 구현
-- SessionStore에 `RecordingSession` 관리 추가
-- GraphNode에 `RecordPath` 필드 추가
-- Frontend: StartRecording/StopRecording Command 노드
-- 녹음 파일명 자동 생성 (`{{instanceID}}_{{timestamp}}.wav`)
+**전달물:**
+- SessionStore `StoreDialogWithKey`/`GetDialogWithKey`/`DeleteDialogWithKey` 복합 키 메서드
+- `incomingCh` 버퍼 1 → 10 확장
+- `executeAttendedTransfer()`: Hold primary → Consultation Invite → Replaces REFER → BYE both
+- `command-properties.tsx` AttendedTransfer UI (transferTarget + consultSessionKey)
+- `node-palette.tsx` AttendedTransfer 팔레트 항목
 
-**포함하는 기능 (FEATURES.md):**
-- 통화 녹음 (stereo WAV)
-- 부분 녹음 제어 (StartRecording/StopRecording 쌍)
+**FEATURES.md 기능:** AttendedTransfer Command (FEATURES.md는 v1.3으로 연기 권장했으나 ARCHITECTURE.md가 구현 코드 포함 — 로드맵 결정 필요)
 
-**피해야 할 함정:**
-- 함정 4 (동시 쓰기) → 인스턴스별 고유 파일명 강제
-- 함정 8 (파일 핸들 누수) → defer 패턴, SessionStore.CloseAll()에 정리 로직
+**피해야 할 함정:** 함정 1(SessionStore 1:1 충돌), 함정 4(incomingCh 포화), 함정 6(Executor 체인 한계), 함정 2(Replaces 헤더 tag 추출 검증)
 
-**리서치 플래그:** 리서치 충분. diago 예제 (wav_record) 참고. 동시성 테스트 강화 필요.
+**리서치 플래그:** Replaces 헤더 구성 시 `sipgo.Dialog.CallID`/태그 추출 API 소스 확인 필요. `sipgo.DialogClientSession.InviteResponse.To().Params.Get("tag")` 등 API 직접 검증 권장 (현재 MEDIUM 신뢰도).
 
 ---
 
-### Phase 5: Integration Testing & Polish (검증)
+### Phase 4: UI 개선
 
-**근거:** 실제 SIP 서버 연동 테스트와 프로덕션 준비.
+**근거:** 기능 구현 완료 후 UX 개선. 백엔드와 독립적이므로 Phase 1~3 병렬 진행 가능. 새 노드 팔레트 항목 추가가 각 페이즈에서 이루어지므로 팔레트 그룹화/검색은 마지막에 정리.
 
-**전달하는 것:**
-- 실제 SIP 서버 (Asterisk/FreeSWITCH) E2E 테스트
-- 시나리오 검증 (누락 파일, 잘못된 포맷 체크)
-- 에러 핸들링 강화
-- 사용자 문서 (WAV 요구사항, 코덱 선택 가이드)
-- 툴팁 및 도움말 텍스트
+**전달물:**
+- `node-palette.tsx` SubSection 컴포넌트 + 검색 input (Command/Hold+Transfer/Media 그룹화)
+- 노드 수 배지 (`Commands (9)`)
+- `execution-log.tsx` 인스턴스 필터 드롭다운 + Copy All / Clear 버튼
+- `execution-timeline.tsx` note 필드 레이블 + 메서드별 색상 완성 (REFER=보라, Re-INVITE=노랑)
+- 새 노드 아이콘 일관성 (Hold=PauseCircle, Retrieve=PlayCircle, BlindTransfer=ArrowRightLeft, AttendedTransfer=GitMerge)
 
-**포함하는 기능 (FEATURES.md):**
-- 모든 기능의 통합 검증
+**FEATURES.md 기능:** 팔레트 검색, 노드 수 배지, 로그 Copy/Clear, SIP 래더 개선, 아이콘 일관성
 
-**피해야 할 함정:**
-- 함정 9 (시뮬레이션 vs 실제) → RTP 포트 범위 분리, NAT 대응
-- 함정 10 (포트 충돌) → 포트 할당 로직 검증
+**피해야 할 함정:** 함정 9(DnD 브레이킹) — `draggable` 속성을 최하위 leaf 컴포넌트에만 적용, 검색 input에 `className="nodrag"` 추가, 리팩토링 후 즉시 DnD 테스트
 
-**리서치 플래그:** **추가 리서치 필요** — 실제 SIP 서버 연동 시나리오, NAT/방화벽 대응, 성능 테스트 (최대 동시 녹음 수).
+**리서치 플래그:** 표준 React 패턴 — 추가 리서치 불필요.
 
 ---
 
 ## Research Flags
 
-**어떤 페이즈가 `/prp:research-phase` 필요한가?**
+**추가 리서치/검증 필요:**
 
-- **Phase 1-4**: 리서치 충분. diago 공식 문서와 예제 기반으로 구현 가능.
-- **Phase 5 (Integration Testing)**: **추가 리서치 필요**
-  - 실제 SIP 서버 (Asterisk/FreeSWITCH) 연동 테스트 시나리오
-  - NAT/방화벽 traversal (STUN/TURN 필요 여부)
-  - 성능 테스트 (멀티 인스턴스 병렬 녹음 시 최대 동시 파일 수)
-  - 대규모 WAV 파일 재생 시 메모리 사용량
+| 페이즈 | 항목 | 이유 |
+|--------|------|------|
+| Phase 1 착수 전 | `MediaSession.Mode + ReInvite()` 소규모 실험 | sendonly SDP 생성이 예상대로 동작하는지 확인 |
+| Phase 2 착수 전 | diago v0.27.0 `Refer()` Content-Length 검증 | 이슈 #91 수정 여부 불명 (MEDIUM 신뢰도) |
+| Phase 3 착수 전 | `sipgo.Dialog` Replaces 태그 추출 API 확인 | `InviteResponse.To().Params.Get("tag")` 실제 존재 여부 (MEDIUM 신뢰도) |
+| Phase 3 통합 | HoldEvent 감지 diago #125 영향 평가 | PR #126 미병합 — 패치 적용 또는 SDP 직접 파싱 방어 결정 필요 |
 
-**어떤 페이즈가 표준 패턴 있는가 (리서치 건너뛰기)?**
+**표준 패턴으로 진행 가능 (추가 리서치 불필요):**
 
-- **Phase 1 (Codec Configuration)**: Wails 다이얼로그, diago MediaConfig — 표준 패턴.
-- **Phase 3 (DTMF)**: RFC 2833은 업계 표준, diago DTMF API 명확함 — 표준 패턴.
+- Phase 1 Hold/Retrieve: Re-INVITE 패턴, `ReInvite()` API 완전 확인
+- Phase 2 BlindTransfer: `Refer()` API 완전 확인, NOTIFY 콜백 패턴 확인 (`dialogHandleReferNotify` 소스)
+- Phase 4 UI 개선: 기존 React/XYFlow 패턴
 
 ---
 
@@ -346,103 +277,63 @@ Frontend: media-progress 이벤트 수신 → 프로그레스 바 업데이트
 
 | 영역 | 신뢰도 | 참고 |
 |------|--------|------|
-| **Stack** | **HIGH** | diago v0.27.0 소스 코드 확인, 공식 예제 존재, WAV/G.711 라이브러리 battle-tested |
-| **Features** | **HIGH** | SIP 미디어 기능은 업계 표준 (RFC 2833, G.711), 여러 SIP 테스팅 툴과 패턴 일치 |
-| **Architecture** | **HIGH** | 기존 Command/Event 패턴 확장만, diago DialogMedia API 명확, Wails 통합 검증됨 |
-| **Pitfalls** | **HIGH** | diago 소스 분석, SIP/RTP 프로토콜 표준, Go 동시성 best practice 기반 |
+| BlindTransfer API | HIGH | `Refer()`, `ReferOptions()` 소스 직접 확인; 통합 테스트 `TestIntegrationDialogClientRefer` 존재 |
+| Hold/Retrieve API | HIGH | `ReInvite()`, `MediaSession.Mode` 소스 직접 확인 (`media_session.go:102`, `dialog_client_session.go:433`) |
+| REFER/Re-INVITE 수신 감지 | HIGH | `OnRefer`, `OnMediaUpdate` 콜백 소스 직접 확인 (`dialog_server_session.go:150-167`) |
+| Hold 버그 현황 | HIGH | GitHub #110(OPEN), #125(CLOSED-dup), PR #126(미병합) 직접 확인 (2026-02-19) |
+| Hold 발신 구현 | HIGH | 버그 영향 없음 확인 — sendonly 발신 측은 정상 동작 |
+| HoldEvent 수신 감지 | MEDIUM | diago #125로 `ms.Mode` 신뢰 불가 — PR #126 패치 없이는 불확실 |
+| AttendedTransfer Replaces 헤더 | MEDIUM | sipgo.Dialog 구조체 직접 소스 미확인 — 가정 기반 |
+| diago #91 Content-Length 수정 여부 | MEDIUM | v0.27.0에서 수정 여부 불명 — 검증 필요 |
+| SessionStore 리팩토링 | HIGH | 소스 구조 직접 분석, 복합 키 패턴 명확 |
+| UI 개선 (팔레트/모니터) | HIGH | 기존 컴포넌트 패턴 직접 확인 |
 
-**해결 안 된 갭 (계획 중 주의 필요):**
+**해결 안 된 갭:**
 
-1. **diago v0.27.0의 정확한 API 변경사항** (MEDIUM 신뢰도)
-   - 리서치는 GitHub 소스와 문서 기반이지만, 실제 빌드 전까지 breaking change 미확인
-   - 완화: Phase 2에서 조기 통합 테스트
-
-2. **Early Media (183 Session Progress) 처리** (LOW 신뢰도)
-   - v1.1에서 제외했지만 사용자 요구 발생 가능
-   - 완화: 명시적으로 v1.2 로드맵에 포함
-
-3. **실제 SIP 서버 연동 시 NAT/방화벽 이슈** (MEDIUM 신뢰도)
-   - 시뮬레이션 모드 중심 리서치, 실제 환경 변수 미검증
-   - 완화: Phase 5에서 추가 리서치 (`/prp:research-phase`)
-
-4. **최대 동시 녹음 파일 수** (LOW 신뢰도)
-   - 성능 테스트 미실시
-   - 완화: Phase 5에서 부하 테스트
+1. **diago PR #126 병합 상태** — 미병합. HoldEvent 감지의 신뢰성은 이 PR에 의존. Phase 3 전 재확인 필요.
+2. **sipgo.Dialog Replaces 태그 추출** — `InviteResponse.To().Params.Get("tag")` API 실제 존재 여부 sipgo 소스 직접 확인 필요. ARCHITECTURE.md 코드는 가정 기반.
+3. **diago #91 Content-Length 버그** — v0.27.0 수정 여부 불명. Phase 2 착수 전 소규모 테스트로 검증 필수.
 
 ---
 
 ## Sources
 
-### High Confidence (공식 문서, 검증된 소스)
+**HIGH 신뢰도 (소스 직접 확인):**
+- `github.com/emiago/diago@v0.27.0/dialog_client_session.go` — Refer(), ReferOptions(), ReInvite()
+- `github.com/emiago/diago@v0.27.0/dialog_server_session.go` — Refer(), ReInvite(), AnswerOptions
+- `github.com/emiago/diago@v0.27.0/dialog_session.go` — DialogSession 인터페이스, dialogHandleReferNotify()
+- `github.com/emiago/diago@v0.27.0/dialog_media.go` — handleMediaUpdate(), sdpUpdateUnsafe()
+- `github.com/emiago/diago@v0.27.0/diago.go` — OnRefer/OnNotify 핸들러 등록
+- `github.com/emiago/diago@v0.27.0/media/media_session.go` — MediaSession.Mode, LocalSDP()
+- `github.com/emiago/diago@v0.27.0/media/sdp/utils.go` — Mode 상수
+- `github.com/emiago/diago@v0.27.0/dialog_client_session_test.go` — TestIntegrationDialogClientRefer
+- `github.com/emiago/diago@v0.27.0/dialog_server_session_test.go` — TestIntegrationDialogServerRefer
 
-**diago 라이브러리:**
-- [Diago GitHub](https://github.com/emiago/diago) — v0.27.0 릴리스 확인
-- [Diago DialogMedia API](https://github.com/emiago/diago/blob/main/dialog_media.go) — PlaybackCreate, Record, DTMF 메서드
-- [Diago Media Codecs](https://emiago.github.io/diago/docs/media_codecs/) — PCMU, PCMA, Opus 지원
-- [Diago Examples](https://github.com/emiago/diago/tree/main/examples) — playback, wav_record, dtmf
-
-**Go 라이브러리:**
-- [go-audio/wav pkg.go.dev](https://pkg.go.dev/github.com/go-audio/wav) — v1.1.0, Encoder/Decoder API
-- [go-audio/wav GitHub](https://github.com/go-audio/wav) — 383 stars, 1200+ 의존자
-- [zaf/g711 pkg.go.dev](https://pkg.go.dev/github.com/zaf/g711) — v1.4.0, Alaw/Ulaw 코덱
-- [zaf/g711 GitHub](https://github.com/zaf/g711) — 109 stars, 217 의존자
-- [pion/rtp pkg.go.dev](https://pkg.go.dev/github.com/pion/rtp) — v1.8.18, RTP 처리
-
-**Wails:**
-- [Wails Dialog Runtime](https://wails.io/docs/reference/runtime/dialog/) — OpenFileDialog, SaveFileDialog
+**MEDIUM 신뢰도 (GitHub Issues — 2026-02-19 확인):**
+- [diago #110](https://github.com/emiago/diago/issues/110) — Hold 빈 SDP 이슈, OPEN
+- [diago #125](https://github.com/emiago/diago/issues/125) — Hold SDP direction 버그, CLOSED-duplicate
+- [diago PR #126](https://github.com/emiago/diago/pull/126) — #125 수정 PR, 리뷰 대기
+- [diago #95](https://github.com/emiago/diago/issues/95) — Hold API on roadmap, OPEN
+- [diago #91](https://github.com/emiago/diago/issues/91) — Content-Length 버그, v0.27.0 수정 여부 불명
+- [XYFlow #5310](https://github.com/xyflow/xyflow/issues/5310) — DnD regression
 
 **RFC 표준:**
-- [RFC 2833 - RTP Payload for DTMF](https://datatracker.ietf.org/doc/html/rfc2833)
-- [RFC 4733](https://datatracker.ietf.org/doc/html/rfc4733) — RTP DTMF 표준 (RFC 2833 대체)
-- [G.711 Wikipedia](https://en.wikipedia.org/wiki/G.711) — PCMU/PCMA 코덱
-
-### Medium Confidence (커뮤니티, 참고 패턴)
-
-**SIP 미디어 재생:**
-- [VoIP Media Session - sipsorcery](https://sipsorcery-org.github.io/sipsorcery/articles/voipmediasession.html)
-- [How to play mp3 into voice call](https://voip-sip-sdk.com/p_7345-how-to-play-an-mp3-file-into-a-voice-call-using-csharp.html)
-- [SIP IVR - Sonetel](https://sonetel.com/en/sip-trunking/help/sip-ivr/)
-
-**통화 녹음:**
-- [How to record SIP voice call](https://voip-sip-sdk.com/p_7362-how-to-record-voip-sip-voice-call.html)
-- [VoIPmonitor](https://www.voipmonitor.org/)
-- [PortSIP Call Recordings](https://support.portsip.com/portsip-communications-solution/portsip-pbx-administration-guide/20-cdr-and-call-recordings/call-recordings)
-
-**DTMF:**
-- [DTMF over IP (Nick vs Networking)](https://nickvsnetworking.com/dtmf-over-ip-sip-info-inband-rtp-events/)
-- [DTMF in SIP Call - Yeastar](https://support.yeastar.com/hc/en-us/articles/360038941513-Understand-the-DTMF-in-SIP-Call)
-- [DTMF RFC 2833 Reliability](https://voipnuggets.com/2023/06/12/different-types-of-dtmf-in-sip-and-why-dtmf-via-rfc2833-is-more-reliable/)
-
-**코덱 협상:**
-- [SDP Offer/Answer Model](https://www.tutorialspoint.com/session_initiation_protocol/session_initiation_protocol_the_offer_answer_model.htm)
-- [Understanding codec negotiation](https://wiki.4psa.com/display/KB/Understanding+codec+negotiation)
-- [Asterisk Codec Mismatch](https://kingasterisk.com/codec-mismatch-problems-in-asterisk/)
-- [FreeSWITCH Codec Negotiation](https://developer.signalwire.com/freeswitch/FreeSWITCH-Explained/Codecs-and-Media/Codec-Negotiation_2883752/)
-
-**함정 케이스:**
-- [Troubleshooting One-Way Audio](https://blog.opensips.org/2023/07/06/troubleshooting-one-way-audio-calls/)
-- [VoIP Problems 2026](https://telxi.com/blog/voip-problems/)
-- [Go Data Race Detector](https://go.dev/doc/articles/race_detector)
-- [Concurrency Safe File Access](https://echorand.me/posts/go-file-mutex/)
-
-**SIP 테스팅 툴:**
-- [MAPS SIP Emulator](https://www.gl.com/sip-rtp-protocol-simulator-maps.html)
-- [StarTrinity SIP Tester](http://startrinity.com/VoIP/SipTester/SipTester.aspx)
-- [Handling media with SIPp](https://sipp.readthedocs.io/en/latest/media.html)
+- RFC 3515 (SIP REFER), RFC 3891 (Replaces), RFC 3264 (SDP Offer/Answer), RFC 5589 (Transfer), RFC 6337 (SIP Hold)
 
 ---
 
 ## Requirements Definition Readiness
 
-**SUMMARY.md 완성 상태:**
-- ✅ 4개 리서치 파일 모두 종합됨
-- ✅ 요약이 핵심 결론 포착 (기존 스택 재사용, 3개 라이브러리만 추가, CGO 회피)
-- ✅ 각 파일에서 핵심 발견 추출됨
-- ✅ 로드맵 함의에 5개 페이즈 제안 포함 (근거 명확)
-- ✅ 리서치 플래그: Phase 5만 추가 리서치 필요, 나머지는 표준 패턴
-- ✅ 신뢰도 정직하게 평가 (전체 HIGH, 일부 갭 식별)
-- ✅ 해결할 갭 목록화 (diago API 변경, Early Media, NAT/방화벽, 성능 테스트)
+**로드맵 생성 가능 여부: 준비됨**
 
-**오케스트레이터 진행 가능:** SUMMARY.md가 로드맵 생성에 필요한 모든 정보 제공. 요구사항 정의 및 페이즈별 PLAN 생성 준비 완료.
+4단계 페이즈 구조가 명확하게 도출되었으며 각 페이즈의 전달물, 의존성, 함정이 식별되었다. 다음 조건 하에 로드맵 생성 즉시 진행 가능하다.
 
-**다음 단계:** `/prp:generate-roadmap` — 5개 페이즈 구조로 로드맵 생성, Phase 5에서만 `/prp:research-phase` 필요.
+- Phase 1 (Hold/Retrieve): 즉시 착수 가능. 착수 전 Hold 소규모 실험 권장.
+- Phase 2 (BlindTransfer): diago #91 Content-Length 검증 테스트 후 착수.
+- Phase 3 (AttendedTransfer): sipgo.Dialog API 소스 확인 후 착수. diago PR #126 상태 재확인 권장. FEATURES.md의 v1.3 연기 권장과 ARCHITECTURE.md의 구현 코드 포함 간 로드맵 결정 필요.
+- Phase 4 (UI 개선): 독립적, 언제든 착수 가능.
+
+**로드맵 작성자를 위한 핵심 결정 사항:**
+
+1. AttendedTransfer를 v1.2 Phase 3에 포함할지 v1.3으로 연기할지 결정 (SessionStore 리팩토링 비용 vs 기능 완성도)
+2. HoldEvent 수신 감지의 diago PR #126 의존성 — Phase 1에서 패치 적용 여부 결정
