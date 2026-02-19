@@ -4,7 +4,7 @@
   "milestone": 1,
   "phase": 0,
   "status": "initialized",
-  "commitMode": "confirm",
+  "commitMode": "auto",
   "framework": "wails",
   "frontendFramework": "react",
   "language": {
