@@ -257,7 +257,11 @@ v1.1 Roadmap: [█████░░░░░] 2.5/4 페이즈 (62.5%)
 | 07-02 | 파일명만 표시, 전체 경로는 tooltip | 긴 경로로 인한 UI 깨짐 방지 | 캔버스 노드 및 Properties 패널 레이아웃 |
 | 07-02 | 즉시 toast 피드백 | 파일 선택 직후 검증 피드백 제공 | UX 향상, 실행 시점 에러 방지 |
 | 07-02 | isSelecting 상태 관리 | 다이얼로그 중복 열림 방지 | Properties 패널 버튼 UX 개선 |
-
+| 08-02 | Ear 아이콘을 DTMFReceived에 채택 | PhoneIncoming 이미 Answer 노드에 사용 중, Ear는 "digit을 듣고 대기한다"는 의미 전달 | DTMFReceived 노드 시각화 |
+| 08-02 | onChange에서 regex 필터 적용 | 유효하지 않은 문자를 입력 시점에 즉시 제거하여 실시간 피드백 제공 | digits/expectedDigit 입력 UX 향상 |
+| 08-02 | intervalMs 50-1000ms 클램프 | RFC 2833 최소 제약 준수 (50ms 미만은 불안정), 최대 1초는 UX 상 적절한 범위 | SendDTMF 실행 안정성 |
+| 08-02 | expectedDigit 단일 문자 제한 | DTMFReceived는 한 번에 하나의 digit만 대기 (연속 digit은 여러 노드로 체인) | 시나리오 그래프 명확성 |
+| 08-02 | timeout 기본값 10000ms (DTMFReceived) | 사용자 입력 대기 시간은 SIP 이벤트보다 길어야 함 (TIMEOUT 이벤트는 5000ms 기본) | DTMFReceived 이벤트 타임아웃 정책 |
 ## 차단 요소 / 우려사항
 
 ### 해결됨
