@@ -1053,3 +1053,202 @@ func TestIntegration_CleanupVerification(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 }
+
+// TestIntegration_V1_0_Compatibility tests v1.0 scenario format backward compatibility
+func TestIntegration_V1_0_Compatibility(t *testing.T) {
+	eng, repo, te := newTestEngine(t, 16000)
+
+	// v1.0 시나리오 포맷: codecs 필드 없음, 미디어 필드 없음
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100",
+        "register": true
+      }
+    }
+  ],
+  "edges": []
+}`
+
+	// 시나리오 생성 및 저장
+	scn, err := repo.CreateScenario("default", "v1.0-compat")
+	if err != nil {
+		t.Fatalf("CreateScenario failed: %v", err)
+	}
+
+	if err := repo.SaveScenario(scn.ID, flowJSON); err != nil {
+		t.Fatalf("SaveScenario failed (v1.0 format should be accepted): %v", err)
+	}
+
+	// 시나리오 시작 (파싱 및 실행 검증)
+	if err := eng.StartScenario(scn.ID); err != nil {
+		t.Fatalf("StartScenario failed (v1.0 format should execute): %v", err)
+	}
+
+	// 검증: scenario:started 이벤트 발행됨
+	if !waitForEvent(t, te, EventStarted, 2*time.Second) {
+		t.Fatal("scenario:started event not emitted")
+	}
+
+	// 검증: scenario:completed 이벤트 발행됨 (단일 인스턴스이므로 즉시 완료)
+	if !waitForEvent(t, te, EventCompleted, 3*time.Second) {
+		t.Fatal("scenario:completed event not emitted")
+	}
+
+	// Cleanup
+	eng.StopScenario()
+}
+
+// TestIntegration_V1_0_MakeCallAnswerRelease_Parse tests v1.0 MakeCall→Answer→Release parsing
+func TestIntegration_V1_0_MakeCallAnswerRelease_Parse(t *testing.T) {
+	// v1.0의 전형적인 2인 콜 시나리오 (codecs 없음)
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Caller",
+        "mode": "DN",
+        "dn": "100"
+      }
+    },
+    {
+      "id": "inst-b",
+      "type": "sipInstance",
+      "position": {"x": 400, "y": 100},
+      "data": {
+        "label": "Callee",
+        "mode": "DN",
+        "dn": "200"
+      }
+    },
+    {
+      "id": "cmd-make",
+      "type": "command",
+      "position": {"x": 100, "y": 250},
+      "data": {
+        "command": "MakeCall",
+        "sipInstanceId": "inst-a",
+        "targetUri": "sip:200@127.0.0.1"
+      }
+    },
+    {
+      "id": "evt-incoming",
+      "type": "event",
+      "position": {"x": 400, "y": 250},
+      "data": {
+        "event": "INCOMING",
+        "sipInstanceId": "inst-b"
+      }
+    },
+    {
+      "id": "cmd-answer",
+      "type": "command",
+      "position": {"x": 400, "y": 400},
+      "data": {
+        "command": "Answer",
+        "sipInstanceId": "inst-b"
+      }
+    },
+    {
+      "id": "cmd-release",
+      "type": "command",
+      "position": {"x": 100, "y": 550},
+      "data": {
+        "command": "Release",
+        "sipInstanceId": "inst-a"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "inst-a",
+      "target": "cmd-make",
+      "sourceHandle": "success"
+    },
+    {
+      "id": "e2",
+      "source": "inst-b",
+      "target": "evt-incoming",
+      "sourceHandle": "success"
+    },
+    {
+      "id": "e3",
+      "source": "evt-incoming",
+      "target": "cmd-answer",
+      "sourceHandle": "success"
+    },
+    {
+      "id": "e4",
+      "source": "cmd-answer",
+      "target": "cmd-release",
+      "sourceHandle": "success"
+    }
+  ]
+}`
+
+	// ParseScenario로 파싱 검증
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed for v1.0 format: %v", err)
+	}
+
+	// 검증: 인스턴스 2개 파싱됨
+	if len(graph.Instances) != 2 {
+		t.Errorf("expected 2 instances, got %d", len(graph.Instances))
+	}
+
+	// 검증: inst-a의 Codecs 필드는 기본값 []string{"PCMU", "PCMA"}
+	instA, ok := graph.Instances["inst-a"]
+	if !ok {
+		t.Fatal("inst-a not found")
+	}
+	expectedCodecs := []string{"PCMU", "PCMA"}
+	if len(instA.Config.Codecs) != len(expectedCodecs) {
+		t.Errorf("inst-a: expected %d default codecs, got %d", len(expectedCodecs), len(instA.Config.Codecs))
+	}
+
+	// 검증: MakeCall 노드 파싱됨
+	cmdMake := graph.Nodes["cmd-make"]
+	if cmdMake == nil {
+		t.Fatal("cmd-make not found")
+	}
+	if cmdMake.Command != "MakeCall" {
+		t.Errorf("expected command 'MakeCall', got '%s'", cmdMake.Command)
+	}
+
+	// 검증: Answer 노드 파싱됨
+	cmdAnswer := graph.Nodes["cmd-answer"]
+	if cmdAnswer == nil {
+		t.Fatal("cmd-answer not found")
+	}
+	if cmdAnswer.Command != "Answer" {
+		t.Errorf("expected command 'Answer', got '%s'", cmdAnswer.Command)
+	}
+
+	// 검증: Release 노드 파싱됨
+	cmdRelease := graph.Nodes["cmd-release"]
+	if cmdRelease == nil {
+		t.Fatal("cmd-release not found")
+	}
+	if cmdRelease.Command != "Release" {
+		t.Errorf("expected command 'Release', got '%s'", cmdRelease.Command)
+	}
+
+	// 검증: 엣지 체인 파싱됨 (Answer → Release)
+	if cmdAnswer.SuccessNext == nil {
+		t.Fatal("cmd-answer: expected SuccessNext, got nil")
+	}
+	if cmdAnswer.SuccessNext.ID != "cmd-release" {
+		t.Errorf("cmd-answer: expected SuccessNext cmd-release, got %s", cmdAnswer.SuccessNext.ID)
+	}
+}
