@@ -219,6 +219,8 @@ func (ex *Executor) executeCommand(ctx context.Context, instanceID string, node 
 		return ex.executeHold(ctx, instanceID, node)
 	case "Retrieve":
 		return ex.executeRetrieve(ctx, instanceID, node)
+	case "BlindTransfer":
+		return ex.executeBlindTransfer(ctx, instanceID, node)
 	default:
 		return fmt.Errorf("unknown command: %s", node.Command)
 	}
@@ -415,6 +417,8 @@ func (ex *Executor) executeEvent(ctx context.Context, instanceID string, node *G
 		return ex.executeWaitSIPEvent(timeoutCtx, instanceID, node, "HELD", timeout)
 	case "RETRIEVED":
 		return ex.executeWaitSIPEvent(timeoutCtx, instanceID, node, "RETRIEVED", timeout)
+	case "TRANSFERRED":
+		return ex.executeWaitSIPEvent(timeoutCtx, instanceID, node, "TRANSFERRED", timeout)
 	default:
 		return fmt.Errorf("event type %s is not supported", node.Event)
 	}
@@ -790,6 +794,70 @@ func (ex *Executor) executeRetrieve(ctx context.Context, instanceID string, node
 	// 성공 로그
 	ex.engine.emitActionLog(node.ID, instanceID, "Retrieve succeeded", "info",
 		WithSIPMessage("sent", "INVITE", 200, "", "", "", "sendrecv"))
+	return nil
+}
+
+// executeBlindTransfer는 BlindTransfer 커맨드를 실행한다 — REFER를 전송하고 즉시 BYE로 통화를 종료한다
+func (ex *Executor) executeBlindTransfer(ctx context.Context, instanceID string, node *GraphNode) error {
+	// 1. targetUser/targetHost 검증
+	if node.TargetUser == "" {
+		return fmt.Errorf("BlindTransfer: targetUser is required")
+	}
+	if node.TargetHost == "" {
+		return fmt.Errorf("BlindTransfer: targetHost is required")
+	}
+
+	// 2. Dialog 조회
+	dialog, exists := ex.sessions.GetDialog(instanceID)
+	if !exists {
+		return fmt.Errorf("BlindTransfer: no active dialog for instance %s", instanceID)
+	}
+
+	// 3. SIP URI 조합
+	rawURI := fmt.Sprintf("sip:%s@%s", node.TargetUser, node.TargetHost)
+
+	// 4. sip.ParseUri()로 URI 검증
+	var referTo sip.Uri
+	if err := sip.ParseUri(rawURI, &referTo); err != nil {
+		return fmt.Errorf("BlindTransfer: invalid target URI %q: %w", rawURI, err)
+	}
+
+	// 5. referrer 인터페이스 어서션 (Phase 10 reInviter 패턴과 동일)
+	type referrer interface {
+		Refer(ctx context.Context, referTo sip.Uri, headers ...sip.Header) error
+	}
+	r, ok := dialog.(referrer)
+	if !ok {
+		return fmt.Errorf("BlindTransfer: dialog type %T does not support Refer", dialog)
+	}
+
+	// 6. 액션 로그 (Refer 호출 전에 발행하여 실패 시에도 시도 기록이 남음)
+	ex.engine.emitActionLog(node.ID, instanceID,
+		fmt.Sprintf("BlindTransfer: sending REFER to %s", rawURI), "info")
+
+	// 7. Refer 호출
+	if err := r.Refer(ctx, referTo); err != nil {
+		return fmt.Errorf("BlindTransfer: REFER failed: %w", err)
+	}
+
+	// 8. 성공 로그
+	ex.engine.emitActionLog(node.ID, instanceID,
+		fmt.Sprintf("BlindTransfer succeeded (Refer-To: %s)", rawURI), "info",
+		WithSIPMessage("sent", "REFER", 202, "", "", rawURI))
+
+	// 9. 즉시 BYE 전송 (5초 타임아웃)
+	hangupCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	if err := dialog.Hangup(hangupCtx); err != nil {
+		// BYE 실패는 경고만 (이미 종료된 경우 등)
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("BlindTransfer: BYE warning: %v", err), "warn")
+	} else {
+		ex.engine.emitActionLog(node.ID, instanceID, "BlindTransfer: BYE sent", "info",
+			WithSIPMessage("sent", "BYE", 200, "", "", ""))
+	}
+
 	return nil
 }
 
