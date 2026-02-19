@@ -31,16 +31,14 @@ type WAVValidationResult struct {
 	Details string `json:"details,omitempty"`
 }
 
-// ValidateWAVFile validates WAV file format for 8kHz mono PCM
-func (m *MediaBinding) ValidateWAVFile(filePath string) (*WAVValidationResult, error) {
-	runtime.LogInfo(m.ctx, fmt.Sprintf("Validating WAV: %s", filePath))
-
+// validateWAVFormat은 WAV 파일 포맷을 검증하는 순수 함수 (Wails runtime 의존성 없음)
+func validateWAVFormat(filePath string) *WAVValidationResult {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return &WAVValidationResult{
 			Valid: false,
 			Error: fmt.Sprintf("Cannot open file: %v", err),
-		}, nil
+		}
 	}
 	defer f.Close()
 
@@ -49,7 +47,7 @@ func (m *MediaBinding) ValidateWAVFile(filePath string) (*WAVValidationResult, e
 		return &WAVValidationResult{
 			Valid: false,
 			Error: "Not a valid WAV file",
-		}, nil
+		}
 	}
 
 	// ReadInfo populates decoder fields (doesn't return error)
@@ -60,14 +58,14 @@ func (m *MediaBinding) ValidateWAVFile(filePath string) (*WAVValidationResult, e
 		return &WAVValidationResult{
 			Valid: false,
 			Error: fmt.Sprintf("Sample rate must be 8kHz (file is %d Hz)", decoder.SampleRate),
-		}, nil
+		}
 	}
 
 	if decoder.NumChans != 1 {
 		return &WAVValidationResult{
 			Valid: false,
 			Error: fmt.Sprintf("Must be mono (file has %d channels)", decoder.NumChans),
-		}, nil
+		}
 	}
 
 	// PCM format is 1 in WAV spec (WavAudioFormat field)
@@ -75,14 +73,23 @@ func (m *MediaBinding) ValidateWAVFile(filePath string) (*WAVValidationResult, e
 		return &WAVValidationResult{
 			Valid: false,
 			Error: "Audio format must be PCM",
-		}, nil
+		}
 	}
 
-	runtime.LogInfo(m.ctx, "WAV validation passed")
 	return &WAVValidationResult{
 		Valid:   true,
 		Details: fmt.Sprintf("8kHz mono PCM, %d-bit", decoder.BitDepth),
-	}, nil
+	}
+}
+
+// ValidateWAVFile validates WAV file format for 8kHz mono PCM (Wails binding wrapper)
+func (m *MediaBinding) ValidateWAVFile(filePath string) (*WAVValidationResult, error) {
+	runtime.LogInfo(m.ctx, fmt.Sprintf("Validating WAV: %s", filePath))
+	result := validateWAVFormat(filePath)
+	if result.Valid {
+		runtime.LogInfo(m.ctx, "WAV validation passed")
+	}
+	return result, nil
 }
 
 // SelectWAVFile opens file dialog and validates selection
