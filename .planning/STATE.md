@@ -2,9 +2,9 @@
 
 ## 현재 상태
 - **마일스톤**: v1.1 — 미디어 + DTMF
-- **페이즈**: Phase 7 — Media Playback
-- **상태**: `phase-ready`
-- **최근 활동**: 2026-02-15 — Phase 7 Media Playback 완료
+- **페이즈**: Phase 8 — DTMF Send & Receive
+- **상태**: `in-progress`
+- **최근 활동**: 2026-02-19 — 08-02-PLAN.md 완료
 
 ## 프로젝트 참조
 
@@ -19,27 +19,27 @@ SIP 통화 시나리오에 미디어 재생, DTMF 송수신, 코덱 선택 기�
 
 ## 현재 위치
 
-### 페이즈: 7 - Media Playback
-**목표:** 사용자가 통화 중 WAV 오디오 파일을 RTP로 재생하여 IVR 프롬프트 시뮬레이션을 수행할 수 있다
+### 페이즈: 8 - DTMF Send & Receive
+**목표:** 사용자가 통화 중 DTMF digit을 전송하고 수신하여 IVR 메뉴 탐색 및 입력 시나리오를 시뮬레이션할 수 있다
 
-**요구사항:** MEDIA-01, MEDIA-02, MEDIA-03
+**요구사항:** DTMF-01, DTMF-02, DTMF-03
 
-**계획:** 2/2 완료
+**계획:** 1/2 완료
 
-**상태:** 완료 ✅
+**상태:** 진행 중 🔄
 
 **진행:**
 ```
-Phase 7: [██████████] 100%
+Phase 8: [█████░░░░░] 50%
 ```
 
 ### 전체 마일스톤 진행
 ```
-v1.1 Roadmap: [█████░░░░░] 2/4 페이즈 (50%)
+v1.1 Roadmap: [█████░░░░░] 2.5/4 페이즈 (62.5%)
 
 ✅ Phase 6: Codec Configuration [완료] — 2 plans, 2026-02-12
 ✅ Phase 7: Media Playback [완료] — 2 plans, 2026-02-15
-○ Phase 8: DTMF Send & Receive [대기]
+🔄 Phase 8: DTMF Send & Receive [진행 중] — 1/2 plans, 2026-02-19
 ○ Phase 9: Integration & Polish [대기]
 ```
 
@@ -48,16 +48,17 @@ v1.1 Roadmap: [█████░░░░░] 2/4 페이즈 (50%)
 ### v1.1 마일스톤
 - **총 페이즈**: 4
 - **완료된 페이즈**: 2
+- **진행 중 페이즈**: 1 (Phase 8)
 - **총 요구사항**: 9
 - **완료된 요구사항**: 4 (CODEC-01, MEDIA-01, MEDIA-02, MEDIA-03)
-- **총 계획**: 4+
-- **완료된 계획**: 4
+- **총 계획**: 6+
+- **완료된 계획**: 5
 
 ### 프로젝트 전체
 - **완료된 마일스톤**: 1 (v1.0)
 - **진행 중 마일스톤**: 1 (v1.1)
-- **총 페이즈 (v1.0+v1.1)**: 9 (7 완료 + 2 대기)
-- **총 계획 (v1.0+v1.1)**: 26+ (26 완료 + 미정)
+- **총 페이즈 (v1.0+v1.1)**: 9 (7 완료 + 1 진행 중 + 1 대기)
+- **총 계획 (v1.0+v1.1)**: 28+ (27 완료 + 미정)
 
 ## 누적 컨텍스트
 
@@ -65,20 +66,24 @@ v1.1 Roadmap: [█████░░░░░] 2/4 페이즈 (50%)
 
 | Plan | 결정 | 이유 | 영향 범위 |
 |------|------|------|-----------|
-| 07-01 | go-audio/wav 라이브러리 채택 | 순수 Go, SampleRate/NumChans/AudioFormat 제공 | WAV 검증, 크로스 컴파일 용이 |
-| 07-01 | SelectWAVFile에서 즉시 검증 | 선택 직후 피드백 제공 | UX 향상, 실행 시점 에러 방지 |
-| 07-01 | pb.Play() bytesPlayed 로깅 | 디버깅 시 파일 크기 확인 가능 | 실행 로그에서 처리량 추적 |
-| 07-02 | Volume2 아이콘 채택 | 오디오 재생의 직관적 시각 표현 | 노드 팔레트 및 캔버스 일관성 |
-| 07-02 | 파일명만 표시, 전체 경로는 tooltip | 긴 경로로 인한 UI 깨짐 방지 | 캔버스 노드 및 Properties 패널 레이아웃 |
-| 07-02 | 즉시 toast 피드백 | 파일 선택 직후 검증 피드백 제공 | UX 향상, 실행 시점 에러 방지 |
-| 07-02 | isSelecting 상태 관리 | 다이얼로그 중복 열림 방지 | Properties 패널 버튼 UX 개선 |
+| 08-01 | diago DTMF API는 dialog.Media().AudioWriterDTMF/AudioReaderDTMF로 접근 | DialogSession은 Media() 메서드를 통해 DialogMedia를 반환, 모든 미디어 기능은 DialogMedia를 통해 접근 | executeSendDTMF, executeDTMFReceived 구현 |
+| 08-01 | DTMFReceived는 goroutine으로 OnDTMF callback + Read 루프 실행 | context 취소 및 timeout을 select로 처리하며, expectedDigit 필터링을 OnDTMF callback에서 수행 | executeDTMFReceived 메서드 구조 |
+| 08-01 | IntervalMs 기본값 100ms | RFC 2833 최소 50ms 이상 필요, 안전 마진 확보 및 IVR 표준 간격 | ParseScenario 기본값, SendDTMF 실행 안정성 |
+| 08-01 | A-D extended DTMF digits 지원 | RFC 2833 spec 완전 준수, 엔터프라이즈 IVR 테스트 시나리오 대응 | isValidDTMF 검증 범위 |
+| 08-02 | Ear 아이콘을 DTMFReceived에 채택 | PhoneIncoming 이미 Answer 노드에 사용 중, Ear는 "digit을 듣고 대기한다"는 의미 전달 | DTMFReceived 노드 시각화 |
+| 08-02 | onChange에서 regex 필터 적용 | 유효하지 않은 문자를 입력 시점에 즉시 제거하여 실시간 피드백 제공 | digits/expectedDigit 입력 UX 향상 |
+| 08-02 | intervalMs 50-1000ms 클램프 | RFC 2833 최소 제약 준수 (50ms 미만은 불안정), 최대 1초는 UX 상 적절한 범위 | SendDTMF 실행 안정성 |
+| 08-02 | expectedDigit 단일 문자 제한 | DTMFReceived는 한 번에 하나의 digit만 대기 (연속 digit은 여러 노드로 체인) | 시나리오 그래프 명확성 |
+| 08-02 | timeout 기본값 10000ms (DTMFReceived) | 사용자 입력 대기 시간은 SIP 이벤트보다 길어야 함 (TIMEOUT 이벤트는 5000ms 기본) | DTMFReceived 이벤트 타임아웃 정책 |
 
 ### 할일 (TODO)
 - [x] ~~PlayAudio Command 노드 설계~~ (07-01 완료)
 - [x] ~~WAV 파일 선택 다이얼로그 구현~~ (07-01 완료)
 - [x] ~~WAV 포맷 검증 (8kHz mono PCM)~~ (07-01 완료)
 - [x] ~~PlayAudio 프론트엔드 UI 구현~~ (07-02 완료)
-- [ ] Phase 8 DTMF Send & Receive 논의 또는 계획 생성
+- [x] ~~SendDTMF/DTMFReceived 프론트엔드 UI 구현~~ (08-02 완료)
+- [x] ~~SendDTMF/DTMFReceived 백엔드 구현~~ (08-01 완료)
+- [ ] Phase 9 Integration & Polish 논의 또는 계획 생성
 
 ### 차단 요소
 없음
@@ -87,10 +92,10 @@ v1.1 Roadmap: [█████░░░░░] 2/4 페이즈 (50%)
 - **v1.0 — MVP**: 시각적 시나리오 빌더 + 시뮬레이션 실행 (5 phases, 22 plans, 78 commits, 2026-02-11 완료)
 
 ## 세션 연속성
-- **Last session:** 2026-02-15
-- **Stopped at:** Phase 7 Media Playback 완료 — 검증 통과 (9/9)
+- **Last session:** 2026-02-19
+- **Stopped at:** 08-01-PLAN.md 완료 — SendDTMF/DTMFReceived 백엔드 구현
 - **Resume file:** None
-- **다음 단계:** `/prp:discuss-phase 8` 또는 `/prp:plan-phase 8` — DTMF Send & Receive
+- **다음 단계:** Phase 8 완료 (08-02는 이미 구현됨) 또는 `/prp:discuss-phase 9` — Integration & Polish
 
 ## 프로젝트 메모리
 
