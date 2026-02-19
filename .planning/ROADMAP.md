@@ -62,7 +62,7 @@ Plans:
 
 ---
 
-### Phase 8: DTMF Send & Receive
+### Phase 8: DTMF Send & Receive ✅
 
 **목표:** 사용자가 RFC 2833 RTP telephone-event로 DTMF digits를 송수신하여 IVR 자동 탐색 시나리오를 구성할 수 있다
 
@@ -82,8 +82,8 @@ Plans:
 
 **Plans:** 2 plans
 Plans:
-- [ ] 08-01-PLAN.md — Backend DTMF executor (SendDTMF + DTMFReceived 실행 로직)
-- [ ] 08-02-PLAN.md — Frontend DTMF UI (노드 팔레트 + 캔버스 + Properties 패널)
+- [x] 08-01-PLAN.md — Backend DTMF executor (SendDTMF + DTMFReceived 실행 로직)
+- [x] 08-02-PLAN.md — Frontend DTMF UI (노드 팔레트 + 캔버스 + Properties 패널)
 
 ---
 
@@ -114,10 +114,10 @@ Plans:
 |-------|------|----------|------|------|
 | 6 - Codec Configuration | 코덱 선택 및 SDP 협상 | CODEC-01 | 2/2 | ✅ 완료 |
 | 7 - Media Playback | WAV 재생 | MEDIA-01, MEDIA-02, MEDIA-03 | 2/2 | ✅ 완료 |
-| 8 - DTMF Send & Receive | DTMF 송수신 | DTMF-01, DTMF-02 | 0/2 | 계획됨 |
+| 8 - DTMF Send & Receive | DTMF 송수신 | DTMF-01, DTMF-02 | 2/2 | ✅ 완료 |
 | 9 - Integration & Polish | 통합 테스트 및 품질 | NF-01, NF-02, NF-03 | 0/? | 대기 |
 
-**전체:** 2/4 페이즈 완료
+**전체:** 3/4 페이즈 완료
 
 ---
 

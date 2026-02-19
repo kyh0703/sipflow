@@ -16,8 +16,8 @@
 
 ### DTMF
 
-- [ ] **DTMF-01**: 사용자가 SendDTMF Command 노드를 배치하여 RFC 2833 RTP telephone-event로 DTMF digits를 전송할 수 있음
-- [ ] **DTMF-02**: 사용자가 DTMFReceived Event 노드에서 수신된 digit 값을 캡처하고, 선택적으로 특정 digit를 대기(expectedDigit)할 수 있음
+- [x] **DTMF-01**: 사용자가 SendDTMF Command 노드를 배치하여 RFC 2833 RTP telephone-event로 DTMF digits를 전송할 수 있음
+- [x] **DTMF-02**: 사용자가 DTMFReceived Event 노드에서 수신된 digit 값을 캡처하고, 선택적으로 특정 digit를 대기(expectedDigit)할 수 있음
 
 ### 코덱 선택
 
@@ -76,8 +76,8 @@
 | MEDIA-01 | Phase 7 | 07-01, 07-02 | Complete |
 | MEDIA-02 | Phase 7 | 07-01, 07-02 | Complete |
 | MEDIA-03 | Phase 7 | 07-01 | Complete |
-| DTMF-01 | Phase 8 | 대기 | 대기 |
-| DTMF-02 | Phase 8 | 대기 | 대기 |
+| DTMF-01 | Phase 8 | 08-01, 08-02 | Complete |
+| DTMF-02 | Phase 8 | 08-01, 08-02 | Complete |
 | NF-01 | Phase 9 | 대기 | 대기 |
 | NF-02 | Phase 9 | 대기 | 대기 |
 | NF-03 | Phase 9 | 대기 | 대기 |
