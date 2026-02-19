@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/emiago/diago"
+	"github.com/emiago/diago/media/sdp"
 	"github.com/emiago/sipgo/sip"
 )
 
@@ -214,6 +215,10 @@ func (ex *Executor) executeCommand(ctx context.Context, instanceID string, node 
 		return ex.executePlayAudio(ctx, instanceID, node)
 	case "SendDTMF":
 		return ex.executeSendDTMF(ctx, instanceID, node)
+	case "Hold":
+		return ex.executeHold(ctx, instanceID, node)
+	case "Retrieve":
+		return ex.executeRetrieve(ctx, instanceID, node)
 	default:
 		return fmt.Errorf("unknown command: %s", node.Command)
 	}
@@ -406,6 +411,10 @@ func (ex *Executor) executeEvent(ctx context.Context, instanceID string, node *G
 		return ex.executeTimeout(timeoutCtx, instanceID, node, timeout)
 	case "DTMFReceived":
 		return ex.executeDTMFReceived(timeoutCtx, instanceID, node)
+	case "HELD":
+		return ex.executeWaitSIPEvent(timeoutCtx, instanceID, node, "HELD", timeout)
+	case "RETRIEVED":
+		return ex.executeWaitSIPEvent(timeoutCtx, instanceID, node, "RETRIEVED", timeout)
 	default:
 		return fmt.Errorf("event type %s is not supported", node.Event)
 	}
@@ -699,6 +708,106 @@ func (ex *Executor) executeDTMFReceived(ctx context.Context, instanceID string, 
 	case <-time.After(node.Timeout):
 		ex.engine.emitActionLog(node.ID, instanceID, "DTMF receive timeout", "warning")
 		return fmt.Errorf("timeout waiting for DTMF")
+	}
+}
+
+// executeHold는 Hold 커맨드를 실행한다 — MediaSession.Mode를 sendonly로 설정하고 Re-INVITE를 전송한다
+func (ex *Executor) executeHold(ctx context.Context, instanceID string, node *GraphNode) error {
+	// 액션 로그 발행
+	ex.engine.emitActionLog(node.ID, instanceID, "Hold: sending Re-INVITE (sendonly)", "info")
+
+	// Dialog 조회
+	dialog, exists := ex.sessions.GetDialog(instanceID)
+	if !exists {
+		return fmt.Errorf("Hold: no active dialog for instance %s", instanceID)
+	}
+
+	// MediaSession 조회
+	mediaSess := dialog.Media().MediaSession()
+	if mediaSess == nil {
+		return fmt.Errorf("Hold: no media session available")
+	}
+
+	// SDP 방향을 sendonly로 변경 (Hold 상태)
+	mediaSess.Mode = sdp.ModeSendonly
+
+	// ReInvite 인터페이스 어서션
+	type reInviter interface {
+		ReInvite(ctx context.Context) error
+	}
+	ri, ok := dialog.(reInviter)
+	if !ok {
+		mediaSess.Mode = sdp.ModeSendrecv // 복원
+		return fmt.Errorf("Hold: dialog type %T does not support ReInvite", dialog)
+	}
+
+	// Re-INVITE 전송
+	if err := ri.ReInvite(ctx); err != nil {
+		mediaSess.Mode = sdp.ModeSendrecv // 실패 시 복원
+		return fmt.Errorf("Hold: ReInvite failed: %w", err)
+	}
+
+	// 성공 로그
+	ex.engine.emitActionLog(node.ID, instanceID, "Hold succeeded", "info",
+		WithSIPMessage("sent", "INVITE", 200, "", "", "", "sendonly"))
+	return nil
+}
+
+// executeRetrieve는 Retrieve 커맨드를 실행한다 — MediaSession.Mode를 sendrecv로 복원하고 Re-INVITE를 전송한다
+func (ex *Executor) executeRetrieve(ctx context.Context, instanceID string, node *GraphNode) error {
+	// 액션 로그 발행
+	ex.engine.emitActionLog(node.ID, instanceID, "Retrieve: sending Re-INVITE (sendrecv)", "info")
+
+	// Dialog 조회
+	dialog, exists := ex.sessions.GetDialog(instanceID)
+	if !exists {
+		return fmt.Errorf("Retrieve: no active dialog for instance %s", instanceID)
+	}
+
+	// MediaSession 조회
+	mediaSess := dialog.Media().MediaSession()
+	if mediaSess == nil {
+		return fmt.Errorf("Retrieve: no media session available")
+	}
+
+	// SDP 방향을 sendrecv로 복원 (Retrieve 상태)
+	mediaSess.Mode = sdp.ModeSendrecv
+
+	// ReInvite 인터페이스 어서션
+	type reInviter interface {
+		ReInvite(ctx context.Context) error
+	}
+	ri, ok := dialog.(reInviter)
+	if !ok {
+		return fmt.Errorf("Retrieve: dialog type %T does not support ReInvite", dialog)
+	}
+
+	// Re-INVITE 전송
+	if err := ri.ReInvite(ctx); err != nil {
+		return fmt.Errorf("Retrieve: ReInvite failed: %w", err)
+	}
+
+	// 성공 로그
+	ex.engine.emitActionLog(node.ID, instanceID, "Retrieve succeeded", "info",
+		WithSIPMessage("sent", "INVITE", 200, "", "", "", "sendrecv"))
+	return nil
+}
+
+// executeWaitSIPEvent는 SessionStore SIP 이벤트 버스에서 특정 이벤트를 블로킹 대기한다
+func (ex *Executor) executeWaitSIPEvent(ctx context.Context, instanceID string, node *GraphNode, eventType string, timeout time.Duration) error {
+	// 구독 채널 생성
+	ch := ex.sessions.SubscribeSIPEvent(instanceID, eventType)
+	defer ex.sessions.UnsubscribeSIPEvent(instanceID, eventType, ch)
+
+	select {
+	case <-ch:
+		// 이벤트 수신 성공
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("%s event received", eventType), "info")
+		return nil
+	case <-ctx.Done():
+		// 타임아웃 또는 컨텍스트 취소
+		return fmt.Errorf("%s event timeout after %v", eventType, timeout)
 	}
 }
 
