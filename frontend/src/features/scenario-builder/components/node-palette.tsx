@@ -4,6 +4,8 @@ import {
   PhoneIncoming,
   PhoneOff,
   Volume2,
+  Hash,
+  Ear,
   Bell,
   PhoneMissed,
   BellRing,
@@ -109,6 +111,12 @@ export function NodePalette() {
           icon={Volume2}
           colorClass="bg-blue-50 border-blue-400 text-blue-900"
         />
+        <PaletteItem
+          type="command-SendDTMF"
+          label="SendDTMF"
+          icon={Hash}
+          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+        />
       </Section>
 
       <Section title="Events">
@@ -158,6 +166,12 @@ export function NodePalette() {
           type="event-NOTIFY"
           label="NOTIFY"
           icon={MessageSquare}
+          colorClass="bg-amber-50 border-amber-400 text-amber-900"
+        />
+        <PaletteItem
+          type="event-DTMFReceived"
+          label="DTMFReceived"
+          icon={Ear}
           colorClass="bg-amber-50 border-amber-400 text-amber-900"
         />
       </Section>

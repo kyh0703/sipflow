@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Phone, PhoneIncoming, PhoneOff, Volume2 } from 'lucide-react';
+import { Phone, PhoneIncoming, PhoneOff, Volume2, Hash } from 'lucide-react';
 import type { CommandNode as CommandNodeType } from '../../types/scenario';
 import { useScenarioStore } from '../../store/scenario-store';
 import { useExecutionStore } from '../../store/execution-store';
@@ -9,6 +9,7 @@ const COMMAND_ICONS = {
   Answer: PhoneIncoming,
   Release: PhoneOff,
   PlayAudio: Volume2,
+  SendDTMF: Hash,
 } as const;
 
 function getExecutionStyle(status?: string): string {
@@ -66,6 +67,12 @@ export function CommandNode({ data, id }: NodeProps<CommandNodeType>) {
           <div className="text-xs text-muted-foreground truncate max-w-[140px]" title={data.filePath}>
             {data.filePath.split(/[\\/]/).pop()}
           </div>
+        </div>
+      )}
+
+      {data.command === 'SendDTMF' && data.digits && (
+        <div className="px-3 pb-2">
+          <div className="text-xs text-muted-foreground">Digits: {data.digits}</div>
         </div>
       )}
 

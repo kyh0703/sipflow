@@ -8,6 +8,7 @@ import {
   Play,
   ArrowRightLeft,
   MessageSquare,
+  Ear,
 } from 'lucide-react';
 import type { EventNode as EventNodeType } from '../../types/scenario';
 import { useScenarioStore } from '../../store/scenario-store';
@@ -22,6 +23,7 @@ const EVENT_ICONS = {
   RETRIEVED: Play,
   TRANSFERRED: ArrowRightLeft,
   NOTIFY: MessageSquare,
+  DTMFReceived: Ear,
 } as const;
 
 function getExecutionStyle(status?: string): string {
@@ -74,6 +76,12 @@ export function EventNode({ data, id }: NodeProps<EventNodeType>) {
       {data.event === 'TIMEOUT' && data.timeout && (
         <div className="px-3 pb-2">
           <div className="text-xs text-muted-foreground">Wait: {data.timeout}ms</div>
+        </div>
+      )}
+
+      {data.event === 'DTMFReceived' && data.expectedDigit && (
+        <div className="px-3 pb-2">
+          <div className="text-xs text-muted-foreground">Expect: {data.expectedDigit}</div>
         </div>
       )}
 
