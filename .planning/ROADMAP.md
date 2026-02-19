@@ -80,6 +80,11 @@ Plans:
 4. DTMFReceived Event 노드에서 expectedDigit를 설정하면 특정 digit 수신까지 대기하고, 일치하는 digit 수신 시 다음 노드로 진행됨
 5. DTMFReceived 노드에서 수신된 digit 값이 로그 패널에 표시됨
 
+**Plans:** 2 plans
+Plans:
+- [ ] 08-01-PLAN.md — Backend DTMF executor (SendDTMF + DTMFReceived 실행 로직)
+- [ ] 08-02-PLAN.md — Frontend DTMF UI (노드 팔레트 + 캔버스 + Properties 패널)
+
 ---
 
 ### Phase 9: Integration & Polish
@@ -109,7 +114,7 @@ Plans:
 |-------|------|----------|------|------|
 | 6 - Codec Configuration | 코덱 선택 및 SDP 협상 | CODEC-01 | 2/2 | ✅ 완료 |
 | 7 - Media Playback | WAV 재생 | MEDIA-01, MEDIA-02, MEDIA-03 | 2/2 | ✅ 완료 |
-| 8 - DTMF Send & Receive | DTMF 송수신 | DTMF-01, DTMF-02 | 0/? | 대기 |
+| 8 - DTMF Send & Receive | DTMF 송수신 | DTMF-01, DTMF-02 | 0/2 | 계획됨 |
 | 9 - Integration & Polish | 통합 테스트 및 품질 | NF-01, NF-02, NF-03 | 0/? | 대기 |
 
 **전체:** 2/4 페이즈 완료
