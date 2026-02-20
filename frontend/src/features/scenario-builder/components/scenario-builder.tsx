@@ -1,6 +1,6 @@
 import { ReactFlowProvider } from '@xyflow/react';
 import { Save, Check, Circle, Loader2 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PanelImperativeHandle } from 'react-resizable-panels';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
@@ -28,6 +28,17 @@ export function ScenarioBuilder() {
   const [bottomTab, setBottomTab] = useState<'log' | 'timeline'>('log');
   const [activePanel, setActivePanel] = useState<'scenario' | 'palette' | null>('scenario');
   const sidebarRef = useRef<PanelImperativeHandle>(null);
+  const propertiesRef = useRef<PanelImperativeHandle>(null);
+  const selectedNodeId = useScenarioStore((state) => state.selectedNodeId);
+
+  // Properties panel: expand when a node is selected, collapse when deselected
+  useEffect(() => {
+    if (selectedNodeId) {
+      propertiesRef.current?.expand();
+    } else {
+      propertiesRef.current?.collapse();
+    }
+  }, [selectedNodeId]);
 
   const handlePanelToggle = (panel: 'scenario' | 'palette') => {
     if (activePanel === panel && !sidebarRef.current?.isCollapsed()) {
@@ -107,12 +118,16 @@ export function ScenarioBuilder() {
             />
 
             {/* Resizable layout */}
-            <ResizablePanelGroup orientation="horizontal" className="flex-1">
+            <ResizablePanelGroup
+              orientation="horizontal"
+              className="flex-1"
+              defaultLayout={{ sidebar: 20, canvas: 58, properties: 22 }}
+            >
               {/* Left Sidebar */}
               <ResizablePanel
-                defaultSize={17}
-                minSize={15}
-                maxSize={30}
+                id="sidebar"
+                minSize="17%"
+                maxSize="30%"
                 collapsible
                 collapsedSize={0}
                 panelRef={sidebarRef}
@@ -133,7 +148,7 @@ export function ScenarioBuilder() {
               <ResizableHandle withHandle />
 
               {/* Center: Canvas + Execution Panel */}
-              <ResizablePanel defaultSize={61}>
+              <ResizablePanel id="canvas">
                 <div className="flex flex-col h-full">
                   <div className="flex-1">
                     <Canvas />
@@ -176,9 +191,12 @@ export function ScenarioBuilder() {
 
               {/* Right Sidebar: Properties */}
               <ResizablePanel
-                defaultSize={22}
-                minSize={15}
-                maxSize={30}
+                id="properties"
+                minSize="15%"
+                maxSize="30%"
+                collapsible
+                collapsedSize={0}
+                panelRef={propertiesRef}
               >
                 <div className="h-full overflow-y-auto p-4">
                   <PropertiesPanel />
