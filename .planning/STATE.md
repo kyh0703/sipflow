@@ -2,9 +2,9 @@
 
 ## 현재 상태
 - **마일스톤**: v1.2 — Transfer + UI 개선
-- **페이즈**: 11 - BlindTransfer + TransferEvent Backend (완료)
+- **페이즈**: 12 - UI 리디자인 (완료)
 - **상태**: `phase_complete`
-- **최근 활동**: 2026-02-19 — 11-02-PLAN.md 완료 (OnRefer 콜백 완전 구현 + BlindTransfer/TRANSFERRED 에러 경로 + 이벤트 라우팅 테스트)
+- **최근 활동**: 2026-02-20 — 12-01-PLAN.md 완료 (Activity Bar + Resizable 레이아웃 — shadcn Resizable 설치, ActivityBar 컴포넌트, ScenarioBuilder 재구성)
 
 ## 프로젝트 참조
 
@@ -19,27 +19,27 @@ SIP 통화 보류(Hold/Retrieve)와 블라인드 전환(BlindTransfer)을 구현
 
 ## 현재 위치
 
-### 페이즈: 11 - BlindTransfer + TransferEvent Backend
-**목표:** BlindTransfer Command 노드가 REFER를 전송하고 BYE로 종료, TRANSFERRED 이벤트 노드가 전달 완료를 감지한다
+### 페이즈: 12 - UI 리디자인 (Activity Bar + Resizable)
+**목표:** 사용자가 Activity Bar의 아이콘 클릭으로 사이드바 패널을 토글하고, 사이드바 너비를 자유롭게 조절할 수 있다
 
-**요구사항:** XFER-01, XFER-02
+**요구사항:** UI-01, UI-02
 
-**계획:** 2/2 완료
+**계획:** 1/1 완료
 
 **상태:** 완료
 
 **진행:**
 ```
-Phase 11: [██████████] 100%
+Phase 12: [██████████] 100%
 ```
 
 ### 전체 마일스톤 진행
 ```
-v1.2 Roadmap: [█████     ] 2/4 phases complete
+v1.2 Roadmap: [███████░░░] 3/4 phases complete
 
 ✅ Phase 10: Hold/Retrieve Backend [완료 - 2/2 plans]
 ✅ Phase 11: BlindTransfer + TransferEvent Backend [완료 - 2/2 plans]
-⏳ Phase 12: UI 리디자인 [대기]
+✅ Phase 12: UI 리디자인 [완료 - 1/1 plan]
 ⏳ Phase 13: 새 노드 UI + 통합 & 품질 [대기]
 ```
 
@@ -47,12 +47,12 @@ v1.2 Roadmap: [█████     ] 2/4 phases complete
 
 ### v1.2 마일스톤
 - **총 페이즈**: 4
-- **완료된 페이즈**: 2
+- **완료된 페이즈**: 3
 - **진행 중 페이즈**: 0
 - **총 요구사항**: 12
-- **완료된 요구사항**: 6 (HOLD-01~04, XFER-01, XFER-02)
-- **총 계획**: 4+ (Phase 10: 2 완료, Phase 11: 2 완료, Phase 12-13: 예정)
-- **완료된 계획**: 4
+- **완료된 요구사항**: 8 (HOLD-01~04, XFER-01, XFER-02, UI-01, UI-02)
+- **총 계획**: 5+ (Phase 10: 2 완료, Phase 11: 2 완료, Phase 12: 1 완료, Phase 13: 예정)
+- **완료된 계획**: 5
 
 ### 프로젝트 전체
 - **완료된 마일스톤**: 2 (v1.0, v1.1)
@@ -77,7 +77,8 @@ v1.2 Roadmap: [█████     ] 2/4 phases complete
 ### 할일 (TODO)
 - [x] Phase 10 계획 수립 + 실행 완료
 - [x] Phase 11 계획 수립 + 실행 완료
-- [ ] Phase 12 계획 수립 (백엔드와 독립, 프론트엔드 전용)
+- [x] Phase 12 계획 수립 + 실행 완료
+- [ ] Phase 13 계획 수립 (새 노드 UI + 통합 & 품질)
 
 ### 차단 요소
 없음
@@ -87,10 +88,10 @@ v1.2 Roadmap: [█████     ] 2/4 phases complete
 - **v1.1 — 미디어 + DTMF**: 미디어 재생, DTMF 송수신, 코덱 선택 (4 phases, 8 plans, 36 commits, 2026-02-19 완료)
 
 ## 세션 연속성
-- **Last session:** 2026-02-19
-- **Stopped at:** Phase 11, Plan 02 완료 (OnRefer 콜백 완전 구현 + BlindTransfer/TRANSFERRED 에러 경로 + 이벤트 라우팅 테스트)
+- **Last session:** 2026-02-20
+- **Stopped at:** Phase 12, Plan 01 완료 (Activity Bar + Resizable 레이아웃)
 - **Resume file:** None
-- **다음 단계:** Phase 12 계획 수립 (UI 리디자인)
+- **다음 단계:** Phase 13 계획 수립 (새 노드 UI + 통합 & 품질)
 
 ## 프로젝트 메모리
 
@@ -198,6 +199,9 @@ v1.2 Roadmap: [█████     ] 2/4 phases complete
 - [2026-02-19] OnMediaUpdate goroutine 분리 확정 (diago d.mu.Lock() 재진입 데드락 방지)
 - [2026-02-19] SessionStore SIP 이벤트 버스: map[string][]chan struct{} + non-blocking send 패턴
 - [2026-02-19] executor 필드 승격 (Engine 구조체), cleanup() 인자 제거
+- [2026-02-20] panelRef prop 사용 (react-resizable-panels v4, React 18 호환) (12-01)
+- [2026-02-20] onResize collapse 감지 (v4 onCollapse 제거, asPercentage === 0) (12-01)
+- [2026-02-20] defaultSize 17+61+22=100% 레이아웃 비율 (12-01)
 
 ## 결정사항 누적
 
@@ -283,6 +287,9 @@ v1.2 Roadmap: [█████     ] 2/4 phases complete
 | 11-02 | sip.Request.Recipient 필드로 URI 추출 | sip.Request에 RequestURI() 메서드 없음 — Recipient 필드가 request-line URI | OnRefer Refer-To URI 추출 |
 | 11-02 | StoreDialog 이후 emitSIPEvent(TRANSFERRED) | SessionStore 교체 후 이벤트 발행하여 후속 노드가 올바른 dialog 사용 보장 | OnRefer 이벤트 발행 순서 |
 | 11-02 | Invite 실패 시 에러 반환 → TRANSFERRED 미발행 | 전달 미완료 상태 TRANSFERRED 발행은 거짓 성공 → 타임아웃 유도 의도적 | OnRefer 에러 처리 |
+| 12-01 | panelRef prop 사용 | react-resizable-panels v4는 React 19 ref 패턴, React 18에서 panelRef 필요 | 사이드바 imperative handle |
+| 12-01 | onResize collapse 감지 | v4에 onCollapse 콜백 없음, asPercentage === 0으로 감지 | 사이드바 상태 동기화 |
+| 12-01 | defaultSize 17+61+22=100% | ResizablePanelGroup 합계 100% 필수 | 레이아웃 비율 |
 
 ## 차단 요소 / 우려사항
 

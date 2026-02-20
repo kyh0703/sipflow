@@ -70,7 +70,7 @@ Plans:
 
 ---
 
-### Phase 12: UI 리디자인 (Activity Bar + Resizable)
+### Phase 12: UI 리디자인 (Activity Bar + Resizable) ✅
 
 **목표:** 사용자가 Activity Bar의 아이콘 클릭으로 사이드바 패널을 토글하고, 사이드바 너비를 자유롭게 조절할 수 있다
 
@@ -87,7 +87,10 @@ Plans:
 3. 사이드바 경계를 드래그하여 너비를 조절할 수 있으며 조절된 너비가 세션 내 유지됨
 4. 기존 시나리오 트리와 노드 팔레트 기능이 리디자인 후에도 동일하게 동작함
 
-**Plans:** (계획 예정)
+**Plans:** 1 plan
+
+Plans:
+- [x] 12-01-PLAN.md — Activity Bar + Resizable 레이아웃
 
 ---
 
@@ -122,10 +125,10 @@ Plans:
 |-------|------|----------|------|------|
 | 10 - Hold/Retrieve Backend | Hold/Retrieve 백엔드 구현 | HOLD-01, HOLD-02, HOLD-03, HOLD-04 | 2 plans | ✅ 완료 |
 | 11 - BlindTransfer Backend | BlindTransfer/TransferEvent 백엔드 | XFER-01, XFER-02 | 2 plans | ✅ 완료 |
-| 12 - UI 리디자인 | Activity Bar + Resizable 사이드바 | UI-01, UI-02 | — | 대기 |
+| 12 - UI 리디자인 | Activity Bar + Resizable 사이드바 | UI-01, UI-02 | 1 plan | ✅ 완료 |
 | 13 - 새 노드 UI + 통합 | 새 노드 UI 완성 + 품질 | UI-03, NF-01, NF-02, NF-03 | — | 대기 |
 
-**전체:** 2/4 페이즈 완료
+**전체:** 3/4 페이즈 완료
 
 ---
 
