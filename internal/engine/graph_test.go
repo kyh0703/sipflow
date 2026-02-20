@@ -844,3 +844,293 @@ func TestParseScenario_BlindTransferFields(t *testing.T) {
 		t.Errorf("expected targetHost '192.168.1.100:5060', got '%s'", cmd1.TargetHost)
 	}
 }
+
+// TestParseScenario_HoldFields tests Hold command field parsing (NF-01)
+func TestParseScenario_HoldFields(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100"
+      }
+    },
+    {
+      "id": "cmd-1",
+      "type": "command",
+      "position": {"x": 100, "y": 250},
+      "data": {
+        "command": "Hold",
+        "sipInstanceId": "inst-a"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "inst-a",
+      "target": "cmd-1",
+      "sourceHandle": "success"
+    }
+  ]
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	cmd1 := graph.Nodes["cmd-1"]
+	if cmd1 == nil {
+		t.Fatal("cmd-1 not found")
+	}
+
+	// 검증: Command == "Hold"
+	if cmd1.Command != "Hold" {
+		t.Errorf("expected command 'Hold', got '%s'", cmd1.Command)
+	}
+
+	// 검증: TargetUser는 빈 문자열 (Hold는 target 파라미터 없음)
+	if cmd1.TargetUser != "" {
+		t.Errorf("expected empty targetUser for Hold, got '%s'", cmd1.TargetUser)
+	}
+
+	// 검증: TargetHost는 빈 문자열 (Hold는 target 파라미터 없음)
+	if cmd1.TargetHost != "" {
+		t.Errorf("expected empty targetHost for Hold, got '%s'", cmd1.TargetHost)
+	}
+}
+
+// TestParseScenario_RetrieveFields tests Retrieve command field parsing (NF-01)
+func TestParseScenario_RetrieveFields(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100"
+      }
+    },
+    {
+      "id": "cmd-1",
+      "type": "command",
+      "position": {"x": 100, "y": 250},
+      "data": {
+        "command": "Retrieve",
+        "sipInstanceId": "inst-a"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "inst-a",
+      "target": "cmd-1",
+      "sourceHandle": "success"
+    }
+  ]
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	cmd1 := graph.Nodes["cmd-1"]
+	if cmd1 == nil {
+		t.Fatal("cmd-1 not found")
+	}
+
+	// 검증: Command == "Retrieve"
+	if cmd1.Command != "Retrieve" {
+		t.Errorf("expected command 'Retrieve', got '%s'", cmd1.Command)
+	}
+
+	// 검증: TargetUser는 빈 문자열 (Retrieve는 target 파라미터 없음)
+	if cmd1.TargetUser != "" {
+		t.Errorf("expected empty targetUser for Retrieve, got '%s'", cmd1.TargetUser)
+	}
+}
+
+// TestParseScenario_V1_1_BackwardCompatibility tests that v1.1 scenario format
+// parses successfully with v1.2 parser without breaking (NF-02)
+func TestParseScenario_V1_1_BackwardCompatibility(t *testing.T) {
+	// v1.1 시나리오 시뮬레이션: targetUser, targetHost, codecs 등 v1.2 신규 필드가 누락된 상태
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100"
+      }
+    },
+    {
+      "id": "inst-b",
+      "type": "sipInstance",
+      "position": {"x": 400, "y": 100},
+      "data": {
+        "label": "Instance B",
+        "mode": "DN",
+        "dn": "200"
+      }
+    },
+    {
+      "id": "cmd-makecall",
+      "type": "command",
+      "position": {"x": 100, "y": 250},
+      "data": {
+        "command": "MakeCall",
+        "sipInstanceId": "inst-a",
+        "targetUri": "sip:200@127.0.0.1:5062"
+      }
+    },
+    {
+      "id": "evt-incoming",
+      "type": "event",
+      "position": {"x": 400, "y": 250},
+      "data": {
+        "event": "INCOMING",
+        "sipInstanceId": "inst-b"
+      }
+    },
+    {
+      "id": "cmd-answer",
+      "type": "command",
+      "position": {"x": 400, "y": 400},
+      "data": {
+        "command": "Answer",
+        "sipInstanceId": "inst-b"
+      }
+    },
+    {
+      "id": "cmd-playaudio",
+      "type": "command",
+      "position": {"x": 100, "y": 400},
+      "data": {
+        "command": "PlayAudio",
+        "sipInstanceId": "inst-a",
+        "filePath": "/audio/greeting.wav"
+      }
+    },
+    {
+      "id": "cmd-senddtmf",
+      "type": "command",
+      "position": {"x": 100, "y": 550},
+      "data": {
+        "command": "SendDTMF",
+        "sipInstanceId": "inst-a",
+        "digits": "9",
+        "intervalMs": 150
+      }
+    },
+    {
+      "id": "evt-dtmf",
+      "type": "event",
+      "position": {"x": 400, "y": 550},
+      "data": {
+        "event": "DTMFReceived",
+        "sipInstanceId": "inst-b",
+        "expectedDigit": "9"
+      }
+    },
+    {
+      "id": "cmd-release",
+      "type": "command",
+      "position": {"x": 100, "y": 700},
+      "data": {
+        "command": "Release",
+        "sipInstanceId": "inst-a"
+      }
+    },
+    {
+      "id": "evt-disconnected",
+      "type": "event",
+      "position": {"x": 400, "y": 700},
+      "data": {
+        "event": "DISCONNECTED",
+        "sipInstanceId": "inst-b"
+      }
+    }
+  ],
+  "edges": [
+    {"id": "e1", "source": "inst-a", "target": "cmd-makecall", "sourceHandle": "success"},
+    {"id": "e2", "source": "inst-b", "target": "evt-incoming", "sourceHandle": "success"},
+    {"id": "e3", "source": "cmd-makecall", "target": "cmd-playaudio", "sourceHandle": "success"},
+    {"id": "e4", "source": "evt-incoming", "target": "cmd-answer", "sourceHandle": "success"},
+    {"id": "e5", "source": "cmd-playaudio", "target": "cmd-senddtmf", "sourceHandle": "success"},
+    {"id": "e6", "source": "cmd-answer", "target": "evt-dtmf", "sourceHandle": "success"},
+    {"id": "e7", "source": "cmd-senddtmf", "target": "cmd-release", "sourceHandle": "success"},
+    {"id": "e8", "source": "evt-dtmf", "target": "evt-disconnected", "sourceHandle": "success"}
+  ]
+}`
+
+	// 검증: v1.1 시나리오가 v1.2 파서에서 에러 없이 파싱됨
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("v1.1 backward compatibility broken — ParseScenario failed: %v", err)
+	}
+
+	// 검증: 인스턴스 2개 존재
+	if len(graph.Instances) != 2 {
+		t.Errorf("expected 2 instances, got %d", len(graph.Instances))
+	}
+
+	// 검증: MakeCall의 TargetURI가 올바르게 파싱됨
+	cmdMakeCall := graph.Nodes["cmd-makecall"]
+	if cmdMakeCall == nil {
+		t.Fatal("cmd-makecall not found")
+	}
+	if cmdMakeCall.TargetURI != "sip:200@127.0.0.1:5062" {
+		t.Errorf("expected targetUri 'sip:200@127.0.0.1:5062', got '%s'", cmdMakeCall.TargetURI)
+	}
+
+	// 검증: PlayAudio의 FilePath가 올바르게 파싱됨
+	cmdPlayAudio := graph.Nodes["cmd-playaudio"]
+	if cmdPlayAudio == nil {
+		t.Fatal("cmd-playaudio not found")
+	}
+	if cmdPlayAudio.FilePath != "/audio/greeting.wav" {
+		t.Errorf("expected filePath '/audio/greeting.wav', got '%s'", cmdPlayAudio.FilePath)
+	}
+
+	// 검증: SendDTMF의 Digits, IntervalMs가 올바르게 파싱됨
+	cmdSendDTMF := graph.Nodes["cmd-senddtmf"]
+	if cmdSendDTMF == nil {
+		t.Fatal("cmd-senddtmf not found")
+	}
+	if cmdSendDTMF.Digits != "9" {
+		t.Errorf("expected digits '9', got '%s'", cmdSendDTMF.Digits)
+	}
+	if cmdSendDTMF.IntervalMs != 150 {
+		t.Errorf("expected intervalMs 150, got %f", cmdSendDTMF.IntervalMs)
+	}
+
+	// 검증: DTMFReceived의 ExpectedDigit가 올바르게 파싱됨
+	evtDTMF := graph.Nodes["evt-dtmf"]
+	if evtDTMF == nil {
+		t.Fatal("evt-dtmf not found")
+	}
+	if evtDTMF.ExpectedDigit != "9" {
+		t.Errorf("expected expectedDigit '9', got '%s'", evtDTMF.ExpectedDigit)
+	}
+
+	// 검증: v1.2 신규 필드(TargetUser, TargetHost)는 빈 문자열 기본값 (getStringField 하위 호환성)
+	if cmdMakeCall.TargetUser != "" {
+		t.Errorf("expected empty TargetUser for v1.1 MakeCall node, got '%s'", cmdMakeCall.TargetUser)
+	}
+	if cmdMakeCall.TargetHost != "" {
+		t.Errorf("expected empty TargetHost for v1.1 MakeCall node, got '%s'", cmdMakeCall.TargetHost)
+	}
+}
