@@ -2,9 +2,9 @@
 
 ## 현재 상태
 - **마일스톤**: v1.3 — AttendedTransfer
-- **페이즈**: 시작되지 않음 (요구사항 정의 중)
-- **상태**: `requirements_defining`
-- **최근 활동**: 2026-02-20 — 마일스톤 v1.3 시작
+- **페이즈**: Phase 14 — SessionStore 멀티 다이얼로그
+- **상태**: `roadmap_created`
+- **최근 활동**: 2026-02-20 — v1.3 로드맵 생성 완료
 
 ## 프로젝트 참조
 
@@ -21,17 +21,39 @@ SessionStore 복합 키 리팩토링을 선행하고, Attended Transfer Command 
 
 ### 마일스톤: v1.3 — AttendedTransfer
 **목표:** SessionStore 리팩토링 + Attended Transfer 구현
-**상태:** 요구사항 정의 중
+**상태:** Phase 14 대기 중
+
+### 페이즈 진행
+
+```
+Phase 14: SessionStore 멀티 다이얼로그  [ 대기 ]
+Phase 15: AttendedTransfer 백엔드       [ 대기 ]
+Phase 16: callID UI + AttendedTransfer UI [ 대기 ]
+```
+
+**진행률:** 0/3 페이즈 완료
 
 ## 성능 지표
 
 ### 프로젝트 전체
 - **완료된 마일스톤**: 3 (v1.0, v1.1, v1.2)
-- **진행 중 마일스톤**: 0
+- **진행 중 마일스톤**: 1 (v1.3)
 - **총 페이즈 (v1.0+v1.1+v1.2)**: 13 (모두 완료)
-- **총 계획 (v1.0+v1.1+v1.2)**: 37 (모두 완료)
+- **v1.3 페이즈**: 3 (Phase 14~16)
 
 ## 누적 컨텍스트
+
+### v1.3 핵심 설계 결정
+
+| 항목 | 결정 | 이유 |
+|------|------|------|
+| SessionStore 키 구조 | instanceID + callID 복합 키 | 하나의 인스턴스에서 복수 dialog 관리 |
+| callID 기본값 | 빈 문자열 또는 "default" | v1.2 시나리오 하위 호환성 보장 |
+| incomingCh 버퍼 | 확장 (1 → N) | 동일 인스턴스 다중 INVITE 수신 지원 |
+| Replaces 헤더 구성 | 수동 추출 (sipgo.Dialog.Replaces 미지원) | diago API 제약, MEDIUM 신뢰도 |
+| AttendedTransfer 접근 | Composable 노드 조합 | Hold + MakeCall + AttendedTransfer 분리 |
+| AttendedTransfer 역할 | REFER+Replaces 전송만 담당 | 단일 책임, 다른 노드와 조합 |
+| Transferee 자동 처리 | OnRefer에서 Replaces 감지 시 자동 INVITE | 엔진 레벨 처리, 사용자 노드 불필요 |
 
 ### v1.2 핵심 설계 결정 (사전 리서치)
 
@@ -46,6 +68,9 @@ SessionStore 복합 키 리팩토링을 선행하고, Attended Transfer Command 
 | 신규 라이브러리 | 0개 | 기존 스택으로 모두 구현 가능 |
 
 ### 할일 (TODO)
+- [ ] Phase 14 계획 수립 + 실행 (`/prp:plan-phase 14`)
+- [ ] Phase 15 계획 수립 + 실행
+- [ ] Phase 16 계획 수립 + 실행
 - [x] Phase 10 계획 수립 + 실행 완료
 - [x] Phase 11 계획 수립 + 실행 완료
 - [x] Phase 12 계획 수립 + 실행 완료
@@ -64,9 +89,9 @@ SessionStore 복합 키 리팩토링을 선행하고, Attended Transfer Command 
 
 ## 세션 연속성
 - **Last session:** 2026-02-20
-- **Stopped at:** v1.3 마일스톤 시작, 요구사항 정의 중
+- **Stopped at:** v1.3 로드맵 생성 완료
 - **Resume file:** None
-- **다음 단계:** 연구 → 요구사항 → 로드맵 → `/prp:plan-phase 14`
+- **다음 단계:** `/prp:plan-phase 14`
 
 ## 프로젝트 메모리
 
@@ -89,6 +114,10 @@ SessionStore 복합 키 리팩토링을 선행하고, Attended Transfer Command 
 - AnswerOptions.OnMediaUpdate 콜백 — HeldEvent/RetrievedEvent 감지에 사용
 - AnswerOptions.OnRefer 콜백 — TransferEvent 감지에 사용
 - Answer() → AnswerOptions() 전환 필수 (이벤트 콜백 수신 전제조건)
+- diago Replaces 헤더: sipgo.Dialog.Replaces 미지원 → 수동 구성 필요 (MEDIUM 신뢰도)
+- SessionStore 현재 구조: map[instanceID]dialog (1:1, v1.3에서 복합 키로 리팩토링 예정)
+- incomingCh: 현재 버퍼 1 → v1.3에서 확장 필요
+- OnRefer 콜백: v1.2에서 BlindTransfer용 구현됨, Replaces 파라미터 처리 추가 필요
 
 ### 기술적 제약
 - Wails v2 Windows hot reload 불안정 (Linux에서 개발 권장)
@@ -97,7 +126,8 @@ SessionStore 복합 키 리팩토링을 선행하고, Attended Transfer Command 
 - diago Bridge는 코덱 호환성 필수 (양측 공통 코덱 없으면 488 Not Acceptable)
 - WAV 파일 포맷 불일치 시 재생 속도 왜곡 (8kHz mono PCM 필수)
 - CGO 의존성 회피를 위해 Opus 코덱 제외 (v1.1)
-- AttendedTransfer 제외 — SessionStore 복합 키 리팩토링 + diago Replaces 미지원 (v1.3으로 연기)
+- diago Call-ID 미지원 (04-01에서 문서화, 향후 diago 업데이트 대기)
+- diago Replaces 헤더 자동 구성 미지원 — Call-ID/to-tag/from-tag 수동 추출 필요
 
 ### 의사결정 로그
 - [2026-02-09] 프로젝트 초기화, MVP 범위 확정
@@ -177,6 +207,10 @@ SessionStore 복합 키 리팩토링을 선행하고, Attended Transfer Command 
 - [2026-02-20] panelRef prop 사용 (react-resizable-panels v4, React 18 호환) (12-01)
 - [2026-02-20] onResize collapse 감지 (v4 onCollapse 제거, asPercentage === 0) (12-01)
 - [2026-02-20] defaultSize 17+61+22=100% 레이아웃 비율 (12-01)
+- [2026-02-20] v1.3 범위 확정: SessionStore 복합 키 + AttendedTransfer + callID UI
+- [2026-02-20] Composable 노드 접근 채택 (Hold + MakeCall + AttendedTransfer 조합)
+- [2026-02-20] callID 명명 확정 (sessionKey 대신, 콜센터 도메인 친화적)
+- [2026-02-20] Replaces 헤더 수동 구성 결정 (sipgo.Dialog.Replaces 미지원)
 
 ## 결정사항 누적
 
@@ -277,3 +311,4 @@ SessionStore 복합 키 리팩토링을 선행하고, Attended Transfer Command 
 - npm audit moderate 취약점 (프로덕션 전 수정 필요)
 - diago Call-ID 미지원 (04-01에서 문서화, 향후 diago 업데이트 대기)
 - diago Hold/Unhold 빈 SDP 이슈 (#110) — Re-INVITE sendonly/sendrecv로 우회 (Phase 10에서 검증 필요)
+- diago Replaces 헤더 자동 구성 미지원 — Call-ID/to-tag/from-tag 수동 추출 필요 (Phase 15에서 구현)

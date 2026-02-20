@@ -52,18 +52,18 @@
 
 | REQ-ID | Phase | Plan | Status |
 |--------|-------|------|--------|
-| SS-01 | — | — | Pending |
-| SS-02 | — | — | Pending |
-| SS-03 | — | — | Pending |
-| SS-04 | — | — | Pending |
-| SS-05 | — | — | Pending |
-| SS-06 | — | — | Pending |
-| SS-07 | — | — | Pending |
-| AT-01 | — | — | Pending |
-| AT-02 | — | — | Pending |
-| AT-03 | — | — | Pending |
-| AT-04 | — | — | Pending |
-| UI-01 | — | — | Pending |
-| UI-02 | — | — | Pending |
-| UI-03 | — | — | Pending |
-| UI-04 | — | — | Pending |
+| SS-01 | Phase 14 | 14-01 | Pending |
+| SS-02 | Phase 14 | 14-02 | Pending |
+| SS-03 | Phase 14 | 14-02 | Pending |
+| SS-04 | Phase 14 | 14-02 | Pending |
+| SS-05 | Phase 14 | 14-02 | Pending |
+| SS-06 | Phase 14 | 14-02 | Pending |
+| SS-07 | Phase 14 | 14-01 | Pending |
+| AT-01 | Phase 15 | 15-01 | Pending |
+| AT-02 | Phase 15 | 15-01 | Pending |
+| AT-03 | Phase 15 | 15-01 | Pending |
+| AT-04 | Phase 15 | 15-02 | Pending |
+| UI-01 | Phase 16 | 16-02 | Pending |
+| UI-02 | Phase 16 | 16-02 | Pending |
+| UI-03 | Phase 16 | 16-01 | Pending |
+| UI-04 | Phase 16 | 16-01 | Pending |
