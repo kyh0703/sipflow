@@ -1,10 +1,12 @@
 import { ReactFlowProvider } from '@xyflow/react';
 import { Save, Check, Circle, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import type { PanelImperativeHandle } from 'react-resizable-panels';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { DnDProvider } from '../hooks/use-dnd';
+import { ActivityBar } from './activity-bar';
 import { Canvas } from './canvas';
 import { NodePalette } from './node-palette';
 import { PropertiesPanel } from './properties-panel';
@@ -24,6 +26,18 @@ export function ScenarioBuilder() {
   const saveNow = useScenarioStore((state) => state.saveNow);
   const executionStatus = useExecutionStore((state) => state.status);
   const [bottomTab, setBottomTab] = useState<'log' | 'timeline'>('log');
+  const [activePanel, setActivePanel] = useState<'scenario' | 'palette' | null>('scenario');
+  const sidebarRef = useRef<PanelImperativeHandle>(null);
+
+  const handlePanelToggle = (panel: 'scenario' | 'palette') => {
+    if (activePanel === panel && !sidebarRef.current?.isCollapsed()) {
+      sidebarRef.current?.collapse();
+      setActivePanel(null);
+    } else {
+      sidebarRef.current?.expand();
+      setActivePanel(panel);
+    }
+  };
 
   const handleSave = async () => {
     if (!currentScenarioId) {
@@ -81,67 +95,96 @@ export function ScenarioBuilder() {
                 <Save size={14} />
                 Save
               </button>
-              <ThemeToggle />
             </div>
           </div>
 
           {/* Main content */}
           <div className="flex flex-1 overflow-hidden">
-            {/* Left Sidebar */}
-            <div className="w-[200px] border-r border-border flex flex-col bg-background">
-              {/* Upper area: Scenario tree */}
-              <div className="flex-1 border-b overflow-hidden flex flex-col">
-                <ScenarioTree />
-              </div>
+            {/* Activity Bar (fixed 48px) */}
+            <ActivityBar
+              activePanel={activePanel}
+              onPanelToggle={handlePanelToggle}
+            />
 
-              {/* Lower area: Node palette */}
-              <div className="flex-1 overflow-y-auto p-3">
-                <NodePalette />
-              </div>
-            </div>
-
-            {/* Center: Canvas + Execution Panel (Log/Timeline tabs) */}
-            <div className="flex-1 flex flex-col">
-              <div className="flex-1">
-                <Canvas />
-              </div>
-              {/* Bottom panel: only show when not idle */}
-              {executionStatus !== 'idle' && (
-                <div className="border-t border-border bg-background">
-                  {/* Tab headers */}
-                  <div className="flex items-center gap-1 px-3 py-1 border-b border-border bg-muted/50">
-                    <button
-                      onClick={() => setBottomTab('log')}
-                      className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
-                        bottomTab === 'log'
-                          ? 'bg-background text-foreground'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Log
-                    </button>
-                    <button
-                      onClick={() => setBottomTab('timeline')}
-                      className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
-                        bottomTab === 'timeline'
-                          ? 'bg-background text-foreground'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Timeline
-                    </button>
-                  </div>
-                  {/* Tab content */}
-                  {bottomTab === 'log' && <ExecutionLog />}
-                  {bottomTab === 'timeline' && <ExecutionTimeline />}
+            {/* Resizable layout */}
+            <ResizablePanelGroup orientation="horizontal" className="flex-1">
+              {/* Left Sidebar */}
+              <ResizablePanel
+                defaultSize={17}
+                minSize={15}
+                maxSize={30}
+                collapsible
+                collapsedSize={0}
+                panelRef={sidebarRef}
+                onResize={(size) => {
+                  if (size.asPercentage === 0) setActivePanel(null);
+                }}
+              >
+                <div className="h-full overflow-y-auto">
+                  {activePanel === 'scenario' && <ScenarioTree />}
+                  {activePanel === 'palette' && (
+                    <div className="p-3">
+                      <NodePalette />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </ResizablePanel>
 
-            {/* Right Sidebar: Properties */}
-            <div className="w-[280px] border-l border-border bg-background overflow-y-auto p-4">
-              <PropertiesPanel />
-            </div>
+              <ResizableHandle withHandle />
+
+              {/* Center: Canvas + Execution Panel */}
+              <ResizablePanel defaultSize={61}>
+                <div className="flex flex-col h-full">
+                  <div className="flex-1">
+                    <Canvas />
+                  </div>
+                  {/* Bottom panel: only show when not idle */}
+                  {executionStatus !== 'idle' && (
+                    <div className="border-t border-border bg-background">
+                      {/* Tab headers */}
+                      <div className="flex items-center gap-1 px-3 py-1 border-b border-border bg-muted/50">
+                        <button
+                          onClick={() => setBottomTab('log')}
+                          className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
+                            bottomTab === 'log'
+                              ? 'bg-background text-foreground'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Log
+                        </button>
+                        <button
+                          onClick={() => setBottomTab('timeline')}
+                          className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
+                            bottomTab === 'timeline'
+                              ? 'bg-background text-foreground'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Timeline
+                        </button>
+                      </div>
+                      {/* Tab content */}
+                      {bottomTab === 'log' && <ExecutionLog />}
+                      {bottomTab === 'timeline' && <ExecutionTimeline />}
+                    </div>
+                  )}
+                </div>
+              </ResizablePanel>
+
+              <ResizableHandle withHandle />
+
+              {/* Right Sidebar: Properties */}
+              <ResizablePanel
+                defaultSize={22}
+                minSize={15}
+                maxSize={30}
+              >
+                <div className="h-full overflow-y-auto p-4">
+                  <PropertiesPanel />
+                </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </div>
         </div>
       </DnDProvider>
