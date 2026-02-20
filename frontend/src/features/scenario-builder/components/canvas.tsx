@@ -14,7 +14,6 @@ import {
 import '@xyflow/react/dist/style.css';
 import { useScenarioStore } from '../store/scenario-store';
 import { useExecutionStore } from '../store/execution-store';
-import { useScenarioApi } from '../hooks/use-scenario-api';
 import { useValidation } from '../hooks/use-validation';
 import { wouldCreateCycle } from '../lib/validation';
 import { edgeTypes } from '../edges/branch-edge';
@@ -26,7 +25,6 @@ import type { EdgeAnimationMessage } from '../types/execution';
 export function Canvas() {
   const { screenToFlowPosition } = useReactFlow();
   const { type: dragType, setType: setDragType } = useDnD();
-  const api = useScenarioApi();
   const { validateAndNotify } = useValidation();
   const { resolvedTheme } = useTheme();
 
