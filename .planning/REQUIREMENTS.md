@@ -22,15 +22,15 @@
 
 ### UI 개선 (레이아웃 리디자인)
 
-- [ ] **UI-01**: 좌측에 아이콘 네비게이션 바(Activity Bar)를 두고, 아이콘 클릭 시 해당 사이드바 패널(시나리오 트리, 노드 팔레트)이 토글됨
-- [ ] **UI-02**: 사이드바가 shadcn Resizable 컴포넌트로 너비 조절 가능함
-- [ ] **UI-03**: 새 Command/Event 노드(Hold, Retrieve, BlindTransfer, TransferEvent, HeldEvent, RetrievedEvent)에 맞는 Properties 패널, 아이콘, 팔레트 항목이 추가됨
+- [x] **UI-01**: 좌측에 아이콘 네비게이션 바(Activity Bar)를 두고, 아이콘 클릭 시 해당 사이드바 패널(시나리오 트리, 노드 팔레트)이 토글됨
+- [x] **UI-02**: 사이드바가 shadcn Resizable 컴포넌트로 너비 조절 가능함
+- [x] **UI-03**: 새 Command/Event 노드(Hold, Retrieve, BlindTransfer, TransferEvent, HeldEvent, RetrievedEvent)에 맞는 Properties 패널, 아이콘, 팔레트 항목이 추가됨
 
 ### 비기능 요구사항
 
-- [ ] **NF-01**: 새 Command/Event 핸들러에 대한 Go 단위 테스트가 포함됨
-- [ ] **NF-02**: 기존 v1.1 시나리오가 깨지지 않음 (하위 호환성 유지)
-- [ ] **NF-03**: 새 노드가 기존 노드 팔레트의 드래그앤드롭 패턴과 일관되게 동작함
+- [x] **NF-01**: 새 Command/Event 핸들러에 대한 Go 단위 테스트가 포함됨
+- [x] **NF-02**: 기존 v1.1 시나리오가 깨지지 않음 (하위 호환성 유지)
+- [x] **NF-03**: 새 노드가 기존 노드 팔레트의 드래그앤드롭 패턴과 일관되게 동작함
 
 ---
 
@@ -60,9 +60,9 @@
 | HOLD-02  | Phase 10 | 10-02 | 완료 |
 | HOLD-03  | Phase 10 | 10-02 | 완료 |
 | HOLD-04  | Phase 10 | 10-02 | 완료 |
-| UI-01    | Phase 12 | — | 미시작 |
-| UI-02    | Phase 12 | — | 미시작 |
-| UI-03    | Phase 13 | — | 미시작 |
-| NF-01    | Phase 13 | — | 미시작 |
-| NF-02    | Phase 13 | — | 미시작 |
-| NF-03    | Phase 13 | — | 미시작 |
+| UI-01    | Phase 12 | 12-01 | 완료 |
+| UI-02    | Phase 12 | 12-01 | 완료 |
+| UI-03    | Phase 13 | 13-01 | 완료 |
+| NF-01    | Phase 13 | 13-02 | 완료 |
+| NF-02    | Phase 13 | 13-02 | 완료 |
+| NF-03    | Phase 13 | 13-01 | 완료 |
