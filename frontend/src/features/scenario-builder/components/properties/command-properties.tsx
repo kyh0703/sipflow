@@ -194,6 +194,33 @@ export function CommandProperties({ node, onUpdate }: CommandPropertiesProps) {
           </div>
         </>
       )}
+
+      {data.command === 'BlindTransfer' && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="targetUser">Target User</Label>
+            <Input
+              id="targetUser"
+              value={data.targetUser || ''}
+              onChange={(e) => onUpdate({ targetUser: e.target.value })}
+              placeholder="carol"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="targetHost">Target Host</Label>
+            <Input
+              id="targetHost"
+              value={data.targetHost || ''}
+              onChange={(e) => onUpdate({ targetHost: e.target.value })}
+              placeholder="192.168.1.100:5060"
+            />
+            <p className="text-xs text-muted-foreground">
+              host:port (e.g. 192.168.1.100:5060)
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }

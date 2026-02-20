@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Phone, PhoneIncoming, PhoneOff, Volume2, Hash } from 'lucide-react';
+import { Phone, PhoneIncoming, PhoneOff, Volume2, Hash, Pause, Play, ArrowRightLeft } from 'lucide-react';
 import type { CommandNode as CommandNodeType } from '../../types/scenario';
 import { useScenarioStore } from '../../store/scenario-store';
 import { useExecutionStore } from '../../store/execution-store';
@@ -10,6 +10,9 @@ const COMMAND_ICONS = {
   Release: PhoneOff,
   PlayAudio: Volume2,
   SendDTMF: Hash,
+  Hold: Pause,
+  Retrieve: Play,
+  BlindTransfer: ArrowRightLeft,
 } as const;
 
 function getExecutionStyle(status?: string): string {
@@ -73,6 +76,12 @@ export function CommandNode({ data, id }: NodeProps<CommandNodeType>) {
       {data.command === 'SendDTMF' && data.digits && (
         <div className="px-3 pb-2">
           <div className="text-xs text-muted-foreground">Digits: {data.digits}</div>
+        </div>
+      )}
+
+      {data.command === 'BlindTransfer' && data.targetUser && (
+        <div className="px-3 pb-2">
+          <div className="text-xs text-muted-foreground">To: {data.targetUser}{data.targetHost ? `@${data.targetHost}` : ''}</div>
         </div>
       )}
 

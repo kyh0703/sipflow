@@ -7,8 +7,8 @@ export const NODE_CATEGORIES = {
   EVENT: 'event',
 } as const;
 
-// Command types (MVP Phase 2)
-export const COMMAND_TYPES = ['MakeCall', 'Answer', 'Release', 'PlayAudio', 'SendDTMF'] as const;
+// Command types (MVP Phase 2 + v1.2 Hold/Retrieve/BlindTransfer)
+export const COMMAND_TYPES = ['MakeCall', 'Answer', 'Release', 'PlayAudio', 'SendDTMF', 'Hold', 'Retrieve', 'BlindTransfer'] as const;
 
 // Event types (full set)
 export const EVENT_TYPES = [
@@ -62,6 +62,8 @@ export interface CommandNodeData extends Record<string, unknown> {
   filePath?: string; // for PlayAudio WAV file absolute path
   digits?: string; // for SendDTMF: DTMF digit string (e.g. "1234*#")
   intervalMs?: number; // for SendDTMF: interval between digits in milliseconds (default 100)
+  targetUser?: string; // for BlindTransfer: target SIP user
+  targetHost?: string; // for BlindTransfer: target SIP host:port
 }
 
 export type CommandNode = Node<CommandNodeData, 'command'>;

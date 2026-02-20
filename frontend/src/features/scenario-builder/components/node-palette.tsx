@@ -117,6 +117,24 @@ export function NodePalette() {
           icon={Hash}
           colorClass="bg-blue-50 border-blue-400 text-blue-900"
         />
+        <PaletteItem
+          type="command-Hold"
+          label="Hold"
+          icon={Pause}
+          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+        />
+        <PaletteItem
+          type="command-Retrieve"
+          label="Retrieve"
+          icon={Play}
+          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+        />
+        <PaletteItem
+          type="command-BlindTransfer"
+          label="BlindTransfer"
+          icon={ArrowRightLeft}
+          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+        />
       </Section>
 
       <Section title="Events">

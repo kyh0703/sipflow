@@ -120,6 +120,31 @@ export function EventProperties({ node, onUpdate }: EventPropertiesProps) {
           </div>
         </>
       )}
+
+      {/* HELD/RETRIEVED/TRANSFERRED - timeout */}
+      {(data.event === 'HELD' || data.event === 'RETRIEVED' || data.event === 'TRANSFERRED') && (
+        <>
+          <Separator />
+          <div className="space-y-2">
+            <Label htmlFor="timeout">Timeout (ms)</Label>
+            <Input
+              id="timeout"
+              type="number"
+              value={data.timeout ?? 10000}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10) || 10000;
+                onUpdate({ timeout: Math.max(1000, Math.min(60000, val)) });
+              }}
+              min={1000}
+              max={60000}
+              step={1000}
+            />
+            <p className="text-xs text-muted-foreground">
+              Maximum wait time for SIP event (default: 10000ms)
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }
