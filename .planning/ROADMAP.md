@@ -115,7 +115,11 @@ Plans:
 4. v1.1 시나리오 파일(PlayAudio, SendDTMF, DTMFReceived 포함)이 v1.2 에서 정상 로드되고 실행됨
 5. 새 노드의 드래그앤드롭 동작이 기존 MakeCall, Answer, Release 노드와 동일한 UX 패턴으로 동작함
 
-**Plans:** (계획 예정)
+**Plans:** 2 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — 새 노드 프론트엔드 UI (타입 + 아이콘 + 팔레트 + Properties)
+- [ ] 13-02-PLAN.md — Go 테스트 보완 + v1.1 하위 호환성 검증
 
 ---
 
@@ -126,7 +130,7 @@ Plans:
 | 10 - Hold/Retrieve Backend | Hold/Retrieve 백엔드 구현 | HOLD-01, HOLD-02, HOLD-03, HOLD-04 | 2 plans | ✅ 완료 |
 | 11 - BlindTransfer Backend | BlindTransfer/TransferEvent 백엔드 | XFER-01, XFER-02 | 2 plans | ✅ 완료 |
 | 12 - UI 리디자인 | Activity Bar + Resizable 사이드바 | UI-01, UI-02 | 1 plan | ✅ 완료 |
-| 13 - 새 노드 UI + 통합 | 새 노드 UI 완성 + 품질 | UI-03, NF-01, NF-02, NF-03 | — | 대기 |
+| 13 - 새 노드 UI + 통합 | 새 노드 UI 완성 + 품질 | UI-03, NF-01, NF-02, NF-03 | 2 plans | 대기 |
 
 **전체:** 3/4 페이즈 완료
 
