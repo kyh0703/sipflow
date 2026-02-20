@@ -128,10 +128,20 @@ v1.2에서 달성한 것:
 - Properties 패널 auto-expand/collapse
 - 56+ Go 테스트, v1.1 하위 호환성 검증
 
+## Current Milestone: v1.3 — AttendedTransfer
+
+**목표:** SessionStore 복합 키 리팩토링을 선행하고, Attended Transfer(어텐디드 전환) Command 노드를 구현하여 상담 통화 후 통화를 전환하는 고급 SIP 시나리오를 지원한다.
+
+**타겟 기능:**
+- SessionStore 복합 키 리팩토링 (instanceID:role 패턴으로 primary/consultation dialog 분리)
+- AttendedTransfer Command 노드 — consultation call 후 Replaces REFER 전송
+- incomingCh 버퍼 확장 (동일 인스턴스 다중 INVITE 수신 지원)
+- AttendedTransfer 프론트엔드 UI (노드 팔레트, Properties 패널, 아이콘)
+
 ### Next Milestone Goals
 
 향후 마일스톤 후보:
-- **v1.3**: AttendedTransfer + 통화 녹음 + 미디어 확장 (SessionStore 리팩토링, StartRecording/StopRecording, NOTIFY Event)
+- **v1.4**: 통화 녹음 + 미디어 확장 (StartRecording/StopRecording, stopOnDTMF, NOTIFY Event)
 - **v2.0**: 고급 시나리오 (조건 분기, 반복, 템플릿) + SIP 래더 다이어그램 시각화
 - **v3.0**: 멀티플랫폼 빌드 + 자동 업데이트 + 시나리오 공유
 

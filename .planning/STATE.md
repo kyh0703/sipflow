@@ -1,10 +1,10 @@
 # SIPFLOW Project State
 
 ## 현재 상태
-- **마일스톤**: v1.2 아카이브 완료, 다음 마일스톤 대기
-- **페이즈**: -
-- **상태**: `milestone_archived`
-- **최근 활동**: 2026-02-20 — v1.2 마일스톤 아카이브, git tag v1.2 생성
+- **마일스톤**: v1.3 — AttendedTransfer
+- **페이즈**: 시작되지 않음 (요구사항 정의 중)
+- **상태**: `requirements_defining`
+- **최근 활동**: 2026-02-20 — 마일스톤 v1.3 시작
 
 ## 프로젝트 참조
 
@@ -14,13 +14,14 @@
 - **N개 SIP 인스턴스**: 다중 SIP UA를 동시에 생성하여 복잡한 시나리오 검증
 - **이중 모드**: 로컬 시뮬레이션 모드 + 실제 SIP 트래픽 생성 모드
 
-### 현재 초점
-다음 마일스톤 준비 중. `/prp:new-milestone`로 v1.3 시작 예정.
+### 현재 초점 (v1.3)
+SessionStore 복합 키 리팩토링을 선행하고, Attended Transfer Command 노드를 구현하여 상담 통화 후 통화 전환 시나리오를 지원한다.
 
 ## 현재 위치
 
-### 마일스톤 아카이브 완료
-v1.2 마일스톤이 아카이브되었습니다. 다음 마일스톤 시작을 위해 `/prp:new-milestone`을 실행하세요.
+### 마일스톤: v1.3 — AttendedTransfer
+**목표:** SessionStore 리팩토링 + Attended Transfer 구현
+**상태:** 요구사항 정의 중
 
 ## 성능 지표
 
@@ -63,9 +64,9 @@ v1.2 마일스톤이 아카이브되었습니다. 다음 마일스톤 시작을 
 
 ## 세션 연속성
 - **Last session:** 2026-02-20
-- **Stopped at:** v1.2 마일스톤 아카이브 완료
+- **Stopped at:** v1.3 마일스톤 시작, 요구사항 정의 중
 - **Resume file:** None
-- **다음 단계:** `/prp:new-milestone`로 v1.3 시작
+- **다음 단계:** 연구 → 요구사항 → 로드맵 → `/prp:plan-phase 14`
 
 ## 프로젝트 메모리
 
