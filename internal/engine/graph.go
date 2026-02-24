@@ -16,7 +16,7 @@ type FlowData struct {
 type FlowNode struct {
 	ID   string
 	Type string
-	Data map[string]interface{}
+	Data map[string]any
 }
 
 // FlowEdge는 JSON 엣지 표현
@@ -25,7 +25,7 @@ type FlowEdge struct {
 	Source       string
 	Target       string
 	SourceHandle string
-	Data         map[string]interface{}
+	Data         map[string]any
 }
 
 // GraphNode는 실행 그래프 노드
@@ -33,20 +33,20 @@ type GraphNode struct {
 	ID             string
 	Type           string // command|event
 	InstanceID     string
-	Command        string        // MakeCall|Answer|Release|PlayAudio|SendDTMF|Hold|Retrieve|BlindTransfer (command 노드 전용)
-	TargetURI      string        // MakeCall 대상 URI (command 노드 전용)
-	FilePath       string        // PlayAudio WAV 파일 경로 (command 노드 전용)
-	Digits         string        // SendDTMF 전송할 DTMF digit 문자열 (command 노드 전용)
-	IntervalMs     float64       // SendDTMF digit 간 전송 간격 ms (command 노드 전용)
-	Event          string        // INCOMING|DISCONNECTED|RINGING|TIMEOUT|DTMFReceived|HELD|RETRIEVED|TRANSFERRED (event 노드 전용)
-	ExpectedDigit  string        // DTMFReceived 대기할 특정 digit (event 노드 전용)
-	Timeout        time.Duration // 타임아웃 (기본 10초)
-	TransferTarget string        // 레거시 (Phase 10 대비)
-	TargetUser     string        // BlindTransfer 대상 user 부분 (Phase 11)
-	TargetHost     string        // BlindTransfer 대상 host:port (Phase 11)
-	SuccessNext    *GraphNode    // 성공 분기 다음 노드
-	FailureNext    *GraphNode    // 실패 분기 다음 노드
-	Data           map[string]interface{} // 원본 노드 데이터 (executePlayAudio에서 필요)
+	Command        string         // MakeCall|Answer|Release|PlayAudio|SendDTMF|Hold|Retrieve|BlindTransfer (command 노드 전용)
+	TargetURI      string         // MakeCall 대상 URI (command 노드 전용)
+	FilePath       string         // PlayAudio WAV 파일 경로 (command 노드 전용)
+	Digits         string         // SendDTMF 전송할 DTMF digit 문자열 (command 노드 전용)
+	IntervalMs     float64        // SendDTMF digit 간 전송 간격 ms (command 노드 전용)
+	Event          string         // INCOMING|DISCONNECTED|RINGING|TIMEOUT|DTMFReceived|HELD|RETRIEVED|TRANSFERRED (event 노드 전용)
+	ExpectedDigit  string         // DTMFReceived 대기할 특정 digit (event 노드 전용)
+	Timeout        time.Duration  // 타임아웃 (기본 10초)
+	TransferTarget string         // 레거시 (Phase 10 대비)
+	TargetUser     string         // BlindTransfer 대상 user 부분 (Phase 11)
+	TargetHost     string         // BlindTransfer 대상 host:port (Phase 11)
+	SuccessNext    *GraphNode     // 성공 분기 다음 노드
+	FailureNext    *GraphNode     // 실패 분기 다음 노드
+	Data           map[string]any // 원본 노드 데이터 (executePlayAudio에서 필요)
 }
 
 // SipInstanceConfig는 SIP Instance 설정
@@ -187,7 +187,7 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 }
 
 // getStringField는 map[string]interface{}에서 안전하게 string 값을 추출한다
-func getStringField(data map[string]interface{}, key, defaultVal string) string {
+func getStringField(data map[string]any, key, defaultVal string) string {
 	if val, ok := data[key]; ok {
 		if str, ok := val.(string); ok {
 			return str
@@ -197,7 +197,7 @@ func getStringField(data map[string]interface{}, key, defaultVal string) string 
 }
 
 // getBoolField는 map[string]interface{}에서 안전하게 bool 값을 추출한다
-func getBoolField(data map[string]interface{}, key string, defaultVal bool) bool {
+func getBoolField(data map[string]any, key string, defaultVal bool) bool {
 	if val, ok := data[key]; ok {
 		if b, ok := val.(bool); ok {
 			return b
@@ -207,7 +207,7 @@ func getBoolField(data map[string]interface{}, key string, defaultVal bool) bool
 }
 
 // getFloatField는 map[string]interface{}에서 안전하게 float64 값을 추출한다
-func getFloatField(data map[string]interface{}, key string, defaultVal float64) float64 {
+func getFloatField(data map[string]any, key string, defaultVal float64) float64 {
 	if val, ok := data[key]; ok {
 		if f, ok := val.(float64); ok {
 			return f
@@ -217,9 +217,9 @@ func getFloatField(data map[string]interface{}, key string, defaultVal float64) 
 }
 
 // getStringArrayField는 map[string]interface{}에서 안전하게 []string 값을 추출한다
-func getStringArrayField(data map[string]interface{}, key string, defaultVal []string) []string {
+func getStringArrayField(data map[string]any, key string, defaultVal []string) []string {
 	if val, ok := data[key]; ok {
-		if arr, ok := val.([]interface{}); ok {
+		if arr, ok := val.([]any); ok {
 			result := make([]string, 0, len(arr))
 			for _, v := range arr {
 				if s, ok := v.(string); ok {

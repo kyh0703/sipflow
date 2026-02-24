@@ -1,6 +1,6 @@
 module sipflow
 
-go 1.24.0
+go 1.26.0
 
 require (
 	github.com/emiago/diago v0.27.0

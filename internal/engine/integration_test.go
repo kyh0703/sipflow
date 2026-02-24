@@ -19,11 +19,11 @@ type TestEventEmitter struct {
 // TestEvent represents an emitted event for testing
 type TestEvent struct {
 	Name string
-	Data map[string]interface{}
+	Data map[string]any
 }
 
 // Emit implements EventEmitter interface
-func (te *TestEventEmitter) Emit(eventName string, data map[string]interface{}) {
+func (te *TestEventEmitter) Emit(eventName string, data map[string]any) {
 	te.mu.Lock()
 	defer te.mu.Unlock()
 	te.events = append(te.events, TestEvent{Name: eventName, Data: data})
@@ -127,7 +127,7 @@ func TestIntegration_TwoPartyCall(t *testing.T) {
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"label": "Caller",
 				"mode":  "DN",
 				"dn":    "100",
@@ -137,7 +137,7 @@ func TestIntegration_TwoPartyCall(t *testing.T) {
 		{
 			ID:   "inst-b",
 			Type: "sipInstance",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"label": "Callee",
 				"mode":  "DN",
 				"dn":    "200",
@@ -147,18 +147,18 @@ func TestIntegration_TwoPartyCall(t *testing.T) {
 		{
 			ID:   "cmd-make",
 			Type: "command",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"sipInstanceId": "inst-a",
 				"command":       "MakeCall",
 				"targetUri":     "sip:200@127.0.0.1", // Instance B address (port determined by SIP)
-				"timeout":       30000.0, // Increased timeout
+				"timeout":       30000.0,             // Increased timeout
 			},
 		},
 		// INCOMING event on B
 		{
 			ID:   "evt-incoming",
 			Type: "event",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"sipInstanceId": "inst-b",
 				"event":         "INCOMING",
 				"timeout":       10000.0,
@@ -168,7 +168,7 @@ func TestIntegration_TwoPartyCall(t *testing.T) {
 		{
 			ID:   "cmd-answer",
 			Type: "command",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"sipInstanceId": "inst-b",
 				"command":       "Answer",
 			},
@@ -269,7 +269,7 @@ func TestIntegration_SingleInstance(t *testing.T) {
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"label": "Test UA",
 				"mode":  "DN",
 				"dn":    "100",
@@ -278,7 +278,7 @@ func TestIntegration_SingleInstance(t *testing.T) {
 		{
 			ID:   "evt-incoming",
 			Type: "event",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"sipInstanceId": "inst-a",
 				"event":         "INCOMING",
 				"timeout":       1000.0, // 1 second timeout
@@ -342,7 +342,7 @@ func TestIntegration_EventTimeout(t *testing.T) {
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"label": "Waiting UA",
 				"mode":  "DN",
 				"dn":    "100",
@@ -351,7 +351,7 @@ func TestIntegration_EventTimeout(t *testing.T) {
 		{
 			ID:   "evt-incoming",
 			Type: "event",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"sipInstanceId": "inst-a",
 				"event":         "INCOMING",
 				"timeout":       2000.0, // 2 second timeout
@@ -408,7 +408,7 @@ func TestIntegration_FailureBranch(t *testing.T) {
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"label": "Test UA",
 				"mode":  "DN",
 				"dn":    "100",
@@ -417,7 +417,7 @@ func TestIntegration_FailureBranch(t *testing.T) {
 		{
 			ID:   "evt-incoming",
 			Type: "event",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"sipInstanceId": "inst-a",
 				"event":         "INCOMING",
 				"timeout":       1000.0, // 1 second timeout - will fail
@@ -426,7 +426,7 @@ func TestIntegration_FailureBranch(t *testing.T) {
 		{
 			ID:   "evt-timeout",
 			Type: "event",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"sipInstanceId": "inst-a",
 				"event":         "TIMEOUT",
 				"timeout":       500.0, // 500ms delay in failure branch
@@ -494,7 +494,7 @@ func TestIntegration_StopScenario(t *testing.T) {
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"label": "Long Wait UA",
 				"mode":  "DN",
 				"dn":    "100",
@@ -503,7 +503,7 @@ func TestIntegration_StopScenario(t *testing.T) {
 		{
 			ID:   "evt-incoming",
 			Type: "event",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"sipInstanceId": "inst-a",
 				"event":         "INCOMING",
 				"timeout":       60000.0, // 60 second timeout (effectively infinite)
@@ -572,7 +572,7 @@ func TestIntegration_ConcurrentStartPrevention(t *testing.T) {
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"label": "Concurrent Test UA",
 				"mode":  "DN",
 				"dn":    "100",
@@ -581,7 +581,7 @@ func TestIntegration_ConcurrentStartPrevention(t *testing.T) {
 		{
 			ID:   "evt-incoming",
 			Type: "event",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"sipInstanceId": "inst-a",
 				"event":         "INCOMING",
 				"timeout":       30000.0, // 30 second timeout
@@ -658,7 +658,7 @@ func TestIntegration_TwoPartyCallSimulation(t *testing.T) {
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"label": "Instance A",
 				"mode":  "DN",
 				"dn":    "100",
@@ -667,7 +667,7 @@ func TestIntegration_TwoPartyCallSimulation(t *testing.T) {
 		{
 			ID:   "evt-timeout-a1",
 			Type: "event",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"sipInstanceId": "inst-a",
 				"event":         "TIMEOUT",
 				"timeout":       500.0, // 500ms delay
@@ -676,7 +676,7 @@ func TestIntegration_TwoPartyCallSimulation(t *testing.T) {
 		{
 			ID:   "evt-timeout-a2",
 			Type: "event",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"sipInstanceId": "inst-a",
 				"event":         "TIMEOUT",
 				"timeout":       500.0, // 500ms delay
@@ -686,7 +686,7 @@ func TestIntegration_TwoPartyCallSimulation(t *testing.T) {
 		{
 			ID:   "inst-b",
 			Type: "sipInstance",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"label": "Instance B",
 				"mode":  "DN",
 				"dn":    "200",
@@ -695,7 +695,7 @@ func TestIntegration_TwoPartyCallSimulation(t *testing.T) {
 		{
 			ID:   "evt-timeout-b",
 			Type: "event",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"sipInstanceId": "inst-b",
 				"event":         "TIMEOUT",
 				"timeout":       500.0, // 500ms delay
@@ -773,7 +773,7 @@ func TestIntegration_EventStreamVerification(t *testing.T) {
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"label": "Test UA",
 				"mode":  "DN",
 				"dn":    "100",
@@ -782,7 +782,7 @@ func TestIntegration_EventStreamVerification(t *testing.T) {
 		{
 			ID:   "evt-timeout",
 			Type: "event",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"sipInstanceId": "inst-a",
 				"event":         "TIMEOUT",
 				"timeout":       500.0, // 500ms delay
@@ -931,7 +931,7 @@ func TestIntegration_CleanupVerification(t *testing.T) {
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"label": "Cleanup Test UA",
 				"mode":  "DN",
 				"dn":    "100",
@@ -940,7 +940,7 @@ func TestIntegration_CleanupVerification(t *testing.T) {
 		{
 			ID:   "evt-timeout",
 			Type: "event",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"sipInstanceId": "inst-a",
 				"event":         "TIMEOUT",
 				"timeout":       500.0, // 500ms delay

@@ -110,21 +110,21 @@ func TestSessionStore_ThreadSafety(t *testing.T) {
 	done := make(chan bool, 2)
 
 	go func() {
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			store.GetDialog("test")
 		}
 		done <- true
 	}()
 
 	go func() {
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			store.GetServerSession("test")
 		}
 		done <- true
 	}()
 
 	// 완료 대기 (타임아웃 포함)
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		select {
 		case <-done:
 			// success
@@ -366,10 +366,10 @@ func TestSessionStore_SIPEventBus_NoSubscribers(t *testing.T) {
 // TestWithSIPMessage_Note는 note 파라미터가 포함된 경우를 테스트한다
 func TestWithSIPMessage_Note(t *testing.T) {
 	opt := WithSIPMessage("sent", "INVITE", 200, "", "", "", "sendonly")
-	data := map[string]interface{}{}
+	data := map[string]any{}
 	opt(data)
 
-	sipMsg, ok := data["sipMessage"].(map[string]interface{})
+	sipMsg, ok := data["sipMessage"].(map[string]any)
 	if !ok {
 		t.Fatal("sipMessage not found in data")
 	}
@@ -387,10 +387,10 @@ func TestWithSIPMessage_Note(t *testing.T) {
 func TestWithSIPMessage_NoNote(t *testing.T) {
 	// 기존 6개 인자로 호출 (note 없음)
 	opt := WithSIPMessage("sent", "INVITE", 200, "", "", "")
-	data := map[string]interface{}{}
+	data := map[string]any{}
 	opt(data)
 
-	sipMsg, ok := data["sipMessage"].(map[string]interface{})
+	sipMsg, ok := data["sipMessage"].(map[string]any)
 	if !ok {
 		t.Fatal("sipMessage not found in data")
 	}
@@ -404,10 +404,10 @@ func TestWithSIPMessage_NoNote(t *testing.T) {
 func TestWithSIPMessage_EmptyNote(t *testing.T) {
 	// 빈 문자열 note → 포함되지 않아야 함
 	opt := WithSIPMessage("sent", "INVITE", 200, "", "", "", "")
-	data := map[string]interface{}{}
+	data := map[string]any{}
 	opt(data)
 
-	sipMsg, ok := data["sipMessage"].(map[string]interface{})
+	sipMsg, ok := data["sipMessage"].(map[string]any)
 	if !ok {
 		t.Fatal("sipMessage not found in data")
 	}
