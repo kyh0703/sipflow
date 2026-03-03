@@ -4,7 +4,12 @@
 
 - **마일스톤**: v1.3 — AttendedTransfer
 - **페이즈**: Phase 14 — SessionStore 멀티 다이얼로그 (대기 중)
-- **최근 활동**: 2026-02-20 — v1.3 로드맵 + Phase 14 리서치 완료
+- **phase_status**: in_progress
+- **active_tasks**: scenario-builder 자동저장 제거, 수동 저장 모드 전환 (완료)
+- **next_actions**: 사용자 피드백 반영(Undo/Redo 히스토리 범위 조정)
+- **open_questions**: 없음
+- **last_updated**: 2026-03-03 15:57 KST
+- **최근 활동**: 2026-03-03 — scenario-builder 수동 저장 모드 전환 완료
 - **다음 단계**: Phase 14 실행
 
 ---

@@ -38,6 +38,9 @@ export function Canvas() {
   const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
   const setDirty = useScenarioStore((state) => state.setDirty);
   const saveNow = useScenarioStore((state) => state.saveNow);
+  const deleteSelectedElements = useScenarioStore((state) => state.deleteSelectedElements);
+  const undo = useScenarioStore((state) => state.undo);
+  const redo = useScenarioStore((state) => state.redo);
 
   const status = useExecutionStore((state) => state.status);
   const actionLogs = useExecutionStore((state) => state.actionLogs);
@@ -159,8 +162,41 @@ export function Canvas() {
   // Keyboard shortcut: Ctrl+S / Cmd+S to save
   useEffect(() => {
     const handleKeyDown = async (event: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      const isTypingInFormField =
+        activeElement instanceof HTMLElement &&
+        (activeElement.tagName === 'INPUT' ||
+          activeElement.tagName === 'TEXTAREA' ||
+          activeElement.tagName === 'SELECT' ||
+          activeElement.isContentEditable);
+
+      if (isTypingInFormField) {
+        return;
+      }
+
+      const isMetaKey = event.ctrlKey || event.metaKey;
+      const key = event.key.toLowerCase();
+
+      if (!isMetaKey && (event.key === 'Delete' || event.key === 'Backspace')) {
+        event.preventDefault();
+        deleteSelectedElements();
+        return;
+      }
+
+      if (isMetaKey && !event.shiftKey && key === 'z') {
+        event.preventDefault();
+        undo();
+        return;
+      }
+
+      if ((isMetaKey && key === 'y') || (isMetaKey && event.shiftKey && key === 'z')) {
+        event.preventDefault();
+        redo();
+        return;
+      }
+
       // Check for Ctrl+S (Windows/Linux) or Cmd+S (Mac)
-      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+      if (isMetaKey && key === 's') {
         event.preventDefault();
 
         if (!currentScenarioId) {
@@ -184,7 +220,7 @@ export function Canvas() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [currentScenarioId, saveNow, validateAndNotify]);
+  }, [currentScenarioId, deleteSelectedElements, redo, saveNow, undo, validateAndNotify]);
 
   const isValidConnection = (connection: Edge | { source: string; target: string; sourceHandle?: string | null }) => {
     // Prevent self-connections
@@ -239,6 +275,7 @@ export function Canvas() {
       isValidConnection={isValidConnection}
       connectionLineStyle={connectionLineStyle}
       defaultEdgeOptions={defaultEdgeOptions}
+      deleteKeyCode={null}
       fitView
     >
       <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={backgroundColor} />
