@@ -208,7 +208,7 @@ ARS/IVR 시스템에 전화를 걸어 메뉴를 탐색하는 시나리오:
 ## 프로젝트 구조
 
 ```
-sipflow/
+github.com/kyh0703/sipflow/
 ├── app.go                  # Wails 앱 진입점
 ├── main.go                 # 앱 초기화 및 바인딩
 ├── wails.json              # Wails 프로젝트 설정

@@ -7,7 +7,7 @@ import (
 	_ "github.com/emiago/diago" // SIP engine library - imported for dependency tracking
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"sipflow/internal/engine"
+	"github.com/kyh0703/sipflow/internal/engine"
 )
 
 // EngineBinding provides frontend bindings for SIP engine operations

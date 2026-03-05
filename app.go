@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"sipflow/internal/binding"
-	"sipflow/internal/engine"
-	"sipflow/internal/scenario"
+	"github.com/kyh0703/sipflow/internal/binding"
+	"github.com/kyh0703/sipflow/internal/engine"
+	"github.com/kyh0703/sipflow/internal/scenario"
 )
 
 // App struct

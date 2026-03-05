@@ -8,13 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"sipflow/internal/scenario"
+	"github.com/kyh0703/sipflow/internal/domain/entity"
+	"github.com/kyh0703/sipflow/internal/scenario"
 )
 
 // TestExecuteChain_BasicSuccess는 ExecuteChain의 기본 구조를 검증한다
 func TestExecuteChain_BasicSuccess(t *testing.T) {
 	// 2개 노드 체인 생성
-	node1 := &GraphNode{
+	node1 := &entity.GraphNode{
 		ID:         "node1",
 		Type:       "command",
 		InstanceID: "inst1",
@@ -23,7 +24,7 @@ func TestExecuteChain_BasicSuccess(t *testing.T) {
 		Timeout:    10 * time.Second,
 	}
 
-	node2 := &GraphNode{
+	node2 := &entity.GraphNode{
 		ID:         "node2",
 		Type:       "event",
 		InstanceID: "inst1",
@@ -67,21 +68,21 @@ func TestSessionStore_StoreAndGet(t *testing.T) {
 // TestExecuteChain_FailureBranch는 실패 분기 처리를 검증한다
 func TestExecuteChain_FailureBranch(t *testing.T) {
 	// 실패 분기가 있는 노드 체인
-	node1 := &GraphNode{
+	node1 := &entity.GraphNode{
 		ID:         "node1",
 		Type:       "command",
 		InstanceID: "inst1",
 		Command:    "MakeCall",
 	}
 
-	nodeSuccess := &GraphNode{
+	nodeSuccess := &entity.GraphNode{
 		ID:         "nodeSuccess",
 		Type:       "event",
 		InstanceID: "inst1",
 		Event:      "RINGING",
 	}
 
-	nodeFailure := &GraphNode{
+	nodeFailure := &entity.GraphNode{
 		ID:         "nodeFailure",
 		Type:       "event",
 		InstanceID: "inst1",
@@ -195,7 +196,7 @@ func newTestExecutor(t *testing.T) (*Executor, *TestEventEmitter) {
 
 func TestExecutePlayAudio_NoFilePath(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:       "test-node",
 		Type:     "command",
 		Command:  "PlayAudio",
@@ -212,7 +213,7 @@ func TestExecutePlayAudio_NoFilePath(t *testing.T) {
 
 func TestExecutePlayAudio_FileNotFound(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:       "test-node",
 		Type:     "command",
 		Command:  "PlayAudio",
@@ -233,7 +234,7 @@ func TestExecutePlayAudio_NoDialog(t *testing.T) {
 	tmpFile := filepath.Join(t.TempDir(), "test.wav")
 	os.WriteFile(tmpFile, []byte("fake wav content"), 0644)
 
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:       "test-node",
 		Type:     "command",
 		Command:  "PlayAudio",
@@ -250,7 +251,7 @@ func TestExecutePlayAudio_NoDialog(t *testing.T) {
 
 func TestExecuteSendDTMF_NoDigits(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:      "test-node",
 		Type:    "command",
 		Command: "SendDTMF",
@@ -267,7 +268,7 @@ func TestExecuteSendDTMF_NoDigits(t *testing.T) {
 
 func TestExecuteSendDTMF_NoDialog(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:      "test-node",
 		Type:    "command",
 		Command: "SendDTMF",
@@ -284,7 +285,7 @@ func TestExecuteSendDTMF_NoDialog(t *testing.T) {
 
 func TestExecuteDTMFReceived_NoDialog(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:            "test-node",
 		Type:          "event",
 		Event:         "DTMFReceived",
@@ -420,7 +421,7 @@ func TestWithSIPMessage_EmptyNote(t *testing.T) {
 // TestExecuteHold_NoDialog는 dialog가 없을 때 executeHold가 에러를 반환하는지 테스트한다
 func TestExecuteHold_NoDialog(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:      "test-node",
 		Type:    "command",
 		Command: "Hold",
@@ -437,7 +438,7 @@ func TestExecuteHold_NoDialog(t *testing.T) {
 // TestExecuteRetrieve_NoDialog는 dialog가 없을 때 executeRetrieve가 에러를 반환하는지 테스트한다
 func TestExecuteRetrieve_NoDialog(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:      "test-node",
 		Type:    "command",
 		Command: "Retrieve",
@@ -454,7 +455,7 @@ func TestExecuteRetrieve_NoDialog(t *testing.T) {
 // TestExecuteCommand_HoldSwitch는 executeCommand switch가 Hold를 executeHold로 라우팅하는지 테스트한다
 func TestExecuteCommand_HoldSwitch(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:         "test-node",
 		Type:       "command",
 		Command:    "Hold",
@@ -473,7 +474,7 @@ func TestExecuteCommand_HoldSwitch(t *testing.T) {
 // TestExecuteCommand_RetrieveSwitch는 executeCommand switch가 Retrieve를 executeRetrieve로 라우팅하는지 테스트한다
 func TestExecuteCommand_RetrieveSwitch(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:         "test-node",
 		Type:       "command",
 		Command:    "Retrieve",
@@ -492,7 +493,7 @@ func TestExecuteCommand_RetrieveSwitch(t *testing.T) {
 // TestExecuteEvent_HeldSwitch는 executeEvent switch가 HELD를 executeWaitSIPEvent로 라우팅하는지 테스트한다
 func TestExecuteEvent_HeldSwitch(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:         "test-node",
 		Type:       "event",
 		Event:      "HELD",
@@ -512,7 +513,7 @@ func TestExecuteEvent_HeldSwitch(t *testing.T) {
 // TestExecuteEvent_RetrievedSwitch는 executeEvent switch가 RETRIEVED를 executeWaitSIPEvent로 라우팅하는지 테스트한다
 func TestExecuteEvent_RetrievedSwitch(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:         "test-node",
 		Type:       "event",
 		Event:      "RETRIEVED",
@@ -539,7 +540,7 @@ func TestExecuteWaitSIPEvent_Success(t *testing.T) {
 		ex.sessions.emitSIPEvent("inst-1", "HELD")
 	}()
 
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:      "test-node",
 		Type:    "event",
 		Event:   "HELD",
@@ -558,7 +559,7 @@ func TestExecuteWaitSIPEvent_Success(t *testing.T) {
 func TestExecuteWaitSIPEvent_Timeout(t *testing.T) {
 	ex, _ := newTestExecutor(t)
 
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:      "test-node",
 		Type:    "event",
 		Event:   "HELD",
@@ -579,7 +580,7 @@ func TestExecuteWaitSIPEvent_Timeout(t *testing.T) {
 // TestExecuteBlindTransfer_EmptyTargetUser는 targetUser가 비어 있을 때 에러를 반환하는지 테스트한다
 func TestExecuteBlindTransfer_EmptyTargetUser(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:         "test-node",
 		Type:       "command",
 		Command:    "BlindTransfer",
@@ -598,7 +599,7 @@ func TestExecuteBlindTransfer_EmptyTargetUser(t *testing.T) {
 // TestExecuteBlindTransfer_EmptyTargetHost는 targetHost가 비어 있을 때 에러를 반환하는지 테스트한다
 func TestExecuteBlindTransfer_EmptyTargetHost(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:         "test-node",
 		Type:       "command",
 		Command:    "BlindTransfer",
@@ -617,7 +618,7 @@ func TestExecuteBlindTransfer_EmptyTargetHost(t *testing.T) {
 // TestExecuteBlindTransfer_NoDialog는 dialog가 없을 때 executeBlindTransfer가 에러를 반환하는지 테스트한다
 func TestExecuteBlindTransfer_NoDialog(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:         "test-node",
 		Type:       "command",
 		Command:    "BlindTransfer",
@@ -636,7 +637,7 @@ func TestExecuteBlindTransfer_NoDialog(t *testing.T) {
 // TestExecuteCommand_BlindTransferSwitch는 executeCommand switch가 BlindTransfer를 executeBlindTransfer로 라우팅하는지 테스트한다
 func TestExecuteCommand_BlindTransferSwitch(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:         "test-node",
 		Type:       "command",
 		Command:    "BlindTransfer",
@@ -657,7 +658,7 @@ func TestExecuteCommand_BlindTransferSwitch(t *testing.T) {
 // TestExecuteEvent_TransferredSwitch는 executeEvent switch가 TRANSFERRED를 executeWaitSIPEvent로 라우팅하는지 테스트한다
 func TestExecuteEvent_TransferredSwitch(t *testing.T) {
 	ex, _ := newTestExecutor(t)
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:         "test-node",
 		Type:       "event",
 		Event:      "TRANSFERRED",
@@ -684,7 +685,7 @@ func TestExecuteWaitSIPEvent_Transferred_Success(t *testing.T) {
 		ex.sessions.emitSIPEvent("inst-1", "TRANSFERRED")
 	}()
 
-	node := &GraphNode{
+	node := &entity.GraphNode{
 		ID:      "test-node",
 		Type:    "event",
 		Event:   "TRANSFERRED",

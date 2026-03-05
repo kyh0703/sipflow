@@ -1,0 +1,16 @@
+package entity
+
+import "time"
+
+// EdgeRecord는 시나리오 엣지 메타 저장 레코드다.
+type EdgeRecord struct {
+	ScenarioID   string    `json:"scenario_id"`
+	EdgeID       string    `json:"edge_id"`
+	SourceNodeID string    `json:"source_node_id"`
+	TargetNodeID string    `json:"target_node_id"`
+	SourceHandle *string   `json:"source_handle,omitempty"`
+	BranchType   string    `json:"branch_type"`
+	DataJSON     string    `json:"data_json"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}

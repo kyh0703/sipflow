@@ -7,7 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"sipflow/internal/scenario"
+	"github.com/kyh0703/sipflow/internal/dto"
+	"github.com/kyh0703/sipflow/internal/scenario"
 )
 
 // TestEventEmitter is a test implementation of EventEmitter
@@ -49,10 +50,10 @@ func (te *TestEventEmitter) GetEventsByName(name string) []TestEvent {
 	return filtered
 }
 
-// buildTestFlowData builds a FlowData JSON string from nodes and edges
-func buildTestFlowData(t *testing.T, nodes []FlowNode, edges []FlowEdge) string {
+// buildTestFlowData builds a dto.FlowData JSON string from nodes and edges
+func buildTestFlowData(t *testing.T, nodes []dto.FlowNode, edges []dto.FlowEdge) string {
 	t.Helper()
-	fd := FlowData{Nodes: nodes, Edges: edges}
+	fd := dto.FlowData{Nodes: nodes, Edges: edges}
 	b, err := json.Marshal(fd)
 	if err != nil {
 		t.Fatal(err)
@@ -122,7 +123,7 @@ func TestIntegration_TwoPartyCall(t *testing.T) {
 	// Build scenario:
 	// Instance A (caller, dn: "100") -> MakeCall
 	// Instance B (callee, dn: "200") -> INCOMING -> Answer
-	nodes := []FlowNode{
+	nodes := []dto.FlowNode{
 		// Instance A
 		{
 			ID:   "inst-a",
@@ -175,7 +176,7 @@ func TestIntegration_TwoPartyCall(t *testing.T) {
 		},
 	}
 
-	edges := []FlowEdge{
+	edges := []dto.FlowEdge{
 		{ID: "e1", Source: "inst-a", Target: "cmd-make"},
 		{ID: "e2", Source: "inst-b", Target: "evt-incoming"},
 		{ID: "e3", Source: "evt-incoming", Target: "cmd-answer", SourceHandle: "success"},
@@ -265,7 +266,7 @@ func TestIntegration_SingleInstance(t *testing.T) {
 	eng, repo, te := newTestEngine(t, 15060)
 
 	// Simple scenario: one instance waiting for an INCOMING event (will timeout)
-	nodes := []FlowNode{
+	nodes := []dto.FlowNode{
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
@@ -286,7 +287,7 @@ func TestIntegration_SingleInstance(t *testing.T) {
 		},
 	}
 
-	edges := []FlowEdge{
+	edges := []dto.FlowEdge{
 		{ID: "e1", Source: "inst-a", Target: "evt-incoming"},
 	}
 
@@ -338,7 +339,7 @@ func TestIntegration_EventTimeout(t *testing.T) {
 	eng, repo, te := newTestEngine(t, 16060)
 
 	// Scenario: Instance waits for INCOMING with 2 second timeout, no caller
-	nodes := []FlowNode{
+	nodes := []dto.FlowNode{
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
@@ -359,7 +360,7 @@ func TestIntegration_EventTimeout(t *testing.T) {
 		},
 	}
 
-	edges := []FlowEdge{
+	edges := []dto.FlowEdge{
 		{ID: "e1", Source: "inst-a", Target: "evt-incoming"},
 	}
 
@@ -404,7 +405,7 @@ func TestIntegration_FailureBranch(t *testing.T) {
 
 	// Scenario: INCOMING timeout (1s) -> failure branch -> TIMEOUT event (success)
 	// This tests that when an event fails, the failure branch is executed
-	nodes := []FlowNode{
+	nodes := []dto.FlowNode{
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
@@ -434,7 +435,7 @@ func TestIntegration_FailureBranch(t *testing.T) {
 		},
 	}
 
-	edges := []FlowEdge{
+	edges := []dto.FlowEdge{
 		{ID: "e1", Source: "inst-a", Target: "evt-incoming"},
 		{ID: "e2", Source: "evt-incoming", Target: "evt-timeout", SourceHandle: "failure"},
 	}
@@ -490,7 +491,7 @@ func TestIntegration_StopScenario(t *testing.T) {
 	eng, repo, te := newTestEngine(t, 18060)
 
 	// Scenario: long-running INCOMING wait (60 seconds) that will be stopped
-	nodes := []FlowNode{
+	nodes := []dto.FlowNode{
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
@@ -511,7 +512,7 @@ func TestIntegration_StopScenario(t *testing.T) {
 		},
 	}
 
-	edges := []FlowEdge{
+	edges := []dto.FlowEdge{
 		{ID: "e1", Source: "inst-a", Target: "evt-incoming"},
 	}
 
@@ -568,7 +569,7 @@ func TestIntegration_ConcurrentStartPrevention(t *testing.T) {
 	eng, repo, te := newTestEngine(t, 19060)
 
 	// Scenario: long-running wait
-	nodes := []FlowNode{
+	nodes := []dto.FlowNode{
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
@@ -589,7 +590,7 @@ func TestIntegration_ConcurrentStartPrevention(t *testing.T) {
 		},
 	}
 
-	edges := []FlowEdge{
+	edges := []dto.FlowEdge{
 		{ID: "e1", Source: "inst-a", Target: "evt-incoming"},
 	}
 
@@ -653,7 +654,7 @@ func TestIntegration_TwoPartyCallSimulation(t *testing.T) {
 	// Instance A (dn: "100") -> TIMEOUT(500ms) -> TIMEOUT(500ms)
 	// Instance B (dn: "200") -> TIMEOUT(500ms)
 	// Both instances execute in parallel
-	nodes := []FlowNode{
+	nodes := []dto.FlowNode{
 		// Instance A
 		{
 			ID:   "inst-a",
@@ -703,7 +704,7 @@ func TestIntegration_TwoPartyCallSimulation(t *testing.T) {
 		},
 	}
 
-	edges := []FlowEdge{
+	edges := []dto.FlowEdge{
 		{ID: "e1", Source: "inst-a", Target: "evt-timeout-a1"},
 		{ID: "e2", Source: "evt-timeout-a1", Target: "evt-timeout-a2", SourceHandle: "success"},
 		{ID: "e3", Source: "inst-b", Target: "evt-timeout-b"},
@@ -769,7 +770,7 @@ func TestIntegration_EventStreamVerification(t *testing.T) {
 	eng, repo, te := newTestEngine(t, 21060)
 
 	// Simple scenario: one instance with single TIMEOUT event
-	nodes := []FlowNode{
+	nodes := []dto.FlowNode{
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
@@ -790,7 +791,7 @@ func TestIntegration_EventStreamVerification(t *testing.T) {
 		},
 	}
 
-	edges := []FlowEdge{
+	edges := []dto.FlowEdge{
 		{ID: "e1", Source: "inst-a", Target: "evt-timeout"},
 	}
 
@@ -927,7 +928,7 @@ func TestIntegration_CleanupVerification(t *testing.T) {
 	eng, repo, te := newTestEngine(t, 22060)
 
 	// Simple scenario: one instance with single TIMEOUT event
-	nodes := []FlowNode{
+	nodes := []dto.FlowNode{
 		{
 			ID:   "inst-a",
 			Type: "sipInstance",
@@ -948,7 +949,7 @@ func TestIntegration_CleanupVerification(t *testing.T) {
 		},
 	}
 
-	edges := []FlowEdge{
+	edges := []dto.FlowEdge{
 		{ID: "e1", Source: "inst-a", Target: "evt-timeout"},
 	}
 

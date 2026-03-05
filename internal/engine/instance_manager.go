@@ -9,11 +9,12 @@ import (
 	"github.com/emiago/diago"
 	"github.com/emiago/diago/media"
 	"github.com/emiago/sipgo"
+	"github.com/kyh0703/sipflow/internal/domain/entity"
 )
 
 // ManagedInstance는 관리되는 diago SIP UA 인스턴스
 type ManagedInstance struct {
-	Config     SipInstanceConfig
+	Config     entity.SipInstanceConfig
 	UA         *diago.Diago
 	Port       int
 	incomingCh chan *diago.DialogServerSession
@@ -55,8 +56,8 @@ func stringToCodecs(codecNames []string) []media.Codec {
 	return codecs
 }
 
-// CreateInstances는 ExecutionGraph의 모든 인스턴스에 대해 diago UA를 생성한다
-func (im *InstanceManager) CreateInstances(graph *ExecutionGraph) error {
+// CreateInstances는 entity.ExecutionGraph의 모든 인스턴스에 대해 diago UA를 생성한다
+func (im *InstanceManager) CreateInstances(graph *entity.ExecutionGraph) error {
 	im.mu.Lock()
 	defer im.mu.Unlock()
 

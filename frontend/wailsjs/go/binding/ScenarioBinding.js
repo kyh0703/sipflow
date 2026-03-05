@@ -10,8 +10,36 @@ export function DeleteScenario(arg1) {
   return window['go']['binding']['ScenarioBinding']['DeleteScenario'](arg1);
 }
 
+export function DeleteScenarioEdge(arg1, arg2) {
+  return window['go']['binding']['ScenarioBinding']['DeleteScenarioEdge'](arg1, arg2);
+}
+
+export function DeleteScenarioEdgesByScenario(arg1) {
+  return window['go']['binding']['ScenarioBinding']['DeleteScenarioEdgesByScenario'](arg1);
+}
+
+export function DeleteScenarioNode(arg1, arg2) {
+  return window['go']['binding']['ScenarioBinding']['DeleteScenarioNode'](arg1, arg2);
+}
+
+export function DeleteScenarioNodesByScenario(arg1) {
+  return window['go']['binding']['ScenarioBinding']['DeleteScenarioNodesByScenario'](arg1);
+}
+
+export function ListScenarioEdges(arg1) {
+  return window['go']['binding']['ScenarioBinding']['ListScenarioEdges'](arg1);
+}
+
+export function ListScenarioNodes(arg1) {
+  return window['go']['binding']['ScenarioBinding']['ListScenarioNodes'](arg1);
+}
+
 export function ListScenarios() {
   return window['go']['binding']['ScenarioBinding']['ListScenarios']();
+}
+
+export function LoadNodeProperty(arg1, arg2) {
+  return window['go']['binding']['ScenarioBinding']['LoadNodeProperty'](arg1, arg2);
 }
 
 export function LoadScenario(arg1) {
@@ -28,4 +56,16 @@ export function SaveScenario(arg1, arg2) {
 
 export function SetContext(arg1) {
   return window['go']['binding']['ScenarioBinding']['SetContext'](arg1);
+}
+
+export function UpsertNodeProperty(arg1) {
+  return window['go']['binding']['ScenarioBinding']['UpsertNodeProperty'](arg1);
+}
+
+export function UpsertScenarioEdge(arg1) {
+  return window['go']['binding']['ScenarioBinding']['UpsertScenarioEdge'](arg1);
+}
+
+export function UpsertScenarioNode(arg1) {
+  return window['go']['binding']['ScenarioBinding']['UpsertScenarioNode'](arg1);
 }

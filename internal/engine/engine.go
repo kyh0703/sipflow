@@ -7,21 +7,22 @@ import (
 	"sync"
 	"time"
 
-	"sipflow/internal/scenario"
+	"github.com/kyh0703/sipflow/internal/domain/entity"
+	"github.com/kyh0703/sipflow/internal/scenario"
 )
 
 // Engine은 시나리오 실행 엔진
 type Engine struct {
-	ctx         context.Context
-	repo        *scenario.Repository
-	emitter     EventEmitter
-	im          *InstanceManager
-	executor    *Executor
-	mu          sync.Mutex
-	running     bool
-	scenarioID  string
-	cancelFunc  context.CancelFunc
-	wg          sync.WaitGroup
+	ctx        context.Context
+	repo       *scenario.Repository
+	emitter    EventEmitter
+	im         *InstanceManager
+	executor   *Executor
+	mu         sync.Mutex
+	running    bool
+	scenarioID string
+	cancelFunc context.CancelFunc
+	wg         sync.WaitGroup
 }
 
 // NewEngine은 새로운 Engine을 생성한다
@@ -102,7 +103,7 @@ func (e *Engine) StartScenario(scenarioID string) error {
 
 	for instanceID, chain := range graph.Instances {
 		e.wg.Add(1)
-		go func(id string, ch *InstanceChain) {
+		go func(id string, ch *entity.InstanceChain) {
 			defer e.wg.Done()
 			for _, startNode := range ch.StartNodes {
 				if err := e.executor.ExecuteChain(execCtx, id, startNode); err != nil {

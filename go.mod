@@ -1,4 +1,4 @@
-module sipflow
+module github.com/kyh0703/sipflow
 
 go 1.26.0
 

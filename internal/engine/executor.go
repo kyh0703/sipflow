@@ -12,14 +12,15 @@ import (
 	"github.com/emiago/diago"
 	"github.com/emiago/diago/media/sdp"
 	"github.com/emiago/sipgo/sip"
+	"github.com/kyh0703/sipflow/internal/domain/entity"
 )
 
 // SessionStore는 활성 SIP 세션을 thread-safe하게 관리한다
 type SessionStore struct {
 	mu             sync.RWMutex
-	dialogs        map[string]diago.DialogSession          // instanceID -> dialog session
-	serverSessions map[string]*diago.DialogServerSession   // instanceID -> incoming server session
-	sipEventSubs   map[string][]chan struct{}              // "{instanceID}:{eventType}" -> 구독 채널 목록
+	dialogs        map[string]diago.DialogSession        // instanceID -> dialog session
+	serverSessions map[string]*diago.DialogServerSession // instanceID -> incoming server session
+	sipEventSubs   map[string][]chan struct{}            // "{instanceID}:{eventType}" -> 구독 채널 목록
 }
 
 // NewSessionStore는 새로운 SessionStore를 생성한다
@@ -131,9 +132,9 @@ func (ss *SessionStore) UnsubscribeSIPEvent(instanceID, eventType string, ch cha
 
 // Executor는 시나리오 그래프의 노드를 실행한다
 type Executor struct {
-	engine   *Engine           // 이벤트 발행용 부모 참조
-	im       *InstanceManager  // UA 조회용
-	sessions *SessionStore     // 활성 세션 저장소
+	engine   *Engine          // 이벤트 발행용 부모 참조
+	im       *InstanceManager // UA 조회용
+	sessions *SessionStore    // 활성 세션 저장소
 }
 
 // NewExecutor는 새로운 Executor를 생성한다
@@ -146,7 +147,7 @@ func NewExecutor(engine *Engine, im *InstanceManager) *Executor {
 }
 
 // ExecuteChain은 시작 노드부터 체인을 순차적으로 실행한다
-func (ex *Executor) ExecuteChain(ctx context.Context, instanceID string, startNode *GraphNode) error {
+func (ex *Executor) ExecuteChain(ctx context.Context, instanceID string, startNode *entity.GraphNode) error {
 	currentNode := startNode
 
 	for currentNode != nil {
@@ -177,7 +178,7 @@ func (ex *Executor) ExecuteChain(ctx context.Context, instanceID string, startNo
 }
 
 // executeNode는 단일 노드를 실행한다
-func (ex *Executor) executeNode(ctx context.Context, instanceID string, node *GraphNode) error {
+func (ex *Executor) executeNode(ctx context.Context, instanceID string, node *entity.GraphNode) error {
 	// 노드 상태를 "running"으로 변경
 	ex.engine.emitNodeState(node.ID, NodeStatePending, NodeStateRunning)
 
@@ -203,7 +204,7 @@ func (ex *Executor) executeNode(ctx context.Context, instanceID string, node *Gr
 }
 
 // executeCommand는 Command 노드를 실행한다
-func (ex *Executor) executeCommand(ctx context.Context, instanceID string, node *GraphNode) error {
+func (ex *Executor) executeCommand(ctx context.Context, instanceID string, node *entity.GraphNode) error {
 	switch node.Command {
 	case "MakeCall":
 		return ex.executeMakeCall(ctx, instanceID, node)
@@ -227,7 +228,7 @@ func (ex *Executor) executeCommand(ctx context.Context, instanceID string, node 
 }
 
 // executeMakeCall은 MakeCall 커맨드를 실행한다
-func (ex *Executor) executeMakeCall(ctx context.Context, instanceID string, node *GraphNode) error {
+func (ex *Executor) executeMakeCall(ctx context.Context, instanceID string, node *entity.GraphNode) error {
 	// 액션 로그 발행
 	ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("MakeCall to %s", node.TargetURI), "info")
 
@@ -270,15 +271,15 @@ func (ex *Executor) executeMakeCall(ctx context.Context, instanceID string, node
 
 	// 성공 로그 (SIP 메시지 상세 정보 포함)
 	// Note: diago DialogSession 인터페이스에서 Call-ID 접근이 제한되어 빈 문자열 사용
-	fromURI := instance.Config.DN  // 발신자는 인스턴스의 DN
-	toURI := recipient.User        // 수신자는 TargetURI의 User
+	fromURI := instance.Config.DN // 발신자는 인스턴스의 DN
+	toURI := recipient.User       // 수신자는 TargetURI의 User
 	ex.engine.emitActionLog(node.ID, instanceID, "MakeCall succeeded", "info",
 		WithSIPMessage("sent", "INVITE", 200, "", fromURI, toURI))
 	return nil
 }
 
 // executeAnswer는 Answer 커맨드를 실행한다 (AnswerOptions 기반)
-func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *GraphNode) error {
+func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *entity.GraphNode) error {
 	// 액션 로그 발행
 	ex.engine.emitActionLog(node.ID, instanceID, "Answer incoming call", "info")
 
@@ -391,7 +392,7 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 }
 
 // executeRelease는 Release 커맨드를 실행한다
-func (ex *Executor) executeRelease(ctx context.Context, instanceID string, node *GraphNode) error {
+func (ex *Executor) executeRelease(ctx context.Context, instanceID string, node *entity.GraphNode) error {
 	// 액션 로그 발행
 	ex.engine.emitActionLog(node.ID, instanceID, "Release call", "info")
 
@@ -419,7 +420,7 @@ func (ex *Executor) executeRelease(ctx context.Context, instanceID string, node 
 }
 
 // executeEvent는 Event 노드를 실행한다
-func (ex *Executor) executeEvent(ctx context.Context, instanceID string, node *GraphNode) error {
+func (ex *Executor) executeEvent(ctx context.Context, instanceID string, node *entity.GraphNode) error {
 	// 타임아웃 설정 (기본 10초)
 	timeout := 10 * time.Second
 	if node.Timeout > 0 {
@@ -454,7 +455,7 @@ func (ex *Executor) executeEvent(ctx context.Context, instanceID string, node *G
 }
 
 // executeIncoming은 INCOMING 이벤트를 대기한다
-func (ex *Executor) executeIncoming(ctx context.Context, instanceID string, node *GraphNode, timeout time.Duration) error {
+func (ex *Executor) executeIncoming(ctx context.Context, instanceID string, node *entity.GraphNode, timeout time.Duration) error {
 	// 인스턴스 조회
 	instance, err := ex.im.GetInstance(instanceID)
 	if err != nil {
@@ -480,7 +481,7 @@ func (ex *Executor) executeIncoming(ctx context.Context, instanceID string, node
 }
 
 // executeDisconnected는 DISCONNECTED 이벤트를 대기한다
-func (ex *Executor) executeDisconnected(ctx context.Context, instanceID string, node *GraphNode, timeout time.Duration) error {
+func (ex *Executor) executeDisconnected(ctx context.Context, instanceID string, node *entity.GraphNode, timeout time.Duration) error {
 	// Dialog 조회
 	dialog, exists := ex.sessions.GetDialog(instanceID)
 	if !exists {
@@ -500,7 +501,7 @@ func (ex *Executor) executeDisconnected(ctx context.Context, instanceID string, 
 }
 
 // executeRinging은 RINGING 이벤트를 처리한다 (로컬 모드에서는 즉시 완료)
-func (ex *Executor) executeRinging(ctx context.Context, instanceID string, node *GraphNode) error {
+func (ex *Executor) executeRinging(ctx context.Context, instanceID string, node *entity.GraphNode) error {
 	// Phase 03에서는 MakeCall 성공 시 이미 180 Ringing을 거쳤으므로 즉시 완료
 	ex.engine.emitActionLog(node.ID, instanceID, "RINGING event (auto-completed in local mode)", "info",
 		WithSIPMessage("received", "RINGING", 180, "", "", ""))
@@ -508,7 +509,7 @@ func (ex *Executor) executeRinging(ctx context.Context, instanceID string, node 
 }
 
 // executeTimeout은 TIMEOUT 이벤트를 처리한다 (단순 딜레이)
-func (ex *Executor) executeTimeout(ctx context.Context, instanceID string, node *GraphNode, timeout time.Duration) error {
+func (ex *Executor) executeTimeout(ctx context.Context, instanceID string, node *entity.GraphNode, timeout time.Duration) error {
 	// time.After로 딜레이
 	select {
 	case <-time.After(timeout):
@@ -522,7 +523,7 @@ func (ex *Executor) executeTimeout(ctx context.Context, instanceID string, node 
 }
 
 // executePlayAudio는 PlayAudio 커맨드를 실행한다
-func (ex *Executor) executePlayAudio(ctx context.Context, instanceID string, node *GraphNode) error {
+func (ex *Executor) executePlayAudio(ctx context.Context, instanceID string, node *entity.GraphNode) error {
 	// FilePath 검증
 	if node.FilePath == "" {
 		ex.engine.emitActionLog(node.ID, instanceID, "PlayAudio requires filePath", "error")
@@ -592,7 +593,7 @@ func (ex *Executor) executePlayAudio(ctx context.Context, instanceID string, nod
 }
 
 // executeSendDTMF는 SendDTMF 커맨드를 실행한다
-func (ex *Executor) executeSendDTMF(ctx context.Context, instanceID string, node *GraphNode) error {
+func (ex *Executor) executeSendDTMF(ctx context.Context, instanceID string, node *entity.GraphNode) error {
 	// Digits 검증
 	if node.Digits == "" {
 		ex.engine.emitActionLog(node.ID, instanceID, "SendDTMF requires digits", "error")
@@ -660,7 +661,7 @@ func (ex *Executor) executeSendDTMF(ctx context.Context, instanceID string, node
 }
 
 // executeDTMFReceived는 DTMFReceived 이벤트를 실행한다
-func (ex *Executor) executeDTMFReceived(ctx context.Context, instanceID string, node *GraphNode) error {
+func (ex *Executor) executeDTMFReceived(ctx context.Context, instanceID string, node *entity.GraphNode) error {
 	// ExpectedDigit 파싱 (optional)
 	expectedDigit := node.ExpectedDigit
 
@@ -745,7 +746,7 @@ func (ex *Executor) executeDTMFReceived(ctx context.Context, instanceID string, 
 }
 
 // executeHold는 Hold 커맨드를 실행한다 — MediaSession.Mode를 sendonly로 설정하고 Re-INVITE를 전송한다
-func (ex *Executor) executeHold(ctx context.Context, instanceID string, node *GraphNode) error {
+func (ex *Executor) executeHold(ctx context.Context, instanceID string, node *entity.GraphNode) error {
 	// 액션 로그 발행
 	ex.engine.emitActionLog(node.ID, instanceID, "Hold: sending Re-INVITE (sendonly)", "info")
 
@@ -787,7 +788,7 @@ func (ex *Executor) executeHold(ctx context.Context, instanceID string, node *Gr
 }
 
 // executeRetrieve는 Retrieve 커맨드를 실행한다 — MediaSession.Mode를 sendrecv로 복원하고 Re-INVITE를 전송한다
-func (ex *Executor) executeRetrieve(ctx context.Context, instanceID string, node *GraphNode) error {
+func (ex *Executor) executeRetrieve(ctx context.Context, instanceID string, node *entity.GraphNode) error {
 	// 액션 로그 발행
 	ex.engine.emitActionLog(node.ID, instanceID, "Retrieve: sending Re-INVITE (sendrecv)", "info")
 
@@ -827,7 +828,7 @@ func (ex *Executor) executeRetrieve(ctx context.Context, instanceID string, node
 }
 
 // executeBlindTransfer는 BlindTransfer 커맨드를 실행한다 — REFER를 전송하고 즉시 BYE로 통화를 종료한다
-func (ex *Executor) executeBlindTransfer(ctx context.Context, instanceID string, node *GraphNode) error {
+func (ex *Executor) executeBlindTransfer(ctx context.Context, instanceID string, node *entity.GraphNode) error {
 	// 1. targetUser/targetHost 검증
 	if node.TargetUser == "" {
 		return fmt.Errorf("BlindTransfer: targetUser is required")
@@ -891,7 +892,7 @@ func (ex *Executor) executeBlindTransfer(ctx context.Context, instanceID string,
 }
 
 // executeWaitSIPEvent는 SessionStore SIP 이벤트 버스에서 특정 이벤트를 블로킹 대기한다
-func (ex *Executor) executeWaitSIPEvent(ctx context.Context, instanceID string, node *GraphNode, eventType string, timeout time.Duration) error {
+func (ex *Executor) executeWaitSIPEvent(ctx context.Context, instanceID string, node *entity.GraphNode, eventType string, timeout time.Duration) error {
 	// 구독 채널 생성
 	ch := ex.sessions.SubscribeSIPEvent(instanceID, eventType)
 	defer ex.sessions.UnsubscribeSIPEvent(instanceID, eventType, ch)

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/emiago/diago/media"
+	"github.com/kyh0703/sipflow/internal/domain/entity"
 )
 
 func TestAllocatePort_Sequential(t *testing.T) {
@@ -51,29 +52,29 @@ func TestCreateInstances_Basic(t *testing.T) {
 	im.basePort = 15070
 	im.nextPort = 15070
 
-	// ExecutionGraph 생성 - 2개 인스턴스
-	graph := &ExecutionGraph{
-		Instances: map[string]*InstanceChain{
+	// entity.ExecutionGraph 생성 - 2개 인스턴스
+	graph := &entity.ExecutionGraph{
+		Instances: map[string]*entity.InstanceChain{
 			"instance-a": {
-				Config: SipInstanceConfig{
+				Config: entity.SipInstanceConfig{
 					ID:    "instance-a",
 					Label: "Instance A",
 					Mode:  "DN",
 					DN:    "100",
 				},
-				StartNodes: []*GraphNode{},
+				StartNodes: []*entity.GraphNode{},
 			},
 			"instance-b": {
-				Config: SipInstanceConfig{
+				Config: entity.SipInstanceConfig{
 					ID:    "instance-b",
 					Label: "Instance B",
 					Mode:  "DN",
 					DN:    "200",
 				},
-				StartNodes: []*GraphNode{},
+				StartNodes: []*entity.GraphNode{},
 			},
 		},
-		Nodes: map[string]*GraphNode{},
+		Nodes: map[string]*entity.GraphNode{},
 	}
 
 	// 인스턴스 생성
@@ -135,20 +136,20 @@ func TestCleanup(t *testing.T) {
 	im.basePort = 15080
 	im.nextPort = 15080
 
-	// ExecutionGraph 생성 - 1개 인스턴스
-	graph := &ExecutionGraph{
-		Instances: map[string]*InstanceChain{
+	// entity.ExecutionGraph 생성 - 1개 인스턴스
+	graph := &entity.ExecutionGraph{
+		Instances: map[string]*entity.InstanceChain{
 			"instance-test": {
-				Config: SipInstanceConfig{
+				Config: entity.SipInstanceConfig{
 					ID:    "instance-test",
 					Label: "Test Instance",
 					Mode:  "DN",
 					DN:    "300",
 				},
-				StartNodes: []*GraphNode{},
+				StartNodes: []*entity.GraphNode{},
 			},
 		},
-		Nodes: map[string]*GraphNode{},
+		Nodes: map[string]*entity.GraphNode{},
 	}
 
 	// 인스턴스 생성
@@ -194,20 +195,20 @@ func TestReset(t *testing.T) {
 	im.basePort = 15090
 	im.nextPort = 15090
 
-	// ExecutionGraph 생성
-	graph := &ExecutionGraph{
-		Instances: map[string]*InstanceChain{
+	// entity.ExecutionGraph 생성
+	graph := &entity.ExecutionGraph{
+		Instances: map[string]*entity.InstanceChain{
 			"instance-reset": {
-				Config: SipInstanceConfig{
+				Config: entity.SipInstanceConfig{
 					ID:    "instance-reset",
 					Label: "Reset Test",
 					Mode:  "DN",
 					DN:    "400",
 				},
-				StartNodes: []*GraphNode{},
+				StartNodes: []*entity.GraphNode{},
 			},
 		},
-		Nodes: map[string]*GraphNode{},
+		Nodes: map[string]*entity.GraphNode{},
 	}
 
 	// 인스턴스 생성

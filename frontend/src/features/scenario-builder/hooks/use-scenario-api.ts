@@ -2,14 +2,19 @@ import {
   CreateScenario,
   SaveScenario,
   LoadScenario,
+  LoadNodeProperty,
   ListScenarios,
   DeleteScenario,
   RenameScenario,
+  UpsertNodeProperty,
 } from '../../../../wailsjs/go/binding/ScenarioBinding';
-import { scenario } from '../../../../wailsjs/go/models';
+import { entity } from '../../../../wailsjs/go/models';
+import { dto } from '../../../../wailsjs/go/models';
 
-export type ScenarioListItem = scenario.ScenarioListItem;
-export type Scenario = scenario.Scenario;
+export type ScenarioListItem = entity.ScenarioListItem;
+export type Scenario = entity.Scenario;
+export type NodePropertyRecord = entity.NodePropertyRecord;
+export type NodePropertyUpsert = dto.NodePropertyUpsert;
 
 /**
  * Hook providing typed wrappers around Wails ScenarioBinding calls
@@ -72,6 +77,37 @@ export function useScenarioApi() {
     }
   };
 
+  const upsertNodeProperty = async (
+    scenarioId: string,
+    nodeId: string,
+    propertiesJSON: string
+  ): Promise<void> => {
+    try {
+      await UpsertNodeProperty({
+        scenario_id: scenarioId,
+        node_id: nodeId,
+        schema_version: 1,
+        properties_json: propertiesJSON,
+      });
+    } catch (error) {
+      console.error('Failed to upsert node property:', error);
+      throw error;
+    }
+  };
+
+  const loadNodeProperty = async (
+    scenarioId: string,
+    nodeId: string
+  ): Promise<NodePropertyRecord> => {
+    try {
+      const property = await LoadNodeProperty(scenarioId, nodeId);
+      return property;
+    } catch (error) {
+      console.error('Failed to load node property:', error);
+      throw error;
+    }
+  };
+
   return {
     createScenario,
     saveScenario,
@@ -79,5 +115,7 @@ export function useScenarioApi() {
     listScenarios,
     deleteScenario,
     renameScenario,
+    upsertNodeProperty,
+    loadNodeProperty,
   };
 }
