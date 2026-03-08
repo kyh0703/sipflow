@@ -3,6 +3,7 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"time"
 )
 
@@ -33,19 +34,22 @@ type GraphNode struct {
 	ID             string
 	Type           string // command|event
 	InstanceID     string
-	Command        string        // MakeCall|Answer|Release|PlayAudio|SendDTMF|Hold|Retrieve|BlindTransfer (command 노드 전용)
-	TargetURI      string        // MakeCall 대상 URI (command 노드 전용)
-	FilePath       string        // PlayAudio WAV 파일 경로 (command 노드 전용)
-	Digits         string        // SendDTMF 전송할 DTMF digit 문자열 (command 노드 전용)
-	IntervalMs     float64       // SendDTMF digit 간 전송 간격 ms (command 노드 전용)
-	Event          string        // INCOMING|DISCONNECTED|RINGING|TIMEOUT|DTMFReceived|HELD|RETRIEVED|TRANSFERRED (event 노드 전용)
-	ExpectedDigit  string        // DTMFReceived 대기할 특정 digit (event 노드 전용)
-	Timeout        time.Duration // 타임아웃 (기본 10초)
-	TransferTarget string        // 레거시 (Phase 10 대비)
-	TargetUser     string        // BlindTransfer 대상 user 부분 (Phase 11)
-	TargetHost     string        // BlindTransfer 대상 host:port (Phase 11)
-	SuccessNext    *GraphNode    // 성공 분기 다음 노드
-	FailureNext    *GraphNode    // 실패 분기 다음 노드
+	CallID         string
+	Command        string                 // MakeCall|Answer|Release|PlayAudio|SendDTMF|Hold|Retrieve|BlindTransfer|MuteTransfer (command 노드 전용)
+	TargetURI      string                 // MakeCall 대상 URI (command 노드 전용)
+	FilePath       string                 // PlayAudio WAV 파일 경로 (command 노드 전용)
+	Digits         string                 // SendDTMF 전송할 DTMF digit 문자열 (command 노드 전용)
+	IntervalMs     float64                // SendDTMF digit 간 전송 간격 ms (command 노드 전용)
+	Event          string                 // INCOMING|DISCONNECTED|RINGING|TIMEOUT|DTMFReceived|HELD|RETRIEVED|TRANSFERRED (event 노드 전용)
+	ExpectedDigit  string                 // DTMFReceived 대기할 특정 digit (event 노드 전용)
+	Timeout        time.Duration          // 타임아웃 (기본 10초)
+	TransferTarget string                 // 레거시 (Phase 10 대비)
+	TargetUser     string                 // BlindTransfer 대상 user 부분 (Phase 11)
+	TargetHost     string                 // BlindTransfer 대상 host:port (Phase 11)
+	PrimaryCallID  string                 // MuteTransfer 대상 primary dialog call ID
+	ConsultCallID  string                 // MuteTransfer 대상 consult dialog call ID
+	SuccessNext    *GraphNode             // 성공 분기 다음 노드
+	FailureNext    *GraphNode             // 실패 분기 다음 노드
 	Data           map[string]interface{} // 원본 노드 데이터 (executePlayAudio에서 필요)
 }
 
@@ -71,6 +75,8 @@ type ExecutionGraph struct {
 	Instances map[string]*InstanceChain // instanceID -> 체인
 	Nodes     map[string]*GraphNode     // nodeID -> 노드
 }
+
+const defaultCallID = "call-1"
 
 // ParseScenario는 FlowData JSON 문자열을 ExecutionGraph로 변환한다
 func ParseScenario(flowData string) (*ExecutionGraph, error) {
@@ -121,11 +127,15 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 				ID:         node.ID,
 				Type:       node.Type,
 				InstanceID: sipInstanceID,
+				CallID:     getStringField(node.Data, "callId", defaultCallID),
 				Data:       node.Data, // 원본 데이터 저장
 			}
 
 			if node.Type == "command" {
 				gnode.Command = getStringField(node.Data, "command", "")
+				if gnode.Command != "" && !slices.Contains(supportedCommands, gnode.Command) {
+					return nil, fmt.Errorf("node %s uses unsupported command %s", node.ID, gnode.Command)
+				}
 				gnode.TargetURI = getStringField(node.Data, "targetUri", "")
 				gnode.FilePath = getStringField(node.Data, "filePath", "")
 				gnode.Digits = getStringField(node.Data, "digits", "")
@@ -133,10 +143,15 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 				gnode.TransferTarget = getStringField(node.Data, "transferTarget", "")
 				gnode.TargetUser = getStringField(node.Data, "targetUser", "")
 				gnode.TargetHost = getStringField(node.Data, "targetHost", "")
+				gnode.PrimaryCallID = getStringField(node.Data, "primaryCallId", "")
+				gnode.ConsultCallID = getStringField(node.Data, "consultCallId", "")
 				timeoutMs := getFloatField(node.Data, "timeout", 10000)
 				gnode.Timeout = time.Duration(timeoutMs) * time.Millisecond
 			} else if node.Type == "event" {
 				gnode.Event = getStringField(node.Data, "event", "")
+				if gnode.Event != "" && !slices.Contains(supportedEvents, gnode.Event) {
+					return nil, fmt.Errorf("node %s uses unsupported event %s", node.ID, gnode.Event)
+				}
 				gnode.ExpectedDigit = getStringField(node.Data, "expectedDigit", "")
 				timeoutMs := getFloatField(node.Data, "timeout", 10000)
 				gnode.Timeout = time.Duration(timeoutMs) * time.Millisecond

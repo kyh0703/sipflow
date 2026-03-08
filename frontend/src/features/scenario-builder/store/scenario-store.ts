@@ -44,6 +44,10 @@ interface ScenarioState {
   loadFromJSON: (json: string) => void;
 }
 
+function buildEdgeID(source: string, target: string): string {
+  return `${source}-${target}`;
+}
+
 // Inline debounce utility to avoid external dependencies
 function debounce<T extends (...args: any[]) => any>(
   fn: T,
@@ -93,6 +97,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
     const branchType = connection.sourceHandle === 'success' ? 'success' : 'failure';
     const newEdge = {
       ...connection,
+      id: buildEdgeID(connection.source, connection.target),
       type: 'branch',
       data: { branchType } as BranchEdgeData,
     };
@@ -227,7 +232,10 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       const { nodes, edges } = JSON.parse(json);
       set({
         nodes: nodes || [],
-        edges: edges || [],
+        edges: (edges || []).map((edge: Edge) => ({
+          ...edge,
+          id: buildEdgeID(edge.source, edge.target),
+        })),
         isDirty: false,
         saveStatus: 'saved',
       });

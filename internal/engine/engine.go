@@ -7,21 +7,22 @@ import (
 	"sync"
 	"time"
 
+	"sipflow/internal/pkg/eventhandler"
 	"sipflow/internal/scenario"
 )
 
 // Engine은 시나리오 실행 엔진
 type Engine struct {
-	ctx         context.Context
-	repo        *scenario.Repository
-	emitter     EventEmitter
-	im          *InstanceManager
-	executor    *Executor
-	mu          sync.Mutex
-	running     bool
-	scenarioID  string
-	cancelFunc  context.CancelFunc
-	wg          sync.WaitGroup
+	ctx        context.Context
+	repo       *scenario.Repository
+	emitter    EventEmitter
+	im         *InstanceManager
+	executor   *Executor
+	mu         sync.Mutex
+	running    bool
+	scenarioID string
+	cancelFunc context.CancelFunc
+	wg         sync.WaitGroup
 }
 
 // NewEngine은 새로운 Engine을 생성한다
@@ -220,12 +221,12 @@ func (e *Engine) cleanup() {
 }
 
 // emitSIPEvent는 SessionStore의 SIP 이벤트 버스에 이벤트를 전달한다
-func (e *Engine) emitSIPEvent(instanceID, eventType string) {
+func (e *Engine) emitSIPEvent(instanceID string, eventType eventhandler.SIPEventType, callID string) {
 	e.mu.Lock()
 	ex := e.executor
 	e.mu.Unlock()
 	if ex != nil {
-		ex.sessions.emitSIPEvent(instanceID, eventType)
+		ex.sessions.EmitSIPEvent(instanceID, eventType, callID)
 	}
 }
 

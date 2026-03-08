@@ -6,6 +6,14 @@ export function GetVersion() {
   return window['go']['binding']['EngineBinding']['GetVersion']();
 }
 
+export function GetSupportedCommands() {
+  return window['go']['binding']['EngineBinding']['GetSupportedCommands']();
+}
+
+export function GetSupportedEvents() {
+  return window['go']['binding']['EngineBinding']['GetSupportedEvents']();
+}
+
 export function IsRunning() {
   return window['go']['binding']['EngineBinding']['IsRunning']();
 }

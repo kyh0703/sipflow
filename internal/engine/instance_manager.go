@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 
 	"github.com/emiago/diago"
@@ -24,6 +25,7 @@ type ManagedInstance struct {
 type InstanceManager struct {
 	mu         sync.Mutex
 	instances  map[string]*ManagedInstance
+	dnToID     map[string]string
 	basePort   int
 	nextPort   int
 	maxRetries int
@@ -33,6 +35,7 @@ type InstanceManager struct {
 func NewInstanceManager() *InstanceManager {
 	return &InstanceManager{
 		instances:  make(map[string]*ManagedInstance),
+		dnToID:     make(map[string]string),
 		basePort:   5060,
 		nextPort:   5060,
 		maxRetries: 10,
@@ -64,6 +67,18 @@ func (im *InstanceManager) CreateInstances(graph *ExecutionGraph) error {
 	var createdInstances []*ManagedInstance
 
 	for instanceID, chain := range graph.Instances {
+		dn := strings.TrimSpace(chain.Config.DN)
+		if dn != "" {
+			if existingID, exists := im.dnToID[dn]; exists {
+				for _, inst := range createdInstances {
+					if inst.cancel != nil {
+						inst.cancel()
+					}
+				}
+				return fmt.Errorf("duplicate DN %q for instances %s and %s", dn, existingID, instanceID)
+			}
+		}
+
 		// 포트 할당
 		port, err := im.allocatePort()
 		if err != nil {
@@ -108,11 +123,14 @@ func (im *InstanceManager) CreateInstances(graph *ExecutionGraph) error {
 			Config:     chain.Config,
 			UA:         dg,
 			Port:       port,
-			incomingCh: make(chan *diago.DialogServerSession, 1),
+			incomingCh: make(chan *diago.DialogServerSession, 4),
 			cancel:     nil, // StartServing에서 설정
 		}
 
 		im.instances[instanceID] = managedInst
+		if dn != "" {
+			im.dnToID[dn] = instanceID
+		}
 		createdInstances = append(createdInstances, managedInst)
 	}
 
@@ -179,6 +197,32 @@ func (im *InstanceManager) GetInstance(instanceID string) (*ManagedInstance, err
 	return inst, nil
 }
 
+// ResolveTarget는 번호(DN) 또는 SIP URI를 실제 호출 가능한 SIP URI로 변환한다.
+func (im *InstanceManager) ResolveTarget(target string) (string, error) {
+	resolved := strings.TrimSpace(target)
+	if resolved == "" {
+		return "", fmt.Errorf("target is empty")
+	}
+	if strings.HasPrefix(resolved, "sip:") {
+		return resolved, nil
+	}
+
+	im.mu.Lock()
+	defer im.mu.Unlock()
+
+	instanceID, exists := im.dnToID[resolved]
+	if !exists {
+		return "", fmt.Errorf("target DN not found: %s", resolved)
+	}
+
+	inst, exists := im.instances[instanceID]
+	if !exists {
+		return "", fmt.Errorf("instance not found for target DN: %s", resolved)
+	}
+
+	return fmt.Sprintf("sip:%s@127.0.0.1:%d", inst.Config.DN, inst.Port), nil
+}
+
 // Cleanup은 모든 UA를 정리하고 리소스를 해제한다
 func (im *InstanceManager) Cleanup() error {
 	im.mu.Lock()
@@ -193,6 +237,7 @@ func (im *InstanceManager) Cleanup() error {
 
 	// 맵 초기화
 	im.instances = make(map[string]*ManagedInstance)
+	im.dnToID = make(map[string]string)
 
 	// nextPort 리셋
 	im.nextPort = im.basePort

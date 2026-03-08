@@ -4,6 +4,10 @@ import {context} from '../models';
 
 export function GetVersion():Promise<string>;
 
+export function GetSupportedCommands():Promise<Array<string>>;
+
+export function GetSupportedEvents():Promise<Array<string>>;
+
 export function IsRunning():Promise<boolean>;
 
 export function Ping():Promise<string>;

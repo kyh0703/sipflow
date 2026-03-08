@@ -14,6 +14,7 @@ import { ScenarioTree } from './scenario-tree';
 import { ExecutionToolbar } from './execution-toolbar';
 import { ExecutionLog } from './execution-log';
 import { ExecutionTimeline } from './execution-timeline';
+import { validateBackendContract } from '../lib/backend-contract';
 import { useScenarioStore } from '../store/scenario-store';
 import { useScenarioApi } from '../hooks/use-scenario-api';
 import { useExecutionStore } from '../store/execution-store';
@@ -39,6 +40,34 @@ export function ScenarioBuilder() {
       propertiesRef.current?.collapse();
     }
   }, [selectedNodeId]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+
+    let cancelled = false;
+
+    validateBackendContract()
+      .then((issues) => {
+        if (cancelled || issues.length === 0) {
+          return;
+        }
+
+        issues.forEach((issue) => console.error(issue));
+        toast.error(`Backend contract mismatch detected (${issues.length})`);
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        console.error('Failed to validate backend contract:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handlePanelToggle = (panel: 'scenario' | 'palette') => {
     if (activePanel === panel && !sidebarRef.current?.isCollapsed()) {

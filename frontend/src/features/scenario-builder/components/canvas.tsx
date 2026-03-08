@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
+import { v4 as uuidv4 } from 'uuid';
 import {
   ReactFlow,
   Background,
@@ -21,6 +22,10 @@ import { useDnD } from '../hooks/use-dnd';
 import { nodeTypes } from './nodes';
 import { INSTANCE_COLORS, DEFAULT_CODECS } from '../types/scenario';
 import type { EdgeAnimationMessage } from '../types/execution';
+
+function createNodeID(): string {
+  return uuidv4();
+}
 
 export function Canvas() {
   const { screenToFlowPosition } = useReactFlow();
@@ -93,7 +98,7 @@ export function Canvas() {
     }
 
     const newNode: Node = {
-      id: `${dragType}-${Date.now()}`,
+      id: createNodeID(),
       type: nodeType,
       position,
       data: nodeData,

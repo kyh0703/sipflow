@@ -151,7 +151,7 @@ func TestIntegration_TwoPartyCall(t *testing.T) {
 				"sipInstanceId": "inst-a",
 				"command":       "MakeCall",
 				"targetUri":     "sip:200@127.0.0.1", // Instance B address (port determined by SIP)
-				"timeout":       30000.0, // Increased timeout
+				"timeout":       30000.0,             // Increased timeout
 			},
 		},
 		// INCOMING event on B

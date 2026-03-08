@@ -222,6 +222,7 @@ export function validateInstanceAssignments(nodes: Node[]): ValidationError[] {
  */
 export function validateRequiredFields(nodes: Node[]): ValidationError[] {
   const errors: ValidationError[] = [];
+  const usedDNs = new Map<string, string>();
 
   nodes.forEach((node) => {
     const data = node.data as any;
@@ -254,6 +255,18 @@ export function validateRequiredFields(nodes: Node[]): ValidationError[] {
             nodeId: node.id,
             message: 'DN mode requires dn field',
           });
+        } else {
+          const dn = data.dn.trim();
+          const existingNodeID = usedDNs.get(dn);
+          if (existingNodeID && existingNodeID !== node.id) {
+            errors.push({
+              type: 'required-field',
+              nodeId: node.id,
+              message: `DN ${dn} must be unique`,
+            });
+          } else {
+            usedDNs.set(dn, node.id);
+          }
         }
       }
     }

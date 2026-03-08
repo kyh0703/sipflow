@@ -41,8 +41,8 @@
 
 | Plan | 제목 | 상태 |
 |------|------|------|
-| 14-01 | SessionStore 복합 키 리팩토링 (백엔드) | 대기 |
-| 14-02 | 모든 executor 노드 callID 파라미터 적용 | 대기 |
+| 14-01 | SessionStore 복합 키 리팩토링 (백엔드) | 완료 |
+| 14-02 | 모든 executor 노드 callID 파라미터 적용 | 완료 |
 
 ---
 
@@ -96,7 +96,7 @@
 
 | Phase | 제목 | 요구사항 | 상태 |
 |-------|------|----------|------|
-| 14 | SessionStore 멀티 다이얼로그 | SS-01~SS-07 | 대기 |
+| 14 | SessionStore 멀티 다이얼로그 | SS-01~SS-07 | 완료 |
 | 15 | AttendedTransfer 백엔드 | AT-01~AT-04 | 대기 |
 | 16 | callID UI + AttendedTransfer UI | UI-01~UI-04 | 대기 |
 

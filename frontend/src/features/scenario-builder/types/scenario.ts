@@ -7,8 +7,8 @@ export const NODE_CATEGORIES = {
   EVENT: 'event',
 } as const;
 
-// Command types (MVP Phase 2 + v1.2 Hold/Retrieve/BlindTransfer)
-export const COMMAND_TYPES = ['MakeCall', 'Answer', 'Release', 'PlayAudio', 'SendDTMF', 'Hold', 'Retrieve', 'BlindTransfer'] as const;
+// Command types (MVP Phase 2 + v1.2 Hold/Retrieve/BlindTransfer + v1.3 MuteTransfer UI)
+export const COMMAND_TYPES = ['MakeCall', 'Answer', 'Release', 'PlayAudio', 'SendDTMF', 'Hold', 'Retrieve', 'BlindTransfer', 'MuteTransfer'] as const;
 
 // Event types (full set)
 export const EVENT_TYPES = [
@@ -38,6 +38,7 @@ export const AVAILABLE_CODECS = ['PCMU', 'PCMA'] as const;
 
 // Default codec selection (all codecs enabled, PCMU first)
 export const DEFAULT_CODECS: string[] = ['PCMU', 'PCMA'];
+export const DEFAULT_CALL_ID = 'call-1';
 
 // SIP Instance Node
 export interface SipInstanceNodeData extends Record<string, unknown> {
@@ -56,7 +57,8 @@ export type SipInstanceNode = Node<SipInstanceNodeData, 'sipInstance'>;
 export interface CommandNodeData extends Record<string, unknown> {
   label: string;
   command: (typeof COMMAND_TYPES)[number];
-  sipInstanceId?: string;
+  sipInstanceId?: string; // sipInstance node.id (내부 PK)
+  callId?: string;
   targetUri?: string; // for MakeCall
   timeout?: number; // milliseconds
   filePath?: string; // for PlayAudio WAV file absolute path
@@ -64,6 +66,8 @@ export interface CommandNodeData extends Record<string, unknown> {
   intervalMs?: number; // for SendDTMF: interval between digits in milliseconds (default 100)
   targetUser?: string; // for BlindTransfer: target SIP user
   targetHost?: string; // for BlindTransfer: target SIP host:port
+  primaryCallId?: string; // for MuteTransfer: primary dialog call ID
+  consultCallId?: string; // for MuteTransfer: consult dialog call ID
 }
 
 export type CommandNode = Node<CommandNodeData, 'command'>;
@@ -72,7 +76,8 @@ export type CommandNode = Node<CommandNodeData, 'command'>;
 export interface EventNodeData extends Record<string, unknown> {
   label: string;
   event: (typeof EVENT_TYPES)[number];
-  sipInstanceId?: string;
+  sipInstanceId?: string; // sipInstance node.id (내부 PK)
+  callId?: string;
   timeout?: number; // for TIMEOUT event
   expectedDigit?: string; // for DTMFReceived: specific digit to wait for (empty = any digit)
 }

@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useScenarioStore } from '../../store/scenario-store';
 import type { CommandNode } from '../../types/scenario';
+import { DEFAULT_CALL_ID } from '../../types/scenario';
+import { getInstanceDisplayName } from '../../lib/instance-key';
 import { SelectWAVFile } from '../../../../../wailsjs/go/binding/MediaBinding';
 
 interface CommandPropertiesProps {
@@ -62,23 +64,36 @@ export function CommandProperties({ node, onUpdate }: CommandPropertiesProps) {
 
       {/* SIP Instance Assignment */}
       <div className="space-y-2">
-        <Label htmlFor="sipInstance">SIP Instance</Label>
+        <Label htmlFor="sipInstance">SIP Number</Label>
         <Select
           value={data.sipInstanceId || 'none'}
           onValueChange={(value) => onUpdate({ sipInstanceId: value === 'none' ? undefined : value })}
         >
           <SelectTrigger id="sipInstance">
-            <SelectValue placeholder="Select instance..." />
+            <SelectValue placeholder="Select number..." />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">None</SelectItem>
             {sipInstanceNodes.map((instance) => (
               <SelectItem key={instance.id} value={instance.id}>
-                {String(instance.data.label || instance.id)}
+                {getInstanceDisplayName(instance)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="callId">Call ID</Label>
+        <Input
+          id="callId"
+          value={data.callId || ''}
+          onChange={(e) => onUpdate({ callId: e.target.value })}
+          placeholder={DEFAULT_CALL_ID}
+        />
+        <p className="text-xs text-muted-foreground">
+          Leave empty to use default: {DEFAULT_CALL_ID}
+        </p>
       </div>
 
       <Separator />
@@ -87,13 +102,16 @@ export function CommandProperties({ node, onUpdate }: CommandPropertiesProps) {
       {data.command === 'MakeCall' && (
         <>
           <div className="space-y-2">
-            <Label htmlFor="targetUri">Target URI</Label>
+            <Label htmlFor="targetUri">Target Number / URI</Label>
             <Input
               id="targetUri"
               value={data.targetUri || ''}
               onChange={(e) => onUpdate({ targetUri: e.target.value })}
-              placeholder="sip:user@domain"
+              placeholder="200 또는 sip:user@domain"
             />
+            <p className="text-xs text-muted-foreground">
+              Enter another SIP instance number, or a full SIP URI for external targets.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -218,6 +236,30 @@ export function CommandProperties({ node, onUpdate }: CommandPropertiesProps) {
             <p className="text-xs text-muted-foreground">
               host:port (e.g. 192.168.1.100:5060)
             </p>
+          </div>
+        </>
+      )}
+
+      {data.command === 'MuteTransfer' && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="primaryCallId">Primary Call ID</Label>
+            <Input
+              id="primaryCallId"
+              value={data.primaryCallId || ''}
+              onChange={(e) => onUpdate({ primaryCallId: e.target.value })}
+              placeholder="primary"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="consultCallId">Consult Call ID</Label>
+            <Input
+              id="consultCallId"
+              value={data.consultCallId || ''}
+              onChange={(e) => onUpdate({ consultCallId: e.target.value })}
+              placeholder="consult"
+            />
           </div>
         </>
       )}

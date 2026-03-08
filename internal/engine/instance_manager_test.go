@@ -101,8 +101,8 @@ func TestCreateInstances_Basic(t *testing.T) {
 	if instA.incomingCh == nil {
 		t.Error("Instance A incomingCh is nil")
 	}
-	if cap(instA.incomingCh) != 1 {
-		t.Errorf("Instance A incomingCh buffer expected 1, got %d", cap(instA.incomingCh))
+	if cap(instA.incomingCh) != 4 {
+		t.Errorf("Instance A incomingCh buffer expected 4, got %d", cap(instA.incomingCh))
 	}
 
 	// 검증: instance-b 존재
@@ -115,6 +115,12 @@ func TestCreateInstances_Basic(t *testing.T) {
 	}
 	if instB.UA == nil {
 		t.Error("Instance B UA is nil")
+	}
+	if im.dnToID["100"] != "instance-a" {
+		t.Errorf("expected DN 100 to map to instance-a, got %q", im.dnToID["100"])
+	}
+	if im.dnToID["200"] != "instance-b" {
+		t.Errorf("expected DN 200 to map to instance-b, got %q", im.dnToID["200"])
 	}
 
 	// 검증: 두 인스턴스가 다른 포트를 사용하는지
@@ -172,6 +178,9 @@ func TestCleanup(t *testing.T) {
 	if len(im.instances) != 0 {
 		t.Errorf("Expected 0 instances after cleanup, got %d", len(im.instances))
 	}
+	if len(im.dnToID) != 0 {
+		t.Errorf("Expected 0 DN mappings after cleanup, got %d", len(im.dnToID))
+	}
 
 	// 검증: nextPort가 basePort로 리셋되었는지
 	if im.nextPort != im.basePort {
@@ -227,6 +236,70 @@ func TestReset(t *testing.T) {
 	// 검증: nextPort가 리셋되었는지
 	if im.nextPort != im.basePort {
 		t.Errorf("Expected nextPort to be reset to basePort (%d), got %d", im.basePort, im.nextPort)
+	}
+}
+
+func TestResolveTarget_ByDN(t *testing.T) {
+	im := NewInstanceManager()
+	im.instances["instance-a"] = &ManagedInstance{
+		Config: SipInstanceConfig{
+			ID:    "instance-a",
+			Label: "Instance A",
+			Mode:  "DN",
+			DN:    "100",
+		},
+		Port: 15100,
+	}
+	im.dnToID["100"] = "instance-a"
+
+	resolved, err := im.ResolveTarget("100")
+	if err != nil {
+		t.Fatalf("ResolveTarget failed: %v", err)
+	}
+	if resolved != "sip:100@127.0.0.1:15100" {
+		t.Fatalf("expected resolved target sip:100@127.0.0.1:15100, got %s", resolved)
+	}
+}
+
+func TestResolveTarget_BySIPURI(t *testing.T) {
+	im := NewInstanceManager()
+
+	resolved, err := im.ResolveTarget("sip:200@example.com")
+	if err != nil {
+		t.Fatalf("ResolveTarget should accept raw SIP URI: %v", err)
+	}
+	if resolved != "sip:200@example.com" {
+		t.Fatalf("expected same SIP URI, got %s", resolved)
+	}
+}
+
+func TestResolveTarget_DNNotFound(t *testing.T) {
+	im := NewInstanceManager()
+
+	_, err := im.ResolveTarget("999")
+	if err == nil {
+		t.Fatal("expected error for unknown DN")
+	}
+}
+
+func TestCreateInstances_DuplicateDN(t *testing.T) {
+	im := NewInstanceManager()
+
+	graph := &ExecutionGraph{
+		Instances: map[string]*InstanceChain{
+			"instance-a": {
+				Config: SipInstanceConfig{ID: "instance-a", Mode: "DN", DN: "100"},
+			},
+			"instance-b": {
+				Config: SipInstanceConfig{ID: "instance-b", Mode: "DN", DN: "100"},
+			},
+		},
+		Nodes: map[string]*GraphNode{},
+	}
+
+	err := im.CreateInstances(graph)
+	if err == nil {
+		t.Fatal("expected duplicate DN error")
 	}
 }
 

@@ -13,6 +13,7 @@ const COMMAND_ICONS = {
   Hold: Pause,
   Retrieve: Play,
   BlindTransfer: ArrowRightLeft,
+  MuteTransfer: ArrowRightLeft,
 } as const;
 
 function getExecutionStyle(status?: string): string {
@@ -82,6 +83,23 @@ export function CommandNode({ data, id }: NodeProps<CommandNodeType>) {
       {data.command === 'BlindTransfer' && data.targetUser && (
         <div className="px-3 pb-2">
           <div className="text-xs text-muted-foreground">To: {data.targetUser}{data.targetHost ? `@${data.targetHost}` : ''}</div>
+        </div>
+      )}
+
+      {data.command === 'MuteTransfer' && (
+        <div className="px-3 pb-2 space-y-1">
+          {data.primaryCallId && (
+            <div className="text-xs text-muted-foreground">Primary: {data.primaryCallId}</div>
+          )}
+          {data.consultCallId && (
+            <div className="text-xs text-muted-foreground">Consult: {data.consultCallId}</div>
+          )}
+        </div>
+      )}
+
+      {data.callId && (
+        <div className="px-3 pb-2">
+          <div className="text-xs text-muted-foreground">Call ID: {data.callId}</div>
         </div>
       )}
 

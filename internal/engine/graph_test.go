@@ -804,6 +804,7 @@ func TestParseScenario_BlindTransferFields(t *testing.T) {
       "data": {
         "command": "BlindTransfer",
         "sipInstanceId": "inst-a",
+        "callId": "primary",
         "targetUser": "carol",
         "targetHost": "192.168.1.100:5060"
       }
@@ -842,6 +843,69 @@ func TestParseScenario_BlindTransferFields(t *testing.T) {
 	// 검증: TargetHost 파싱됨
 	if cmd1.TargetHost != "192.168.1.100:5060" {
 		t.Errorf("expected targetHost '192.168.1.100:5060', got '%s'", cmd1.TargetHost)
+	}
+	if cmd1.CallID != "primary" {
+		t.Errorf("expected callID 'primary', got '%s'", cmd1.CallID)
+	}
+}
+
+func TestParseScenario_MuteTransferFields(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "label": "Instance A",
+        "mode": "DN",
+        "dn": "100"
+      }
+    },
+    {
+      "id": "cmd-1",
+      "type": "command",
+      "position": {"x": 100, "y": 250},
+      "data": {
+        "command": "MuteTransfer",
+        "sipInstanceId": "inst-a",
+        "callId": "primary",
+        "primaryCallId": "primary",
+        "consultCallId": "consult"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "inst-a",
+      "target": "cmd-1",
+      "sourceHandle": "success"
+    }
+  ]
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	cmd1 := graph.Nodes["cmd-1"]
+	if cmd1 == nil {
+		t.Fatal("cmd-1 not found")
+	}
+
+	if cmd1.Command != "MuteTransfer" {
+		t.Errorf("expected command 'MuteTransfer', got '%s'", cmd1.Command)
+	}
+	if cmd1.CallID != "primary" {
+		t.Errorf("expected callID 'primary', got '%s'", cmd1.CallID)
+	}
+	if cmd1.PrimaryCallID != "primary" {
+		t.Errorf("expected primaryCallID 'primary', got '%s'", cmd1.PrimaryCallID)
+	}
+	if cmd1.ConsultCallID != "consult" {
+		t.Errorf("expected consultCallID 'consult', got '%s'", cmd1.ConsultCallID)
 	}
 }
 
@@ -1132,5 +1196,132 @@ func TestParseScenario_V1_1_BackwardCompatibility(t *testing.T) {
 	}
 	if cmdMakeCall.TargetHost != "" {
 		t.Errorf("expected empty TargetHost for v1.1 MakeCall node, got '%s'", cmdMakeCall.TargetHost)
+	}
+}
+
+func TestParseScenario_DefaultCallID(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "data": {
+        "label": "A",
+        "mode": "DN",
+        "dn": "100"
+      }
+    },
+    {
+      "id": "cmd-makecall",
+      "type": "command",
+      "data": {
+        "command": "MakeCall",
+        "sipInstanceId": "inst-a",
+        "targetUri": "sip:200@127.0.0.1:5062"
+      }
+    }
+  ],
+  "edges": []
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	node := graph.Nodes["cmd-makecall"]
+	if node == nil {
+		t.Fatal("cmd-makecall not found")
+	}
+	if node.CallID != defaultCallID {
+		t.Fatalf("expected default callID %q, got %q", defaultCallID, node.CallID)
+	}
+}
+
+func TestParseScenario_CustomCallID(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "data": {
+        "label": "A",
+        "mode": "DN",
+        "dn": "100"
+      }
+    },
+    {
+      "id": "evt-held",
+      "type": "event",
+      "data": {
+        "event": "HELD",
+        "sipInstanceId": "inst-a",
+        "callId": "primary"
+      }
+    }
+  ],
+  "edges": []
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	node := graph.Nodes["evt-held"]
+	if node == nil {
+		t.Fatal("evt-held not found")
+	}
+	if node.CallID != "primary" {
+		t.Fatalf("expected callID primary, got %q", node.CallID)
+	}
+}
+
+func TestParseScenario_InstanceNodeIDUsesInternalKey(t *testing.T) {
+	flowJSON := `{
+  "nodes": [
+    {
+      "id": "inst-a",
+      "type": "sipInstance",
+      "data": {
+        "label": "A",
+        "mode": "DN",
+        "dn": "100"
+      }
+    },
+    {
+      "id": "cmd-makecall",
+      "type": "command",
+      "data": {
+        "command": "MakeCall",
+        "sipInstanceId": "inst-a",
+        "targetUri": "200"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "inst-a",
+      "target": "cmd-makecall",
+      "sourceHandle": "success"
+    }
+  ]
+}`
+
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("ParseScenario failed: %v", err)
+	}
+
+	inst, ok := graph.Instances["inst-a"]
+	if !ok {
+		t.Fatal("expected instance key inst-a in graph.Instances")
+	}
+	if len(inst.StartNodes) != 1 || inst.StartNodes[0].ID != "cmd-makecall" {
+		t.Fatalf("expected cmd-makecall as start node for inst-a")
+	}
+	if graph.Nodes["cmd-makecall"].InstanceID != "inst-a" {
+		t.Fatalf("expected command InstanceID to be inst-a, got %s", graph.Nodes["cmd-makecall"].InstanceID)
 	}
 }

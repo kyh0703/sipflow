@@ -2,7 +2,9 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,53 +14,92 @@ import (
 	"github.com/emiago/diago"
 	"github.com/emiago/diago/media/sdp"
 	"github.com/emiago/sipgo/sip"
+
+	"sipflow/internal/pkg/eventhandler"
 )
+
+func sessionKey(instanceID, callID string) string {
+	return instanceID + ":" + callID
+}
 
 // SessionStore는 활성 SIP 세션을 thread-safe하게 관리한다
 type SessionStore struct {
-	mu             sync.RWMutex
-	dialogs        map[string]diago.DialogSession          // instanceID -> dialog session
-	serverSessions map[string]*diago.DialogServerSession   // instanceID -> incoming server session
-	sipEventSubs   map[string][]chan struct{}              // "{instanceID}:{eventType}" -> 구독 채널 목록
+	mu              sync.RWMutex
+	dialogs         map[string]diago.DialogSession  // "{instanceID}:{callID}" -> dialog session
+	sipCallMappings map[string]string               // "{instanceID}:{callID}" -> SIP Call-ID
+	dispatchers     map[string]eventhandler.Subject // "{sipCallID}" -> dispatcher
 }
 
 // NewSessionStore는 새로운 SessionStore를 생성한다
 func NewSessionStore() *SessionStore {
 	return &SessionStore{
-		dialogs:        make(map[string]diago.DialogSession),
-		serverSessions: make(map[string]*diago.DialogServerSession),
-		sipEventSubs:   make(map[string][]chan struct{}),
+		dialogs:         make(map[string]diago.DialogSession),
+		sipCallMappings: make(map[string]string),
+		dispatchers:     make(map[string]eventhandler.Subject),
 	}
 }
 
+func dialogSIPCallID(dialog diago.DialogSession) string {
+	if dialog == nil || dialog.DialogSIP() == nil {
+		return ""
+	}
+
+	dialogSIP := dialog.DialogSIP()
+	if dialogSIP.InviteRequest != nil {
+		if callID := dialogSIP.InviteRequest.CallID(); callID != nil && callID.Value() != "" {
+			return callID.Value()
+		}
+	}
+	if dialogSIP.InviteResponse != nil {
+		if callID := dialogSIP.InviteResponse.CallID(); callID != nil && callID.Value() != "" {
+			return callID.Value()
+		}
+	}
+	return ""
+}
+
+func (ss *SessionStore) ensureDispatcherLocked(sipCallID string) eventhandler.Subject {
+	dispatcher, exists := ss.dispatchers[sipCallID]
+	if !exists {
+		dispatcher = eventhandler.NewDispatcher(sipCallID)
+		ss.dispatchers[sipCallID] = dispatcher
+	}
+	return dispatcher
+}
+
 // StoreDialog는 dialog session을 저장한다
-func (ss *SessionStore) StoreDialog(key string, dialog diago.DialogSession) {
+func (ss *SessionStore) StoreDialog(instanceID, callID string, dialog diago.DialogSession) {
 	ss.mu.Lock()
 	defer ss.mu.Unlock()
+
+	key := sessionKey(instanceID, callID)
 	ss.dialogs[key] = dialog
+	if sipCallID := dialogSIPCallID(dialog); sipCallID != "" {
+		ss.sipCallMappings[key] = sipCallID
+		ss.ensureDispatcherLocked(sipCallID)
+	}
 }
 
 // GetDialog는 dialog session을 조회한다
-func (ss *SessionStore) GetDialog(key string) (diago.DialogSession, bool) {
+func (ss *SessionStore) GetDialog(instanceID, callID string) (diago.DialogSession, bool) {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
-	dialog, exists := ss.dialogs[key]
+	dialog, exists := ss.dialogs[sessionKey(instanceID, callID)]
 	return dialog, exists
 }
 
-// StoreServerSession은 incoming server session을 저장한다
-func (ss *SessionStore) StoreServerSession(instanceID string, session *diago.DialogServerSession) {
+// DeleteDialog는 dialog session을 제거한다
+func (ss *SessionStore) DeleteDialog(instanceID, callID string) {
 	ss.mu.Lock()
 	defer ss.mu.Unlock()
-	ss.serverSessions[instanceID] = session
-}
-
-// GetServerSession은 incoming server session을 조회한다
-func (ss *SessionStore) GetServerSession(instanceID string) (*diago.DialogServerSession, bool) {
-	ss.mu.RLock()
-	defer ss.mu.RUnlock()
-	session, exists := ss.serverSessions[instanceID]
-	return session, exists
+	key := sessionKey(instanceID, callID)
+	delete(ss.dialogs, key)
+	if sipCallID, exists := ss.sipCallMappings[key]; exists {
+		delete(ss.sipCallMappings, key)
+		if dispatcher, ok := ss.dispatchers[sipCallID]; ok && dispatcher.ListenerCount() == 0 {
+			delete(ss.dispatchers, sipCallID)
+		}
+	}
 }
 
 // HangupAll은 모든 활성 dialog의 Hangup을 호출한다
@@ -75,6 +116,13 @@ func (ss *SessionStore) HangupAll(ctx context.Context) {
 	}
 }
 
+func callIDOrDefault(node *GraphNode) string {
+	if node.CallID == "" {
+		return defaultCallID
+	}
+	return node.CallID
+}
+
 // CloseAll은 모든 dialog의 Close를 호출한다
 func (ss *SessionStore) CloseAll() {
 	ss.mu.Lock()
@@ -85,55 +133,92 @@ func (ss *SessionStore) CloseAll() {
 	}
 }
 
-// emitSIPEvent는 특정 인스턴스의 SIP 이벤트를 구독 채널들에 non-blocking으로 전송한다
-func (ss *SessionStore) emitSIPEvent(instanceID, eventType string) {
-	key := instanceID + ":" + eventType
+func (ss *SessionStore) GetSIPCallID(instanceID, callID string) (string, bool) {
 	ss.mu.RLock()
-	subs := ss.sipEventSubs[key]
-	ss.mu.RUnlock()
+	defer ss.mu.RUnlock()
 
-	for _, ch := range subs {
-		select {
-		case ch <- struct{}{}:
-		default:
-			// 채널이 가득 찬 경우 드랍 (non-blocking)
-		}
-	}
+	sipCallID, exists := ss.sipCallMappings[sessionKey(instanceID, callID)]
+	return sipCallID, exists
 }
 
-// SubscribeSIPEvent는 특정 인스턴스의 SIP 이벤트를 구독하는 채널을 생성하고 반환한다
-func (ss *SessionStore) SubscribeSIPEvent(instanceID, eventType string) chan struct{} {
-	key := instanceID + ":" + eventType
-	ch := make(chan struct{}, 1)
+func (ss *SessionStore) emitSIPEventBySIPCallID(sipCallID, instanceID string, eventType eventhandler.SIPEventType, logicalCallID string, statusCode int) {
+	if sipCallID == "" {
+		return
+	}
 
 	ss.mu.Lock()
-	ss.sipEventSubs[key] = append(ss.sipEventSubs[key], ch)
+	dispatcher := ss.ensureDispatcherLocked(sipCallID)
 	ss.mu.Unlock()
 
-	return ch
+	dispatcher.Notify(eventhandler.Event{
+		Type:          eventType,
+		SIPCallID:     sipCallID,
+		InstanceID:    instanceID,
+		LogicalCallID: logicalCallID,
+		StatusCode:    statusCode,
+	})
 }
 
-// UnsubscribeSIPEvent는 SIP 이벤트 구독을 해제한다
-func (ss *SessionStore) UnsubscribeSIPEvent(instanceID, eventType string, ch chan struct{}) {
-	key := instanceID + ":" + eventType
+// emitSIPEvent는 logical call ID에 매핑된 SIP Call-ID dispatcher로 이벤트를 보낸다.
+func (ss *SessionStore) emitSIPEvent(instanceID, eventType, callID string) {
+	sipCallID, exists := ss.GetSIPCallID(instanceID, callID)
+	if !exists {
+		return
+	}
+	ss.emitSIPEventBySIPCallID(sipCallID, instanceID, eventhandler.SIPEventType(eventType), callID, 0)
+}
 
+func (ss *SessionStore) EmitSIPEvent(instanceID string, eventType eventhandler.SIPEventType, callID string) {
+	sipCallID, exists := ss.GetSIPCallID(instanceID, callID)
+	if !exists {
+		return
+	}
+	ss.emitSIPEventBySIPCallID(sipCallID, instanceID, eventType, callID, 0)
+}
+
+func (ss *SessionStore) SubscribeSIPEventHandlerBySIPCallID(sipCallID string, listener eventhandler.Listener) error {
+	if sipCallID == "" {
+		return fmt.Errorf("SIP Call-ID is required")
+	}
+
+	ss.mu.Lock()
+	dispatcher := ss.ensureDispatcherLocked(sipCallID)
+	dispatcher.Register(listener)
+	ss.mu.Unlock()
+	return nil
+}
+
+func (ss *SessionStore) SubscribeSIPEventHandler(instanceID, callID string, listener eventhandler.Listener) (string, error) {
+	sipCallID, exists := ss.GetSIPCallID(instanceID, callID)
+	if !exists || sipCallID == "" {
+		return "", fmt.Errorf("no SIP Call-ID for instance %s (callID: %s)", instanceID, callID)
+	}
+	if err := ss.SubscribeSIPEventHandlerBySIPCallID(sipCallID, listener); err != nil {
+		return "", err
+	}
+	return sipCallID, nil
+}
+
+func (ss *SessionStore) UnsubscribeSIPEventHandler(sipCallID string, listener eventhandler.Listener) {
 	ss.mu.Lock()
 	defer ss.mu.Unlock()
 
-	subs := ss.sipEventSubs[key]
-	for i, sub := range subs {
-		if sub == ch {
-			ss.sipEventSubs[key] = append(subs[:i], subs[i+1:]...)
-			break
-		}
+	dispatcher, exists := ss.dispatchers[sipCallID]
+	if !exists {
+		return
+	}
+
+	dispatcher.Deregister(listener)
+	if dispatcher.ListenerCount() == 0 {
+		delete(ss.dispatchers, sipCallID)
 	}
 }
 
 // Executor는 시나리오 그래프의 노드를 실행한다
 type Executor struct {
-	engine   *Engine           // 이벤트 발행용 부모 참조
-	im       *InstanceManager  // UA 조회용
-	sessions *SessionStore     // 활성 세션 저장소
+	engine   *Engine          // 이벤트 발행용 부모 참조
+	im       *InstanceManager // UA 조회용
+	sessions *SessionStore    // 활성 세션 저장소
 }
 
 // NewExecutor는 새로운 Executor를 생성한다
@@ -205,22 +290,24 @@ func (ex *Executor) executeNode(ctx context.Context, instanceID string, node *Gr
 // executeCommand는 Command 노드를 실행한다
 func (ex *Executor) executeCommand(ctx context.Context, instanceID string, node *GraphNode) error {
 	switch node.Command {
-	case "MakeCall":
+	case string(SIPCommandMakeCall):
 		return ex.executeMakeCall(ctx, instanceID, node)
-	case "Answer":
+	case string(SIPCommandAnswer):
 		return ex.executeAnswer(ctx, instanceID, node)
-	case "Release":
+	case string(SIPCommandRelease):
 		return ex.executeRelease(ctx, instanceID, node)
-	case "PlayAudio":
+	case string(SIPCommandPlayAudio):
 		return ex.executePlayAudio(ctx, instanceID, node)
-	case "SendDTMF":
+	case string(SIPCommandSendDTMF):
 		return ex.executeSendDTMF(ctx, instanceID, node)
-	case "Hold":
+	case string(SIPCommandHold):
 		return ex.executeHold(ctx, instanceID, node)
-	case "Retrieve":
+	case string(SIPCommandRetrieve):
 		return ex.executeRetrieve(ctx, instanceID, node)
-	case "BlindTransfer":
+	case string(SIPCommandBlindTransfer):
 		return ex.executeBlindTransfer(ctx, instanceID, node)
+	case string(SIPCommandMuteTransfer):
+		return ex.executeMuteTransfer(ctx, instanceID, node)
 	default:
 		return fmt.Errorf("unknown command: %s", node.Command)
 	}
@@ -231,18 +318,23 @@ func (ex *Executor) executeMakeCall(ctx context.Context, instanceID string, node
 	// 액션 로그 발행
 	ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("MakeCall to %s", node.TargetURI), "info")
 
-	// TargetURI 검증
+	// TargetURI / DN 검증
 	if node.TargetURI == "" {
 		return fmt.Errorf("MakeCall requires a targetUri")
 	}
-	if !strings.HasPrefix(node.TargetURI, "sip:") {
-		return fmt.Errorf("targetUri must start with sip: scheme")
+
+	resolvedTargetURI, err := ex.im.ResolveTarget(node.TargetURI)
+	if err != nil {
+		return fmt.Errorf("failed to resolve target %q: %w", node.TargetURI, err)
+	}
+	if !strings.HasPrefix(resolvedTargetURI, "sip:") {
+		return fmt.Errorf("resolved targetUri must start with sip: scheme")
 	}
 
 	// URI 파싱
 	var recipient sip.Uri
-	if err := sip.ParseUri(node.TargetURI, &recipient); err != nil {
-		return fmt.Errorf("invalid targetUri %q: %w", node.TargetURI, err)
+	if err := sip.ParseUri(resolvedTargetURI, &recipient); err != nil {
+		return fmt.Errorf("invalid targetUri %q: %w", resolvedTargetURI, err)
 	}
 
 	// 인스턴스 조회
@@ -266,13 +358,17 @@ func (ex *Executor) executeMakeCall(ctx context.Context, instanceID string, node
 	}
 
 	// Dialog 저장
-	ex.sessions.StoreDialog(instanceID, dialog)
+	ex.sessions.StoreDialog(instanceID, callIDOrDefault(node), dialog)
 
 	// 성공 로그 (SIP 메시지 상세 정보 포함)
 	// Note: diago DialogSession 인터페이스에서 Call-ID 접근이 제한되어 빈 문자열 사용
-	fromURI := instance.Config.DN  // 발신자는 인스턴스의 DN
-	toURI := recipient.User        // 수신자는 TargetURI의 User
-	ex.engine.emitActionLog(node.ID, instanceID, "MakeCall succeeded", "info",
+	fromURI := instance.Config.DN // 발신자는 인스턴스의 DN
+	toURI := recipient.User       // 수신자는 TargetURI의 User
+	successMessage := "MakeCall succeeded"
+	if node.TargetURI != resolvedTargetURI {
+		successMessage = fmt.Sprintf("MakeCall succeeded (%s -> %s)", node.TargetURI, resolvedTargetURI)
+	}
+	ex.engine.emitActionLog(node.ID, instanceID, successMessage, "info",
 		WithSIPMessage("sent", "INVITE", 200, "", fromURI, toURI))
 	return nil
 }
@@ -283,9 +379,15 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 	ex.engine.emitActionLog(node.ID, instanceID, "Answer incoming call", "info")
 
 	// Incoming server session 조회
-	serverSession, exists := ex.sessions.GetServerSession(instanceID)
+	callID := callIDOrDefault(node)
+	dialog, exists := ex.sessions.GetDialog(instanceID, callID)
 	if !exists {
-		return fmt.Errorf("no incoming dialog to answer for instance %s", instanceID)
+		return fmt.Errorf("no incoming dialog to answer for instance %s (callID: %s)", instanceID, callID)
+	}
+
+	serverSession, ok := dialog.(*diago.DialogServerSession)
+	if !ok {
+		return fmt.Errorf("dialog for callID %s is %T, not DialogServerSession", callID, dialog)
 	}
 
 	// AnswerOptions 구성 (OnMediaUpdate, OnRefer 콜백 등록)
@@ -310,12 +412,12 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 
 				if strings.Contains(localSDP, "a=recvonly") {
 					// 상대방이 Hold 요청 (sendonly) → 우리는 recvonly → HELD 이벤트
-					ex.engine.emitSIPEvent(instanceID, "HELD")
+					ex.engine.emitSIPEvent(instanceID, eventhandler.SIPEventHeld, callID)
 					ex.engine.emitActionLog(node.ID, instanceID, "Call HELD by remote party", "info",
 						WithSIPMessage("received", "INVITE", 200, "", "", "", "recvonly"))
 				} else if strings.Contains(localSDP, "a=sendrecv") {
 					// 상대방이 Retrieve 요청 (sendrecv) → RETRIEVED 이벤트
-					ex.engine.emitSIPEvent(instanceID, "RETRIEVED")
+					ex.engine.emitSIPEvent(instanceID, eventhandler.SIPEventRetrieved, callID)
 					ex.engine.emitActionLog(node.ID, instanceID, "Call RETRIEVED by remote party", "info",
 						WithSIPMessage("received", "INVITE", 200, "", "", "", "sendrecv"))
 				}
@@ -348,10 +450,10 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 			}
 
 			// 4. SessionStore 교체 (기존 dialog → referDialog)
-			ex.sessions.StoreDialog(instanceID, referDialog)
+			ex.sessions.StoreDialog(instanceID, callID, referDialog)
 
 			// 5. TRANSFERRED 이벤트 발행 (executeWaitSIPEvent 대기 해제)
-			ex.engine.emitSIPEvent(instanceID, "TRANSFERRED")
+			ex.engine.emitSIPEvent(instanceID, eventhandler.SIPEventTransferred, callID)
 
 			ex.engine.emitActionLog(node.ID, instanceID,
 				fmt.Sprintf("TransferEvent: session replaced with new dialog (Refer-To: %s)", referToURIStr), "info")
@@ -380,7 +482,7 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 	}
 
 	// Server session을 dialog로도 저장
-	ex.sessions.StoreDialog(instanceID, serverSession)
+	ex.sessions.StoreDialog(instanceID, callID, serverSession)
 
 	// 성공 로그 (SIP 메시지 상세 정보 포함)
 	fromUser := serverSession.FromUser()
@@ -396,7 +498,7 @@ func (ex *Executor) executeRelease(ctx context.Context, instanceID string, node 
 	ex.engine.emitActionLog(node.ID, instanceID, "Release call", "info")
 
 	// Dialog 조회
-	dialog, exists := ex.sessions.GetDialog(instanceID)
+	dialog, exists := ex.sessions.GetDialog(instanceID, callIDOrDefault(node))
 	if !exists {
 		// 이미 종료된 경우 경고 후 성공 처리
 		ex.engine.emitActionLog(node.ID, instanceID, "No active dialog to release (already terminated)", "warn")
@@ -432,22 +534,22 @@ func (ex *Executor) executeEvent(ctx context.Context, instanceID string, node *G
 	ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("Waiting for %s (timeout: %v)", node.Event, timeout), "info")
 
 	switch node.Event {
-	case "INCOMING":
+	case string(eventhandler.SIPEventIncoming):
 		return ex.executeIncoming(timeoutCtx, instanceID, node, timeout)
-	case "DISCONNECTED":
+	case string(eventhandler.SIPEventDisconnected):
 		return ex.executeDisconnected(timeoutCtx, instanceID, node, timeout)
-	case "RINGING":
+	case string(eventhandler.SIPEventRinging):
 		return ex.executeRinging(timeoutCtx, instanceID, node)
-	case "TIMEOUT":
+	case string(eventhandler.SIPEventTimeout):
 		return ex.executeTimeout(timeoutCtx, instanceID, node, timeout)
-	case "DTMFReceived":
+	case string(eventhandler.SIPEventDTMFReceived):
 		return ex.executeDTMFReceived(timeoutCtx, instanceID, node)
-	case "HELD":
-		return ex.executeWaitSIPEvent(timeoutCtx, instanceID, node, "HELD", timeout)
-	case "RETRIEVED":
-		return ex.executeWaitSIPEvent(timeoutCtx, instanceID, node, "RETRIEVED", timeout)
-	case "TRANSFERRED":
-		return ex.executeWaitSIPEvent(timeoutCtx, instanceID, node, "TRANSFERRED", timeout)
+	case string(eventhandler.SIPEventHeld):
+		return ex.executeWaitSIPEvent(timeoutCtx, instanceID, node, eventhandler.SIPEventHeld, timeout)
+	case string(eventhandler.SIPEventRetrieved):
+		return ex.executeWaitSIPEvent(timeoutCtx, instanceID, node, eventhandler.SIPEventRetrieved, timeout)
+	case string(eventhandler.SIPEventTransferred):
+		return ex.executeWaitSIPEvent(timeoutCtx, instanceID, node, eventhandler.SIPEventTransferred, timeout)
 	default:
 		return fmt.Errorf("event type %s is not supported", node.Event)
 	}
@@ -464,13 +566,13 @@ func (ex *Executor) executeIncoming(ctx context.Context, instanceID string, node
 	// incoming 채널 대기
 	select {
 	case inDialog := <-instance.incomingCh:
-		// Server session 저장
-		ex.sessions.StoreServerSession(instanceID, inDialog)
+		callID := callIDOrDefault(node)
+		ex.sessions.StoreDialog(instanceID, callID, inDialog)
 
 		// 성공 로그 (SIP 메시지 상세 정보 포함)
 		fromUser := inDialog.FromUser()
 		toUser := inDialog.ToUser()
-		ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("INCOMING event received from %s", fromUser), "info",
+		ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("INCOMING event received from %s (callID: %s)", fromUser, callID), "info",
 			WithSIPMessage("received", "INVITE", 0, "", fromUser, toUser))
 		return nil
 	case <-ctx.Done():
@@ -482,7 +584,7 @@ func (ex *Executor) executeIncoming(ctx context.Context, instanceID string, node
 // executeDisconnected는 DISCONNECTED 이벤트를 대기한다
 func (ex *Executor) executeDisconnected(ctx context.Context, instanceID string, node *GraphNode, timeout time.Duration) error {
 	// Dialog 조회
-	dialog, exists := ex.sessions.GetDialog(instanceID)
+	dialog, exists := ex.sessions.GetDialog(instanceID, callIDOrDefault(node))
 	if !exists {
 		return fmt.Errorf("no active dialog for DISCONNECTED event")
 	}
@@ -503,7 +605,7 @@ func (ex *Executor) executeDisconnected(ctx context.Context, instanceID string, 
 func (ex *Executor) executeRinging(ctx context.Context, instanceID string, node *GraphNode) error {
 	// Phase 03에서는 MakeCall 성공 시 이미 180 Ringing을 거쳤으므로 즉시 완료
 	ex.engine.emitActionLog(node.ID, instanceID, "RINGING event (auto-completed in local mode)", "info",
-		WithSIPMessage("received", "RINGING", 180, "", "", ""))
+		WithSIPMessage("received", string(eventhandler.SIPEventRinging), 180, "", "", ""))
 	return nil
 }
 
@@ -540,7 +642,7 @@ func (ex *Executor) executePlayAudio(ctx context.Context, instanceID string, nod
 	}
 
 	// Dialog 조회
-	dialog, exists := ex.sessions.GetDialog(instanceID)
+	dialog, exists := ex.sessions.GetDialog(instanceID, callIDOrDefault(node))
 	if !exists {
 		ex.engine.emitActionLog(node.ID, instanceID,
 			"No active dialog for PlayAudio (call must be answered first)", "error")
@@ -603,7 +705,7 @@ func (ex *Executor) executeSendDTMF(ctx context.Context, instanceID string, node
 	interval := time.Duration(node.IntervalMs) * time.Millisecond
 
 	// Dialog 조회
-	dialog, exists := ex.sessions.GetDialog(instanceID)
+	dialog, exists := ex.sessions.GetDialog(instanceID, callIDOrDefault(node))
 	if !exists {
 		ex.engine.emitActionLog(node.ID, instanceID,
 			"No active dialog for SendDTMF (call must be answered first)", "error")
@@ -665,7 +767,7 @@ func (ex *Executor) executeDTMFReceived(ctx context.Context, instanceID string, 
 	expectedDigit := node.ExpectedDigit
 
 	// Dialog 조회
-	dialog, exists := ex.sessions.GetDialog(instanceID)
+	dialog, exists := ex.sessions.GetDialog(instanceID, callIDOrDefault(node))
 	if !exists {
 		ex.engine.emitActionLog(node.ID, instanceID,
 			"No active dialog for DTMFReceived (call must be answered first)", "error")
@@ -750,7 +852,7 @@ func (ex *Executor) executeHold(ctx context.Context, instanceID string, node *Gr
 	ex.engine.emitActionLog(node.ID, instanceID, "Hold: sending Re-INVITE (sendonly)", "info")
 
 	// Dialog 조회
-	dialog, exists := ex.sessions.GetDialog(instanceID)
+	dialog, exists := ex.sessions.GetDialog(instanceID, callIDOrDefault(node))
 	if !exists {
 		return fmt.Errorf("Hold: no active dialog for instance %s", instanceID)
 	}
@@ -792,7 +894,7 @@ func (ex *Executor) executeRetrieve(ctx context.Context, instanceID string, node
 	ex.engine.emitActionLog(node.ID, instanceID, "Retrieve: sending Re-INVITE (sendrecv)", "info")
 
 	// Dialog 조회
-	dialog, exists := ex.sessions.GetDialog(instanceID)
+	dialog, exists := ex.sessions.GetDialog(instanceID, callIDOrDefault(node))
 	if !exists {
 		return fmt.Errorf("Retrieve: no active dialog for instance %s", instanceID)
 	}
@@ -837,7 +939,7 @@ func (ex *Executor) executeBlindTransfer(ctx context.Context, instanceID string,
 	}
 
 	// 2. Dialog 조회
-	dialog, exists := ex.sessions.GetDialog(instanceID)
+	dialog, exists := ex.sessions.GetDialog(instanceID, callIDOrDefault(node))
 	if !exists {
 		return fmt.Errorf("BlindTransfer: no active dialog for instance %s", instanceID)
 	}
@@ -890,22 +992,279 @@ func (ex *Executor) executeBlindTransfer(ctx context.Context, instanceID string,
 	return nil
 }
 
-// executeWaitSIPEvent는 SessionStore SIP 이벤트 버스에서 특정 이벤트를 블로킹 대기한다
-func (ex *Executor) executeWaitSIPEvent(ctx context.Context, instanceID string, node *GraphNode, eventType string, timeout time.Duration) error {
-	// 구독 채널 생성
-	ch := ex.sessions.SubscribeSIPEvent(instanceID, eventType)
-	defer ex.sessions.UnsubscribeSIPEvent(instanceID, eventType, ch)
-
-	select {
-	case <-ch:
-		// 이벤트 수신 성공
-		ex.engine.emitActionLog(node.ID, instanceID,
-			fmt.Sprintf("%s event received", eventType), "info")
-		return nil
-	case <-ctx.Done():
-		// 타임아웃 또는 컨텍스트 취소
-		return fmt.Errorf("%s event timeout after %v", eventType, timeout)
+func muteTransferPrimaryCallID(node *GraphNode) string {
+	if node.PrimaryCallID != "" {
+		return node.PrimaryCallID
 	}
+	return callIDOrDefault(node)
+}
+
+type transferTargetDialog interface {
+	diago.DialogSession
+	RemoteContact() *sip.ContactHeader
+}
+
+type muteTransferContext struct {
+	primaryCallID string
+	primarySIPID  string
+	consultCallID string
+	primaryDialog diago.DialogSession
+	consultDialog diago.DialogSession
+	referTo       sip.Uri
+	referToStr    string
+}
+
+func buildMuteTransferReferTo(dialog transferTargetDialog) (sip.Uri, string, error) {
+	dialogSIP := dialog.DialogSIP()
+	if dialogSIP == nil {
+		return sip.Uri{}, "", fmt.Errorf("MuteTransfer: consult dialog SIP state is missing")
+	}
+	if dialogSIP.InviteRequest == nil {
+		return sip.Uri{}, "", fmt.Errorf("MuteTransfer: consult dialog INVITE request is missing")
+	}
+	if dialogSIP.InviteResponse == nil {
+		return sip.Uri{}, "", fmt.Errorf("MuteTransfer: consult dialog INVITE response is missing")
+	}
+
+	callIDHeader := dialogSIP.InviteRequest.CallID()
+	if callIDHeader == nil || callIDHeader.Value() == "" {
+		return sip.Uri{}, "", fmt.Errorf("MuteTransfer: consult dialog Call-ID is missing")
+	}
+
+	fromHeader := dialogSIP.InviteRequest.From()
+	if fromHeader == nil {
+		return sip.Uri{}, "", fmt.Errorf("MuteTransfer: consult dialog From header is missing")
+	}
+	fromTag, ok := fromHeader.Params.Get("tag")
+	if !ok || fromTag == "" {
+		return sip.Uri{}, "", fmt.Errorf("MuteTransfer: consult dialog from-tag is missing")
+	}
+
+	toHeader := dialogSIP.InviteResponse.To()
+	if toHeader == nil {
+		return sip.Uri{}, "", fmt.Errorf("MuteTransfer: consult dialog To header is missing")
+	}
+	toTag, ok := toHeader.Params.Get("tag")
+	if !ok || toTag == "" {
+		return sip.Uri{}, "", fmt.Errorf("MuteTransfer: consult dialog to-tag is missing")
+	}
+
+	remoteContact := dialog.RemoteContact()
+	if remoteContact == nil {
+		return sip.Uri{}, "", fmt.Errorf("MuteTransfer: consult dialog remote contact is missing")
+	}
+
+	referTo := *remoteContact.Address.Clone()
+	if referTo.Headers == nil {
+		referTo.Headers = sip.NewParams()
+	}
+
+	replaces := fmt.Sprintf("%s;to-tag=%s;from-tag=%s", callIDHeader.Value(), toTag, fromTag)
+	referTo.Headers.Add("Replaces", url.QueryEscape(replaces))
+
+	return referTo, referTo.String(), nil
+}
+
+func (ex *Executor) buildMuteTransferContext(instanceID string, node *GraphNode) (*muteTransferContext, error) {
+	primaryCallID := muteTransferPrimaryCallID(node)
+	if primaryCallID == "" {
+		return nil, fmt.Errorf("MuteTransfer: primaryCallId is required")
+	}
+	if node.ConsultCallID == "" {
+		return nil, fmt.Errorf("MuteTransfer: consultCallId is required")
+	}
+
+	primaryDialog, exists := ex.sessions.GetDialog(instanceID, primaryCallID)
+	if !exists {
+		return nil, fmt.Errorf("MuteTransfer: no primary dialog for instance %s (callID: %s)", instanceID, primaryCallID)
+	}
+
+	consultDialog, exists := ex.sessions.GetDialog(instanceID, node.ConsultCallID)
+	if !exists {
+		return nil, fmt.Errorf("MuteTransfer: no consult dialog for instance %s (callID: %s)", instanceID, node.ConsultCallID)
+	}
+
+	transferDialog, ok := consultDialog.(transferTargetDialog)
+	if !ok {
+		return nil, fmt.Errorf("MuteTransfer: consult dialog type %T does not expose remote contact", consultDialog)
+	}
+
+	referTo, referToStr, err := buildMuteTransferReferTo(transferDialog)
+	if err != nil {
+		return nil, err
+	}
+	primarySIPID, exists := ex.sessions.GetSIPCallID(instanceID, primaryCallID)
+	if !exists || primarySIPID == "" {
+		return nil, fmt.Errorf("MuteTransfer: no SIP Call-ID for primary dialog %s", primaryCallID)
+	}
+
+	return &muteTransferContext{
+		primaryCallID: primaryCallID,
+		primarySIPID:  primarySIPID,
+		consultCallID: node.ConsultCallID,
+		primaryDialog: primaryDialog,
+		consultDialog: consultDialog,
+		referTo:       referTo,
+		referToStr:    referToStr,
+	}, nil
+}
+
+func (ex *Executor) createMuteTransferNotifyContext(ctx context.Context, node *GraphNode) (context.Context, context.CancelFunc, time.Duration) {
+	notifyCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	notifyTimeout := 30 * time.Second
+	if node.Timeout > 0 {
+		notifyTimeout = node.Timeout
+		cancel()
+		notifyCtx, cancel = context.WithTimeout(ctx, notifyTimeout)
+	}
+	return notifyCtx, cancel, notifyTimeout
+}
+
+func (ex *Executor) executeMuteTransferRefer(ctx context.Context, instanceID string, node *GraphNode, transfer *muteTransferContext, onNotify func(statusCode int)) error {
+	ex.engine.emitActionLog(node.ID, instanceID,
+		fmt.Sprintf("MuteTransfer: sending REFER to %s (primary: %s, consult: %s)", transfer.referToStr, transfer.primaryCallID, transfer.consultCallID), "info")
+
+	var err error
+	switch dialog := transfer.primaryDialog.(type) {
+	case *diago.DialogClientSession:
+		err = dialog.ReferOptions(ctx, transfer.referTo, diago.ReferClientOptions{OnNotify: onNotify})
+	case *diago.DialogServerSession:
+		err = dialog.ReferOptions(ctx, transfer.referTo, diago.ReferServerOptions{OnNotify: onNotify})
+	default:
+		err = fmt.Errorf("MuteTransfer: primary dialog type %T does not support ReferOptions", transfer.primaryDialog)
+	}
+	if err != nil {
+		return fmt.Errorf("MuteTransfer: REFER failed: %w", err)
+	}
+
+	ex.engine.emitActionLog(node.ID, instanceID,
+		fmt.Sprintf("MuteTransfer: REFER accepted (Refer-To: %s)", transfer.referToStr), "info",
+		WithSIPMessage("sent", "REFER", 202, "", "", transfer.referToStr))
+	return nil
+}
+
+func (ex *Executor) handleMuteTransferNotifyProgress(instanceID string, node *GraphNode, statusCode int) {
+	ex.engine.emitActionLog(node.ID, instanceID,
+		fmt.Sprintf("MuteTransfer: NOTIFY progress %d", statusCode), "info",
+		WithSIPMessage("received", "NOTIFY", statusCode, "", "", ""))
+}
+
+func (ex *Executor) cleanupMuteTransferDialogs(ctx context.Context, instanceID string, transfer *muteTransferContext, node *GraphNode) {
+	hangupCtx, hangupCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer hangupCancel()
+
+	if err := transfer.primaryDialog.Hangup(hangupCtx); err != nil {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("MuteTransfer: primary BYE warning: %v", err), "warn")
+	} else {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("MuteTransfer: primary BYE sent (callID: %s)", transfer.primaryCallID), "info",
+			WithSIPMessage("sent", "BYE", 200, "", "", ""))
+	}
+
+	if err := transfer.consultDialog.Hangup(hangupCtx); err != nil {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("MuteTransfer: consult BYE warning: %v", err), "warn")
+	} else {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("MuteTransfer: consult BYE sent (callID: %s)", transfer.consultCallID), "info",
+			WithSIPMessage("sent", "BYE", 200, "", "", ""))
+	}
+
+	ex.sessions.DeleteDialog(instanceID, transfer.primaryCallID)
+	ex.sessions.DeleteDialog(instanceID, transfer.consultCallID)
+}
+
+func (ex *Executor) handleMuteTransferNotifyFinal(ctx context.Context, instanceID string, node *GraphNode, transfer *muteTransferContext, statusCode int) error {
+	if statusCode >= 300 {
+		return fmt.Errorf("MuteTransfer: final NOTIFY failed with status %d", statusCode)
+	}
+
+	ex.engine.emitActionLog(node.ID, instanceID,
+		fmt.Sprintf("MuteTransfer succeeded (primary: %s, consult: %s)", transfer.primaryCallID, transfer.consultCallID), "info",
+		WithSIPMessage("received", "NOTIFY", statusCode, "", "", ""))
+
+	ex.cleanupMuteTransferDialogs(ctx, instanceID, transfer, node)
+	return nil
+}
+
+func (ex *Executor) createNotifyHandler(ctx context.Context, instanceID string, node *GraphNode, transfer *muteTransferContext, notifyTimeout time.Duration) *eventhandler.Handler {
+	handler := eventhandler.NewHandler(4)
+	handler.SetTimer(notifyTimeout)
+	handler.SetHandler(eventhandler.SIPEventNotify, func(handlerCtx context.Context, event eventhandler.Event, done eventhandler.DoneFn) error {
+		if event.StatusCode < 200 {
+			ex.handleMuteTransferNotifyProgress(instanceID, node, event.StatusCode)
+			return nil
+		}
+
+		if err := ex.handleMuteTransferNotifyFinal(ctx, instanceID, node, transfer, event.StatusCode); err != nil {
+			return err
+		}
+		done()
+		return nil
+	})
+	return handler
+}
+
+func (ex *Executor) executeMuteTransfer(ctx context.Context, instanceID string, node *GraphNode) error {
+	transfer, err := ex.buildMuteTransferContext(instanceID, node)
+	if err != nil {
+		return err
+	}
+
+	notifyCtx, cancel, notifyTimeout := ex.createMuteTransferNotifyContext(ctx, node)
+	defer cancel()
+
+	handler := ex.createNotifyHandler(ctx, instanceID, node, transfer, notifyTimeout)
+	defer handler.Close()
+	if err := ex.sessions.SubscribeSIPEventHandlerBySIPCallID(transfer.primarySIPID, handler); err != nil {
+		return err
+	}
+	defer ex.sessions.UnsubscribeSIPEventHandler(transfer.primarySIPID, handler)
+
+	onNotify := func(statusCode int) {
+		ex.sessions.emitSIPEventBySIPCallID(transfer.primarySIPID, instanceID, eventhandler.SIPEventNotify, transfer.primaryCallID, statusCode)
+	}
+
+	if err := ex.executeMuteTransferRefer(notifyCtx, instanceID, node, transfer, onNotify); err != nil {
+		return err
+	}
+
+	if err := handler.Poll(notifyCtx); err != nil {
+		if errors.Is(err, eventhandler.ErrTimeout) || errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("MuteTransfer: final NOTIFY timeout after %v", notifyTimeout)
+		}
+		return err
+	}
+	return nil
+}
+
+// executeWaitSIPEvent는 SessionStore SIP 이벤트 버스에서 특정 이벤트를 블로킹 대기한다
+func (ex *Executor) executeWaitSIPEvent(ctx context.Context, instanceID string, node *GraphNode, eventType eventhandler.SIPEventType, timeout time.Duration) error {
+	callID := callIDOrDefault(node)
+	handler := eventhandler.NewHandler(4)
+	handler.SetTimer(timeout)
+	handler.SetHandler(eventType, func(handlerCtx context.Context, event eventhandler.Event, done eventhandler.DoneFn) error {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("%s event received (callID: %s, sipCallID: %s)", eventType, callID, event.SIPCallID), "info")
+		done()
+		return nil
+	})
+	defer handler.Close()
+
+	sipCallID, err := ex.sessions.SubscribeSIPEventHandler(instanceID, callID, handler)
+	if err != nil {
+		return err
+	}
+	defer ex.sessions.UnsubscribeSIPEventHandler(sipCallID, handler)
+
+	if err := handler.Poll(ctx); err != nil {
+		if errors.Is(err, eventhandler.ErrTimeout) || errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("%s event timeout after %v", eventType, timeout)
+		}
+		return err
+	}
+	return nil
 }
 
 // isValidDTMF는 DTMF digit이 유효한지 검증한다 (0-9, *, #, A-D)

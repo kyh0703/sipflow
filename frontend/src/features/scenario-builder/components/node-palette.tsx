@@ -135,6 +135,12 @@ export function NodePalette() {
           icon={ArrowRightLeft}
           colorClass="bg-blue-50 border-blue-400 text-blue-900"
         />
+        <PaletteItem
+          type="command-MuteTransfer"
+          label="MuteTransfer"
+          icon={ArrowRightLeft}
+          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+        />
       </Section>
 
       <Section title="Events">

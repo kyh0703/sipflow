@@ -4,7 +4,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useScenarioStore } from '../../store/scenario-store';
-import type { EventNode } from '../../types/scenario';
+import { DEFAULT_CALL_ID, type EventNode } from '../../types/scenario';
+import { getInstanceDisplayName } from '../../lib/instance-key';
 
 interface EventPropertiesProps {
   node: EventNode;
@@ -43,23 +44,36 @@ export function EventProperties({ node, onUpdate }: EventPropertiesProps) {
 
       {/* SIP Instance Assignment */}
       <div className="space-y-2">
-        <Label htmlFor="sipInstance">SIP Instance</Label>
+        <Label htmlFor="sipInstance">SIP Number</Label>
         <Select
           value={data.sipInstanceId || 'none'}
           onValueChange={(value) => onUpdate({ sipInstanceId: value === 'none' ? undefined : value })}
         >
           <SelectTrigger id="sipInstance">
-            <SelectValue placeholder="Select instance..." />
+            <SelectValue placeholder="Select number..." />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">None</SelectItem>
             {sipInstanceNodes.map((instance) => (
               <SelectItem key={instance.id} value={instance.id}>
-                {String(instance.data.label || instance.id)}
+                {getInstanceDisplayName(instance)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="callId">Call ID</Label>
+        <Input
+          id="callId"
+          value={data.callId || ''}
+          onChange={(e) => onUpdate({ callId: e.target.value })}
+          placeholder={DEFAULT_CALL_ID}
+        />
+        <p className="text-xs text-muted-foreground">
+          Leave empty to use default: {DEFAULT_CALL_ID}
+        </p>
       </div>
 
       {/* Timeout - only visible for TIMEOUT event */}

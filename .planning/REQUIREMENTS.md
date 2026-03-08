@@ -8,13 +8,13 @@
 
 ## SessionStore 멀티 다이얼로그 (SS)
 
-- [ ] **SS-01**: 사용자가 하나의 SIP 인스턴스에서 복수의 통화를 동시에 관리할 수 있음 (instanceID + callID 복합 키)
-- [ ] **SS-02**: 사용자가 MakeCall 노드에서 callID를 지정하여 생성되는 dialog를 식별할 수 있음
-- [ ] **SS-03**: 사용자가 Answer 노드에서 callID를 지정하여 수신 dialog를 식별할 수 있음
-- [ ] **SS-04**: 사용자가 Hold, Retrieve, Release, BlindTransfer 노드에서 callID로 특정 dialog를 참조할 수 있음
-- [ ] **SS-05**: 사용자가 Event 노드(CallConnected, CallReleased, HoldEvent, TransferEvent 등)에서 callID로 특정 dialog의 이벤트를 대기할 수 있음
-- [ ] **SS-06**: callID 미지정 시 기본값으로 동작하여 v1.2 시나리오가 변경 없이 실행됨
-- [ ] **SS-07**: 동일 인스턴스에 다중 INVITE 수신을 지원함 (incomingCh 버퍼 확장)
+- [x] **SS-01**: 사용자가 하나의 SIP 인스턴스에서 복수의 통화를 동시에 관리할 수 있음 (instanceID + callID 복합 키)
+- [x] **SS-02**: 사용자가 MakeCall 노드에서 callID를 지정하여 생성되는 dialog를 식별할 수 있음
+- [x] **SS-03**: 사용자가 Answer 노드에서 callID를 지정하여 수신 dialog를 식별할 수 있음
+- [x] **SS-04**: 사용자가 Hold, Retrieve, Release, BlindTransfer 노드에서 callID로 특정 dialog를 참조할 수 있음
+- [x] **SS-05**: 사용자가 Event 노드(CallConnected, CallReleased, HoldEvent, TransferEvent 등)에서 callID로 특정 dialog의 이벤트를 대기할 수 있음
+- [x] **SS-06**: callID 미지정 시 기본값으로 동작하여 v1.2 시나리오가 변경 없이 실행됨
+- [x] **SS-07**: 동일 인스턴스에 다중 INVITE 수신을 지원함 (incomingCh 버퍼 확장)
 
 ## AttendedTransfer (AT)
 
@@ -52,13 +52,13 @@
 
 | REQ-ID | Phase | Plan | Status |
 |--------|-------|------|--------|
-| SS-01 | Phase 14 | 14-01 | Pending |
-| SS-02 | Phase 14 | 14-02 | Pending |
-| SS-03 | Phase 14 | 14-02 | Pending |
-| SS-04 | Phase 14 | 14-02 | Pending |
-| SS-05 | Phase 14 | 14-02 | Pending |
-| SS-06 | Phase 14 | 14-02 | Pending |
-| SS-07 | Phase 14 | 14-01 | Pending |
+| SS-01 | Phase 14 | 14-01 | Done |
+| SS-02 | Phase 14 | 14-02 | Done |
+| SS-03 | Phase 14 | 14-02 | Done |
+| SS-04 | Phase 14 | 14-02 | Done |
+| SS-05 | Phase 14 | 14-02 | Done |
+| SS-06 | Phase 14 | 14-02 | Done |
+| SS-07 | Phase 14 | 14-01 | Done |
 | AT-01 | Phase 15 | 15-01 | Pending |
 | AT-02 | Phase 15 | 15-01 | Pending |
 | AT-03 | Phase 15 | 15-01 | Pending |

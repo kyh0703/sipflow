@@ -85,6 +85,12 @@ export function EventNode({ data, id }: NodeProps<EventNodeType>) {
         </div>
       )}
 
+      {data.callId && (
+        <div className="px-3 pb-2">
+          <div className="text-xs text-muted-foreground">Call ID: {data.callId}</div>
+        </div>
+      )}
+
       <Handle
         type="source"
         position={Position.Bottom}

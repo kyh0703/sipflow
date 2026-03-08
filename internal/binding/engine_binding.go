@@ -39,6 +39,16 @@ func (e *EngineBinding) GetVersion() string {
 	return "0.1.0"
 }
 
+// GetSupportedCommands returns backend-supported command names.
+func (e *EngineBinding) GetSupportedCommands() []string {
+	return engine.SupportedCommands()
+}
+
+// GetSupportedEvents returns backend-supported event names.
+func (e *EngineBinding) GetSupportedEvents() []string {
+	return engine.SupportedEvents()
+}
+
 // StartScenario starts a scenario execution
 func (e *EngineBinding) StartScenario(scenarioID string) error {
 	runtime.LogInfo(e.ctx, fmt.Sprintf("Starting scenario: %s", scenarioID))

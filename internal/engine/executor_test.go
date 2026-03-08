@@ -8,6 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/emiago/diago"
+	"github.com/emiago/sipgo"
+	"github.com/emiago/sipgo/sip"
+
+	"sipflow/internal/pkg/eventhandler"
 	"sipflow/internal/scenario"
 )
 
@@ -27,7 +32,7 @@ func TestExecuteChain_BasicSuccess(t *testing.T) {
 		ID:         "node2",
 		Type:       "event",
 		InstanceID: "inst1",
-		Event:      "RINGING",
+		Event:      string(eventhandler.SIPEventRinging),
 		Timeout:    5 * time.Second,
 	}
 
@@ -52,15 +57,44 @@ func TestSessionStore_StoreAndGet(t *testing.T) {
 
 	// Dialog 저장 (nil이 아닌 mock 타입 필요 - 실제 테스트는 통합 테스트에서)
 	// 여기서는 존재하지 않는 키 조회 테스트
-	_, exists := store.GetDialog("nonexistent")
+	_, exists := store.GetDialog("nonexistent", defaultCallID)
 	if exists {
 		t.Errorf("GetDialog should return false for nonexistent key")
 	}
+}
 
-	// ServerSession 조회 테스트
-	_, exists = store.GetServerSession("nonexistent")
-	if exists {
-		t.Errorf("GetServerSession should return false for nonexistent key")
+func TestSessionKey(t *testing.T) {
+	key := sessionKey("alice", "primary")
+	if key != "alice:primary" {
+		t.Fatalf("expected session key alice:primary, got %s", key)
+	}
+}
+
+func TestSessionStore_MultiDialogIsolation(t *testing.T) {
+	store := NewSessionStore()
+
+	primary := newFakeTransferDialogWithCallID("sip-call-primary")
+	consult := newFakeTransferDialogWithCallID("sip-call-consult")
+
+	store.StoreDialog("inst-1", "primary", primary)
+	store.StoreDialog("inst-1", "consult", consult)
+
+	gotPrimary, ok := store.GetDialog("inst-1", "primary")
+	if !ok || gotPrimary != primary {
+		t.Fatal("expected primary dialog to be stored independently")
+	}
+	gotConsult, ok := store.GetDialog("inst-1", "consult")
+	if !ok || gotConsult != consult {
+		t.Fatal("expected consult dialog to be stored independently")
+	}
+
+	primarySIPCallID, ok := store.GetSIPCallID("inst-1", "primary")
+	if !ok || primarySIPCallID != "sip-call-primary" {
+		t.Fatalf("expected primary sip call id sip-call-primary, got %q", primarySIPCallID)
+	}
+	consultSIPCallID, ok := store.GetSIPCallID("inst-1", "consult")
+	if !ok || consultSIPCallID != "sip-call-consult" {
+		t.Fatalf("expected consult sip call id sip-call-consult, got %q", consultSIPCallID)
 	}
 }
 
@@ -78,14 +112,14 @@ func TestExecuteChain_FailureBranch(t *testing.T) {
 		ID:         "nodeSuccess",
 		Type:       "event",
 		InstanceID: "inst1",
-		Event:      "RINGING",
+		Event:      string(eventhandler.SIPEventRinging),
 	}
 
 	nodeFailure := &GraphNode{
 		ID:         "nodeFailure",
 		Type:       "event",
 		InstanceID: "inst1",
-		Event:      "TIMEOUT",
+		Event:      string(eventhandler.SIPEventTimeout),
 		Timeout:    1 * time.Second,
 	}
 
@@ -111,14 +145,14 @@ func TestSessionStore_ThreadSafety(t *testing.T) {
 
 	go func() {
 		for i := 0; i < 100; i++ {
-			store.GetDialog("test")
+			store.GetDialog("test", defaultCallID)
 		}
 		done <- true
 	}()
 
 	go func() {
 		for i := 0; i < 100; i++ {
-			store.GetServerSession("test")
+			store.GetDialog("test", defaultCallID)
 		}
 		done <- true
 	}()
@@ -191,6 +225,80 @@ func newTestExecutor(t *testing.T) (*Executor, *TestEventEmitter) {
 
 	executor := NewExecutor(eng, eng.im)
 	return executor, te
+}
+
+type fakeTransferDialog struct {
+	dialogSIP     *sipgo.Dialog
+	remoteContact *sip.ContactHeader
+}
+
+type fakeHangupDialog struct {
+	dialogSIP    *sipgo.Dialog
+	hangupCalled int
+}
+
+func (d *fakeTransferDialog) Id() string { return "fake-transfer-dialog" }
+
+func (d *fakeTransferDialog) Context() context.Context { return context.Background() }
+
+func (d *fakeTransferDialog) Hangup(ctx context.Context) error { return nil }
+
+func (d *fakeTransferDialog) Media() *diago.DialogMedia { return nil }
+
+func (d *fakeTransferDialog) DialogSIP() *sipgo.Dialog { return d.dialogSIP }
+
+func (d *fakeTransferDialog) Do(ctx context.Context, req *sip.Request) (*sip.Response, error) {
+	return nil, nil
+}
+
+func (d *fakeTransferDialog) Close() error { return nil }
+
+func (d *fakeTransferDialog) RemoteContact() *sip.ContactHeader { return d.remoteContact }
+
+func (d *fakeHangupDialog) Id() string { return "fake-hangup-dialog" }
+
+func (d *fakeHangupDialog) Context() context.Context { return context.Background() }
+
+func (d *fakeHangupDialog) Hangup(ctx context.Context) error {
+	d.hangupCalled++
+	return nil
+}
+
+func (d *fakeHangupDialog) Media() *diago.DialogMedia { return nil }
+
+func (d *fakeHangupDialog) DialogSIP() *sipgo.Dialog { return d.dialogSIP }
+
+func (d *fakeHangupDialog) Do(ctx context.Context, req *sip.Request) (*sip.Response, error) {
+	return nil, nil
+}
+
+func (d *fakeHangupDialog) Close() error { return nil }
+
+func newFakeTransferDialogWithCallID(callID string) *fakeTransferDialog {
+	callIDHeader := sip.CallIDHeader(callID)
+	dialog := &fakeTransferDialog{
+		dialogSIP: &sipgo.Dialog{
+			InviteRequest:  sip.NewRequest(sip.INVITE, sip.Uri{User: "200", Host: "127.0.0.1"}),
+			InviteResponse: sip.NewResponse(200, "OK"),
+		},
+		remoteContact: &sip.ContactHeader{
+			Address: sip.Uri{Scheme: "sip", User: "200", Host: "127.0.0.1", Port: 5060},
+		},
+	}
+	dialog.dialogSIP.InviteRequest.AppendHeader(&callIDHeader)
+	return dialog
+}
+
+func newFakeHangupDialogWithCallID(callID string) *fakeHangupDialog {
+	callIDHeader := sip.CallIDHeader(callID)
+	dialog := &fakeHangupDialog{
+		dialogSIP: &sipgo.Dialog{
+			InviteRequest:  sip.NewRequest(sip.INVITE, sip.Uri{User: "200", Host: "127.0.0.1"}),
+			InviteResponse: sip.NewResponse(200, "OK"),
+		},
+	}
+	dialog.dialogSIP.InviteRequest.AppendHeader(&callIDHeader)
+	return dialog
 }
 
 func TestExecutePlayAudio_NoFilePath(t *testing.T) {
@@ -287,7 +395,7 @@ func TestExecuteDTMFReceived_NoDialog(t *testing.T) {
 	node := &GraphNode{
 		ID:            "test-node",
 		Type:          "event",
-		Event:         "DTMFReceived",
+		Event:         string(eventhandler.SIPEventDTMFReceived),
 		ExpectedDigit: "1",
 		Timeout:       1 * time.Second,
 	}
@@ -303,51 +411,90 @@ func TestExecuteDTMFReceived_NoDialog(t *testing.T) {
 // TestSessionStore_SIPEventBus는 SIP 이벤트 버스의 발행/구독을 테스트한다
 func TestSessionStore_SIPEventBus(t *testing.T) {
 	store := NewSessionStore()
+	handler := eventhandler.NewHandler(4)
+	handler.SetTimer(1 * time.Second)
+	receivedCh := make(chan eventhandler.Event, 1)
+	handler.SetHandler(eventhandler.SIPEventHeld, func(ctx context.Context, event eventhandler.Event, done eventhandler.DoneFn) error {
+		receivedCh <- event
+		done()
+		return nil
+	})
+	defer handler.Close()
 
-	// 구독 채널 생성
-	ch := store.SubscribeSIPEvent("inst1", "HELD")
+	if err := store.SubscribeSIPEventHandlerBySIPCallID("sip-call-1", handler); err != nil {
+		t.Fatalf("SubscribeSIPEventHandlerBySIPCallID failed: %v", err)
+	}
 
 	// goroutine으로 50ms 후 이벤트 발행
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		store.emitSIPEvent("inst1", "HELD")
+		store.emitSIPEventBySIPCallID("sip-call-1", "inst1", eventhandler.SIPEventHeld, "primary", 0)
 	}()
 
-	// 채널 수신 확인 (1초 타임아웃)
-	select {
-	case <-ch:
-		// 정상 수신
-	case <-time.After(1 * time.Second):
-		t.Fatal("timeout waiting for HELD event")
+	if err := handler.Poll(context.Background()); err != nil {
+		t.Fatalf("handler poll failed: %v", err)
 	}
 
-	// UnsubscribeSIPEvent 후 재발행 → 수신 안 됨 확인
-	store.UnsubscribeSIPEvent("inst1", "HELD", ch)
-	store.emitSIPEvent("inst1", "HELD")
-
 	select {
-	case <-ch:
-		t.Fatal("should not receive event after unsubscribe")
-	case <-time.After(100 * time.Millisecond):
-		// 정상: 구독 해제 후 수신 안 됨
+	case event := <-receivedCh:
+		if event.LogicalCallID != "primary" {
+			t.Fatalf("expected logical callID primary, got %s", event.LogicalCallID)
+		}
+		if event.SIPCallID != "sip-call-1" {
+			t.Fatalf("expected sipCallID sip-call-1, got %s", event.SIPCallID)
+		}
+	default:
+		t.Fatal("expected HELD event to be captured")
 	}
+
+	store.UnsubscribeSIPEventHandler("sip-call-1", handler)
 }
 
 // TestSessionStore_SIPEventBus_MultipleSubscribers는 다중 구독자를 테스트한다
 func TestSessionStore_SIPEventBus_MultipleSubscribers(t *testing.T) {
 	store := NewSessionStore()
+	handler1 := eventhandler.NewHandler(4)
+	handler2 := eventhandler.NewHandler(4)
+	defer handler1.Close()
+	defer handler2.Close()
 
-	// 같은 이벤트에 2개 채널 구독
-	ch1 := store.SubscribeSIPEvent("inst1", "RETRIEVED")
-	ch2 := store.SubscribeSIPEvent("inst1", "RETRIEVED")
+	ch1 := make(chan eventhandler.Event, 1)
+	ch2 := make(chan eventhandler.Event, 1)
+	handler1.SetTimer(1 * time.Second)
+	handler2.SetTimer(1 * time.Second)
+	handler1.SetHandler(eventhandler.SIPEventRetrieved, func(ctx context.Context, event eventhandler.Event, done eventhandler.DoneFn) error {
+		ch1 <- event
+		done()
+		return nil
+	})
+	handler2.SetHandler(eventhandler.SIPEventRetrieved, func(ctx context.Context, event eventhandler.Event, done eventhandler.DoneFn) error {
+		ch2 <- event
+		done()
+		return nil
+	})
+
+	if err := store.SubscribeSIPEventHandlerBySIPCallID("sip-call-consult", handler1); err != nil {
+		t.Fatalf("subscribe handler1 failed: %v", err)
+	}
+	if err := store.SubscribeSIPEventHandlerBySIPCallID("sip-call-consult", handler2); err != nil {
+		t.Fatalf("subscribe handler2 failed: %v", err)
+	}
 
 	// 한 번 emit → 두 채널 모두 수신
-	store.emitSIPEvent("inst1", "RETRIEVED")
+	store.emitSIPEventBySIPCallID("sip-call-consult", "inst1", eventhandler.SIPEventRetrieved, "consult", 0)
 
-	for i, ch := range []chan struct{}{ch1, ch2} {
+	for i, handler := range []*eventhandler.Handler{handler1, handler2} {
+		if err := handler.Poll(context.Background()); err != nil {
+			t.Fatalf("poll failed for handler %d: %v", i+1, err)
+		}
+	}
+
+	for i, ch := range []chan eventhandler.Event{ch1, ch2} {
 		select {
-		case <-ch:
-			// 정상 수신
+		case event := <-ch:
+			if event.LogicalCallID != "consult" {
+				t.Fatalf("expected consult callID on channel %d, got %s", i+1, event.LogicalCallID)
+			}
 		case <-time.After(1 * time.Second):
 			t.Fatalf("timeout waiting for RETRIEVED event on channel %d", i+1)
 		}
@@ -359,8 +506,8 @@ func TestSessionStore_SIPEventBus_NoSubscribers(t *testing.T) {
 	store := NewSessionStore()
 
 	// 구독 없이 emitSIPEvent 호출 → 패닉 없이 완료
-	store.emitSIPEvent("inst1", "HELD")
-	store.emitSIPEvent("inst-nonexistent", "TRANSFERRED")
+	store.emitSIPEventBySIPCallID("sip-call-1", "inst1", eventhandler.SIPEventHeld, "primary", 0)
+	store.emitSIPEvent("inst-nonexistent", string(eventhandler.SIPEventTransferred), "")
 }
 
 // TestWithSIPMessage_Note는 note 파라미터가 포함된 경우를 테스트한다
@@ -492,11 +639,13 @@ func TestExecuteCommand_RetrieveSwitch(t *testing.T) {
 // TestExecuteEvent_HeldSwitch는 executeEvent switch가 HELD를 executeWaitSIPEvent로 라우팅하는지 테스트한다
 func TestExecuteEvent_HeldSwitch(t *testing.T) {
 	ex, _ := newTestExecutor(t)
+	ex.sessions.StoreDialog("inst-1", "primary", newFakeTransferDialogWithCallID("sip-call-held"))
 	node := &GraphNode{
 		ID:         "test-node",
 		Type:       "event",
-		Event:      "HELD",
+		Event:      string(eventhandler.SIPEventHeld),
 		InstanceID: "inst-1",
+		CallID:     "primary",
 		Timeout:    100 * time.Millisecond,
 	}
 	err := ex.executeEvent(context.Background(), "inst-1", node)
@@ -512,11 +661,13 @@ func TestExecuteEvent_HeldSwitch(t *testing.T) {
 // TestExecuteEvent_RetrievedSwitch는 executeEvent switch가 RETRIEVED를 executeWaitSIPEvent로 라우팅하는지 테스트한다
 func TestExecuteEvent_RetrievedSwitch(t *testing.T) {
 	ex, _ := newTestExecutor(t)
+	ex.sessions.StoreDialog("inst-1", "consult", newFakeTransferDialogWithCallID("sip-call-retrieved"))
 	node := &GraphNode{
 		ID:         "test-node",
 		Type:       "event",
-		Event:      "RETRIEVED",
+		Event:      string(eventhandler.SIPEventRetrieved),
 		InstanceID: "inst-1",
+		CallID:     "consult",
 		Timeout:    100 * time.Millisecond,
 	}
 	err := ex.executeEvent(context.Background(), "inst-1", node)
@@ -532,42 +683,88 @@ func TestExecuteEvent_RetrievedSwitch(t *testing.T) {
 // TestExecuteWaitSIPEvent_Success는 이벤트가 제때 발행될 때 executeWaitSIPEvent가 성공하는지 테스트한다
 func TestExecuteWaitSIPEvent_Success(t *testing.T) {
 	ex, _ := newTestExecutor(t)
+	ex.sessions.StoreDialog("inst-1", "primary", newFakeTransferDialogWithCallID("sip-call-held"))
 
 	// goroutine으로 50ms 후 HELD 이벤트 발행
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		ex.sessions.emitSIPEvent("inst-1", "HELD")
+		ex.sessions.emitSIPEvent("inst-1", string(eventhandler.SIPEventHeld), "primary")
 	}()
 
 	node := &GraphNode{
 		ID:      "test-node",
 		Type:    "event",
-		Event:   "HELD",
+		Event:   string(eventhandler.SIPEventHeld),
+		CallID:  "primary",
 		Timeout: 2 * time.Second,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	err := ex.executeWaitSIPEvent(ctx, "inst-1", node, "HELD", 2*time.Second)
+	err := ex.executeWaitSIPEvent(ctx, "inst-1", node, eventhandler.SIPEventHeld, 2*time.Second)
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
+	}
+}
+
+func TestExecuteWaitSIPEvent_IgnoresOtherDialogEvent(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	ex.sessions.StoreDialog("inst-1", "primary", newFakeTransferDialogWithCallID("sip-call-primary"))
+	ex.sessions.StoreDialog("inst-1", "consult", newFakeTransferDialogWithCallID("sip-call-consult"))
+
+	node := &GraphNode{
+		ID:      "test-node",
+		Type:    "event",
+		Event:   string(eventhandler.SIPEventHeld),
+		CallID:  "primary",
+		Timeout: 500 * time.Millisecond,
+	}
+
+	resultCh := make(chan error, 1)
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+		defer cancel()
+		resultCh <- ex.executeWaitSIPEvent(ctx, "inst-1", node, eventhandler.SIPEventHeld, 500*time.Millisecond)
+	}()
+
+	time.Sleep(30 * time.Millisecond)
+	ex.sessions.emitSIPEvent("inst-1", string(eventhandler.SIPEventHeld), "consult")
+
+	select {
+	case err := <-resultCh:
+		t.Fatalf("waiter should ignore consult event, got early result: %v", err)
+	case <-time.After(60 * time.Millisecond):
+		// expected: still waiting
+	}
+
+	ex.sessions.emitSIPEvent("inst-1", string(eventhandler.SIPEventHeld), "primary")
+
+	select {
+	case err := <-resultCh:
+		if err != nil {
+			t.Fatalf("expected no error after primary event, got %v", err)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("timeout waiting for primary HELD event result")
 	}
 }
 
 // TestExecuteWaitSIPEvent_Timeout은 이벤트가 발행되지 않을 때 타임아웃 에러가 반환되는지 테스트한다
 func TestExecuteWaitSIPEvent_Timeout(t *testing.T) {
 	ex, _ := newTestExecutor(t)
+	ex.sessions.StoreDialog("inst-1", "primary", newFakeTransferDialogWithCallID("sip-call-held"))
 
 	node := &GraphNode{
 		ID:      "test-node",
 		Type:    "event",
-		Event:   "HELD",
+		Event:   string(eventhandler.SIPEventHeld),
+		CallID:  "primary",
 		Timeout: 100 * time.Millisecond,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	err := ex.executeWaitSIPEvent(ctx, "inst-1", node, "HELD", 100*time.Millisecond)
+	err := ex.executeWaitSIPEvent(ctx, "inst-1", node, eventhandler.SIPEventHeld, 100*time.Millisecond)
 	if err == nil {
 		t.Fatal("expected timeout error")
 	}
@@ -633,6 +830,144 @@ func TestExecuteBlindTransfer_NoDialog(t *testing.T) {
 	}
 }
 
+func TestBuildMuteTransferReferTo(t *testing.T) {
+	callID := sip.CallIDHeader("consult-call-id")
+	from := &sip.FromHeader{
+		Address: sip.Uri{User: "100", Host: "127.0.0.1"},
+		Params:  sip.NewParams(),
+	}
+	from.Params.Add("tag", "from-tag-123")
+
+	to := &sip.ToHeader{
+		Address: sip.Uri{User: "300", Host: "127.0.0.1"},
+		Params:  sip.NewParams(),
+	}
+	to.Params.Add("tag", "to-tag-456")
+
+	dialog := &fakeTransferDialog{
+		dialogSIP: &sipgo.Dialog{
+			InviteRequest:  sip.NewRequest(sip.INVITE, sip.Uri{User: "300", Host: "127.0.0.1"}),
+			InviteResponse: sip.NewResponse(200, "OK"),
+		},
+		remoteContact: &sip.ContactHeader{
+			Address: sip.Uri{Scheme: "sip", User: "300", Host: "127.0.0.1", Port: 5060},
+		},
+	}
+	dialog.dialogSIP.InviteRequest.AppendHeader(&callID)
+	dialog.dialogSIP.InviteRequest.AppendHeader(from)
+	dialog.dialogSIP.InviteResponse.AppendHeader(to)
+
+	referTo, referToStr, err := buildMuteTransferReferTo(dialog)
+	if err != nil {
+		t.Fatalf("buildMuteTransferReferTo failed: %v", err)
+	}
+
+	if referTo.User != "300" || referTo.Host != "127.0.0.1" || referTo.Port != 5060 {
+		t.Fatalf("unexpected refer-to target: %+v", referTo)
+	}
+
+	replaces, ok := referTo.Headers.Get("Replaces")
+	if !ok {
+		t.Fatal("expected Replaces header param in refer-to URI")
+	}
+	expectedEscaped := "consult-call-id%3Bto-tag%3Dto-tag-456%3Bfrom-tag%3Dfrom-tag-123"
+	if replaces != expectedEscaped {
+		t.Fatalf("expected encoded Replaces %q, got %q", expectedEscaped, replaces)
+	}
+	if !strings.Contains(referToStr, "?Replaces="+expectedEscaped) {
+		t.Fatalf("expected refer-to string to contain encoded Replaces, got %s", referToStr)
+	}
+}
+
+func TestExecuteMuteTransfer_EmptyConsultCallID(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:            "test-node",
+		Type:          "command",
+		Command:       "MuteTransfer",
+		PrimaryCallID: "primary",
+	}
+
+	err := ex.executeMuteTransfer(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error for empty consultCallId")
+	}
+	if !strings.Contains(err.Error(), "consultCallId is required") {
+		t.Fatalf("expected consultCallId error, got %v", err)
+	}
+}
+
+func TestExecuteMuteTransfer_NoPrimaryDialog(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:            "test-node",
+		Type:          "command",
+		Command:       "MuteTransfer",
+		PrimaryCallID: "primary",
+		ConsultCallID: "consult",
+	}
+
+	err := ex.executeMuteTransfer(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error for missing primary dialog")
+	}
+	if !strings.Contains(err.Error(), "no primary dialog") {
+		t.Fatalf("expected primary dialog error, got %v", err)
+	}
+}
+
+func TestExecuteMuteTransfer_NoConsultDialog(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:            "test-node",
+		Type:          "command",
+		Command:       "MuteTransfer",
+		PrimaryCallID: "primary",
+		ConsultCallID: "consult",
+	}
+
+	primary := &fakeTransferDialog{
+		dialogSIP:     newFakeTransferDialogWithCallID("sip-primary").dialogSIP,
+		remoteContact: &sip.ContactHeader{Address: sip.Uri{Scheme: "sip", User: "200", Host: "127.0.0.1"}},
+	}
+	ex.sessions.StoreDialog("inst-1", "primary", primary)
+
+	err := ex.executeMuteTransfer(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error for missing consult dialog")
+	}
+	if !strings.Contains(err.Error(), "no consult dialog") {
+		t.Fatalf("expected consult dialog error, got %v", err)
+	}
+}
+
+func TestExecuteRelease_UsesCallID(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+
+	primary := newFakeHangupDialogWithCallID("sip-call-primary")
+	consult := newFakeHangupDialogWithCallID("sip-call-consult")
+	ex.sessions.StoreDialog("inst-1", "primary", primary)
+	ex.sessions.StoreDialog("inst-1", "consult", consult)
+
+	node := &GraphNode{
+		ID:      "release-node",
+		Type:    "command",
+		Command: string(SIPCommandRelease),
+		CallID:  "primary",
+	}
+
+	if err := ex.executeRelease(context.Background(), "inst-1", node); err != nil {
+		t.Fatalf("executeRelease failed: %v", err)
+	}
+
+	if primary.hangupCalled != 1 {
+		t.Fatalf("expected primary dialog hangup once, got %d", primary.hangupCalled)
+	}
+	if consult.hangupCalled != 0 {
+		t.Fatalf("expected consult dialog untouched, got %d", consult.hangupCalled)
+	}
+}
+
 // TestExecuteCommand_BlindTransferSwitch는 executeCommand switch가 BlindTransfer를 executeBlindTransfer로 라우팅하는지 테스트한다
 func TestExecuteCommand_BlindTransferSwitch(t *testing.T) {
 	ex, _ := newTestExecutor(t)
@@ -654,14 +989,35 @@ func TestExecuteCommand_BlindTransferSwitch(t *testing.T) {
 	}
 }
 
+func TestExecuteCommand_MuteTransferSwitch(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:            "test-node",
+		Type:          "command",
+		Command:       "MuteTransfer",
+		PrimaryCallID: "primary",
+		ConsultCallID: "consult",
+	}
+
+	err := ex.executeCommand(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected error (no primary dialog)")
+	}
+	if !strings.Contains(err.Error(), "no primary dialog") {
+		t.Fatalf("expected MuteTransfer handler error, got %v", err)
+	}
+}
+
 // TestExecuteEvent_TransferredSwitch는 executeEvent switch가 TRANSFERRED를 executeWaitSIPEvent로 라우팅하는지 테스트한다
 func TestExecuteEvent_TransferredSwitch(t *testing.T) {
 	ex, _ := newTestExecutor(t)
+	ex.sessions.StoreDialog("inst-1", "primary", newFakeTransferDialogWithCallID("sip-call-transferred"))
 	node := &GraphNode{
 		ID:         "test-node",
 		Type:       "event",
-		Event:      "TRANSFERRED",
+		Event:      string(eventhandler.SIPEventTransferred),
 		InstanceID: "inst-1",
+		CallID:     "primary",
 		Timeout:    100 * time.Millisecond,
 	}
 	err := ex.executeEvent(context.Background(), "inst-1", node)
@@ -677,23 +1033,25 @@ func TestExecuteEvent_TransferredSwitch(t *testing.T) {
 // TestExecuteWaitSIPEvent_Transferred_Success는 TRANSFERRED 이벤트가 제때 발행될 때 성공하는지 테스트한다
 func TestExecuteWaitSIPEvent_Transferred_Success(t *testing.T) {
 	ex, _ := newTestExecutor(t)
+	ex.sessions.StoreDialog("inst-1", "primary", newFakeTransferDialogWithCallID("sip-call-transferred"))
 
 	// goroutine으로 50ms 후 TRANSFERRED 이벤트 발행
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		ex.sessions.emitSIPEvent("inst-1", "TRANSFERRED")
+		ex.sessions.emitSIPEvent("inst-1", string(eventhandler.SIPEventTransferred), "primary")
 	}()
 
 	node := &GraphNode{
 		ID:      "test-node",
 		Type:    "event",
-		Event:   "TRANSFERRED",
+		Event:   string(eventhandler.SIPEventTransferred),
+		CallID:  "primary",
 		Timeout: 2 * time.Second,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	err := ex.executeWaitSIPEvent(ctx, "inst-1", node, "TRANSFERRED", 2*time.Second)
+	err := ex.executeWaitSIPEvent(ctx, "inst-1", node, eventhandler.SIPEventTransferred, 2*time.Second)
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
