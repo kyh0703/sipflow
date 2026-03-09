@@ -2,11 +2,11 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Play } from 'lucide-react';
 import type { SipInstanceNode } from '../../types/scenario';
 import { DEFAULT_CODECS } from '../../types/scenario';
-import { useScenarioStore } from '../../store/scenario-store';
 import { useExecutionStore } from '../../store/execution-store';
+import { useScenarioFlow } from '../../hooks/use-scenario-flow';
 
 export function SipInstanceNode({ data, id }: NodeProps<SipInstanceNode>) {
-  const validationErrors = useScenarioStore((state) => state.validationErrors);
+  const { validationErrors } = useScenarioFlow();
   const hasError = validationErrors.some((error) => error.nodeId === id);
   const status = useExecutionStore((state) => state.status);
   const isActive = status === 'running';

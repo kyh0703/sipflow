@@ -16,20 +16,21 @@ import { ExecutionToolbar } from './execution-toolbar';
 import { ExecutionLog } from './execution-log';
 import { ExecutionTimeline } from './execution-timeline';
 import { validateBackendContract } from '../lib/backend-contract';
-import { useScenarioStore } from '../store/scenario-store';
 import { useExecutionStore } from '../store/execution-store';
 
 function ScenarioBuilderContent() {
-  const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
-  const currentScenarioName = useScenarioStore((state) => state.currentScenarioName);
-  const saveStatus = useScenarioStore((state) => state.saveStatus);
-  const { saveNow } = useScenarioFlow();
+  const {
+    currentScenarioId,
+    currentScenarioName,
+    saveStatus,
+    saveNow,
+    selectedNodeId,
+  } = useScenarioFlow();
   const executionStatus = useExecutionStore((state) => state.status);
   const [bottomTab, setBottomTab] = useState<'log' | 'timeline'>('log');
   const [activePanel, setActivePanel] = useState<'scenario' | 'palette' | null>('scenario');
   const sidebarRef = useRef<PanelImperativeHandle>(null);
   const propertiesRef = useRef<PanelImperativeHandle>(null);
-  const selectedNodeId = useScenarioStore((state) => state.selectedNodeId);
 
   useEffect(() => {
     if (selectedNodeId) {

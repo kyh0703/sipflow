@@ -18,7 +18,7 @@ import {
   type OnNodesChange,
 } from '@xyflow/react';
 import { SaveScenario } from '../../../../wailsjs/go/binding/ScenarioBinding';
-import { useScenarioStore } from '../store/scenario-store';
+import type { ValidationError } from '../lib/validation';
 import type { BranchEdgeData } from '../types/scenario';
 
 interface FlowSnapshot {
@@ -34,6 +34,12 @@ interface FlowState {
 }
 
 interface ScenarioFlowContextValue {
+  currentScenarioId: string | null;
+  currentScenarioName: string | null;
+  selectedNodeId: string | null;
+  isDirty: boolean;
+  saveStatus: 'saved' | 'modified' | 'saving';
+  validationErrors: ValidationError[];
   nodes: Node[];
   edges: Edge[];
   selectedNode: Node | null;
@@ -41,6 +47,11 @@ interface ScenarioFlowContextValue {
   canUndo: boolean;
   canRedo: boolean;
   canDelete: boolean;
+  setSelectedNode: (nodeId: string | null) => void;
+  setCurrentScenario: (id: string | null, name: string | null) => void;
+  setDirty: (dirty: boolean) => void;
+  setValidationErrors: (errors: ValidationError[]) => void;
+  clearValidationErrors: () => void;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
@@ -124,14 +135,29 @@ const initialFlowState: FlowState = {
 
 export function ScenarioFlowProvider({ children }: PropsWithChildren) {
   const [flowState, setFlowState] = useState<FlowState>(initialFlowState);
+  const [selectedNodeId, setSelectedNode] = useState<string | null>(null);
+  const [currentScenarioId, setCurrentScenarioId] = useState<string | null>(null);
+  const [currentScenarioName, setCurrentScenarioName] = useState<string | null>(null);
+  const [isDirty, setDirtyState] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'modified' | 'saving'>('saved');
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
-  const selectedNodeId = useScenarioStore((state) => state.selectedNodeId);
-  const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
-  const isDirty = useScenarioStore((state) => state.isDirty);
-  const setSelectedNode = useScenarioStore((state) => state.setSelectedNode);
-  const setDirty = useScenarioStore((state) => state.setDirty);
-  const setSaveStatus = useScenarioStore((state) => state.setSaveStatus);
-  const clearValidationErrors = useScenarioStore((state) => state.clearValidationErrors);
+  const setCurrentScenario = useCallback((id: string | null, name: string | null) => {
+    setCurrentScenarioId(id);
+    setCurrentScenarioName(name);
+    setSelectedNode(null);
+    setDirtyState(false);
+    setSaveStatus('saved');
+  }, []);
+
+  const setDirty = useCallback((dirty: boolean) => {
+    setDirtyState(dirty);
+    setSaveStatus(dirty ? 'modified' : 'saved');
+  }, []);
+
+  const clearValidationErrors = useCallback(() => {
+    setValidationErrors([]);
+  }, []);
 
   const markModified = useCallback(() => {
     setDirty(true);
@@ -142,7 +168,7 @@ export function ScenarioFlowProvider({ children }: PropsWithChildren) {
     setSelectedNode(null);
     setDirty(false);
     clearValidationErrors();
-  }, [clearValidationErrors, setDirty, setSelectedNode]);
+  }, [clearValidationErrors, setDirty]);
 
   const onNodesChange = useCallback<OnNodesChange>((changes) => {
     const hasPersistentChange = changes.some(
@@ -256,7 +282,7 @@ export function ScenarioFlowProvider({ children }: PropsWithChildren) {
       setSelectedNode(null);
       markModified();
     }
-  }, [markModified, selectedNodeId, setSelectedNode]);
+  }, [markModified, selectedNodeId]);
 
   const loadFromJSON = useCallback((json: string) => {
     try {
@@ -277,7 +303,7 @@ export function ScenarioFlowProvider({ children }: PropsWithChildren) {
       console.error('Failed to parse flow JSON:', error);
       throw error;
     }
-  }, [clearValidationErrors, setDirty, setSelectedNode]);
+  }, [clearValidationErrors, setDirty]);
 
   const toFlowJSON = useCallback(() => {
     return JSON.stringify({ nodes: flowState.nodes, edges: flowState.edges });
@@ -297,7 +323,7 @@ export function ScenarioFlowProvider({ children }: PropsWithChildren) {
           console.error('[Autosave] Failed:', error);
         }
       }, AUTOSAVE_DEBOUNCE_MS),
-    [setDirty, setSaveStatus]
+    [setDirty]
   );
 
   const saveNow = useCallback(async () => {
@@ -318,7 +344,7 @@ export function ScenarioFlowProvider({ children }: PropsWithChildren) {
       console.error('[Manual Save] Failed:', error);
       throw error;
     }
-  }, [currentScenarioId, debouncedSave, isDirty, setDirty, setSaveStatus, toFlowJSON]);
+  }, [currentScenarioId, debouncedSave, isDirty, setDirty, toFlowJSON]);
 
   const undo = useCallback(() => {
     let didUndo = false;
@@ -345,7 +371,7 @@ export function ScenarioFlowProvider({ children }: PropsWithChildren) {
       setSelectedNode(null);
       markModified();
     }
-  }, [markModified, setSelectedNode]);
+  }, [markModified]);
 
   const redo = useCallback(() => {
     let didRedo = false;
@@ -372,7 +398,7 @@ export function ScenarioFlowProvider({ children }: PropsWithChildren) {
       setSelectedNode(null);
       markModified();
     }
-  }, [markModified, setSelectedNode]);
+  }, [markModified]);
 
   useEffect(() => {
     return () => {
@@ -390,7 +416,7 @@ export function ScenarioFlowProvider({ children }: PropsWithChildren) {
     if (selectedNodeId && !flowState.nodes.some((node) => node.id === selectedNodeId)) {
       setSelectedNode(null);
     }
-  }, [flowState.nodes, selectedNodeId, setSelectedNode]);
+  }, [flowState.nodes, selectedNodeId]);
 
   const selectedNode = useMemo(
     () => flowState.nodes.find((node) => node.id === selectedNodeId) ?? null,
@@ -403,6 +429,12 @@ export function ScenarioFlowProvider({ children }: PropsWithChildren) {
   );
 
   const value = useMemo<ScenarioFlowContextValue>(() => ({
+    currentScenarioId,
+    currentScenarioName,
+    selectedNodeId,
+    isDirty,
+    saveStatus,
+    validationErrors,
     nodes: flowState.nodes,
     edges: flowState.edges,
     selectedNode,
@@ -413,6 +445,11 @@ export function ScenarioFlowProvider({ children }: PropsWithChildren) {
       Boolean(selectedNodeId) ||
       flowState.nodes.some((node) => node.selected) ||
       flowState.edges.some((edge) => edge.selected),
+    setSelectedNode,
+    setCurrentScenario,
+    setDirty,
+    setValidationErrors,
+    clearValidationErrors,
     onNodesChange,
     onEdgesChange,
     onConnect,
@@ -428,23 +465,31 @@ export function ScenarioFlowProvider({ children }: PropsWithChildren) {
   }), [
     addNode,
     clearCanvas,
+    clearValidationErrors,
+    currentScenarioId,
+    currentScenarioName,
     deleteSelection,
     flowState.edges,
     flowState.historyFuture.length,
     flowState.historyPast.length,
     flowState.nodes,
+    isDirty,
     loadFromJSON,
     onConnect,
     onEdgesChange,
     onNodesChange,
     redo,
     saveNow,
+    saveStatus,
     selectedNode,
     selectedNodeId,
+    setCurrentScenario,
+    setDirty,
     sipInstanceNodes,
     toFlowJSON,
     undo,
     updateNodeData,
+    validationErrors,
   ]);
 
   return (

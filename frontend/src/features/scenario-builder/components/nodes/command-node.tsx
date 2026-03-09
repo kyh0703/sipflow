@@ -1,8 +1,8 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Phone, PhoneIncoming, PhoneOff, Volume2, Hash, Pause, Play, ArrowRightLeft } from 'lucide-react';
 import type { CommandNode as CommandNodeType } from '../../types/scenario';
-import { useScenarioStore } from '../../store/scenario-store';
 import { useExecutionStore } from '../../store/execution-store';
+import { useScenarioFlow } from '../../hooks/use-scenario-flow';
 
 const COMMAND_ICONS = {
   MakeCall: Phone,
@@ -32,7 +32,7 @@ function getExecutionStyle(status?: string): string {
 export function CommandNode({ data, id }: NodeProps<CommandNodeType>) {
   const Icon = COMMAND_ICONS[data.command as keyof typeof COMMAND_ICONS];
   const instanceColor = data.sipInstanceId ? '#3b82f6' : '#6b7280';
-  const validationErrors = useScenarioStore((state) => state.validationErrors);
+  const { validationErrors } = useScenarioFlow();
   const hasError = validationErrors.some((error) => error.nodeId === id);
   const nodeExecState = useExecutionStore((state) => state.nodeStates[id]);
 
