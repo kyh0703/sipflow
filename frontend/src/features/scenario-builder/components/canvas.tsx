@@ -10,13 +10,13 @@ import {
   MiniMap,
   Panel,
   useReactFlow,
-  type OnSelectionChangeParams,
   type Node,
   type Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useScenarioStore } from '../store/scenario-store';
 import { useExecutionStore } from '../store/execution-store';
+import { useUndoRedo } from '../hooks/use-undo-redo';
 import { useValidation } from '../hooks/use-validation';
 import { wouldCreateCycle } from '../lib/validation';
 import { edgeTypes } from '../edges/branch-edge';
@@ -50,20 +50,19 @@ export function Canvas() {
   const onEdgesChange = useScenarioStore((state) => state.onEdgesChange);
   const onConnect = useScenarioStore((state) => state.onConnect);
   const addNode = useScenarioStore((state) => state.addNode);
-  const removeSelectedElements = useScenarioStore((state) => state.removeSelectedElements);
   const setSelectedNode = useScenarioStore((state) => state.setSelectedNode);
   const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
   const setDirty = useScenarioStore((state) => state.setDirty);
   const saveNow = useScenarioStore((state) => state.saveNow);
-  const selectedNodeId = useScenarioStore((state) => state.selectedNodeId);
-  const canUndo = useScenarioStore((state) => state.canUndo);
-  const canRedo = useScenarioStore((state) => state.canRedo);
-  const undo = useScenarioStore((state) => state.undo);
-  const redo = useScenarioStore((state) => state.redo);
-  const hasSelectedElements =
-    Boolean(selectedNodeId) ||
-    nodes.some((node) => node.selected) ||
-    edges.some((edge) => edge.selected);
+  const {
+    canUndo,
+    canRedo,
+    canDelete,
+    undo,
+    redo,
+    deleteSelection,
+    handleSelectionChange,
+  } = useUndoRedo();
 
   const status = useExecutionStore((state) => state.status);
   const actionLogs = useExecutionStore((state) => state.actionLogs);
@@ -227,9 +226,9 @@ export function Canvas() {
         return;
       }
 
-      if ((key === 'delete' || key === 'backspace') && hasSelectedElements) {
+      if ((key === 'delete' || key === 'backspace') && canDelete) {
         event.preventDefault();
-        removeSelectedElements();
+        deleteSelection();
       }
     };
 
@@ -239,9 +238,9 @@ export function Canvas() {
     };
   }, [
     currentScenarioId,
-    hasSelectedElements,
+    canDelete,
+    deleteSelection,
     redo,
-    removeSelectedElements,
     saveNow,
     undo,
     validateAndNotify,
@@ -283,18 +282,6 @@ export function Canvas() {
   // Background color: light mode uses gray-300 (#d1d5db), dark mode uses gray-600 (#52525b)
   const backgroundColor = resolvedTheme === 'dark' ? '#52525b' : '#d1d5db';
 
-  const handleDeleteSelected = () => {
-    if (!hasSelectedElements) {
-      return;
-    }
-
-    removeSelectedElements();
-  };
-
-  const handleSelectionChange = ({ nodes: selectedNodes }: OnSelectionChangeParams<Node, Edge>) => {
-    setSelectedNode(selectedNodes.length === 1 ? selectedNodes[0].id : null);
-  };
-
   return (
     <ReactFlow
       nodes={nodes}
@@ -319,10 +306,10 @@ export function Canvas() {
         <CanvasToolbar
           canUndo={canUndo}
           canRedo={canRedo}
-          canDelete={hasSelectedElements}
+          canDelete={canDelete}
           onUndo={undo}
           onRedo={redo}
-          onDelete={handleDeleteSelected}
+          onDelete={deleteSelection}
         />
       </Panel>
       <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={backgroundColor} />
