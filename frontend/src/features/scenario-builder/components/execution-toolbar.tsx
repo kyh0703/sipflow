@@ -2,8 +2,7 @@ import { useEffect } from 'react';
 import { Play, Square, ToggleLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  useExecutionControlActions,
-  useExecutionListeningActions,
+  useExecutionActions,
   useExecutionStatus,
 } from '../hooks/use-execution';
 import { useEngineApi } from '../hooks/use-engine-api';
@@ -19,15 +18,14 @@ const statusStyles: Record<string, string> = {
 
 export function ExecutionToolbar() {
   const status = useExecutionStatus();
-  const { startListening, stopListening } = useExecutionListeningActions();
-  const { reset } = useExecutionControlActions();
+  const actions = useExecutionActions();
   const { currentScenarioId } = useScenarioFlow();
   const { startScenario, stopScenario } = useEngineApi();
 
   useEffect(() => {
-    startListening();
-    return () => stopListening();
-  }, [startListening, stopListening]);
+    actions.startListening();
+    return () => actions.stopListening();
+  }, [actions]);
 
   const handleStart = async () => {
     if (!currentScenarioId) {
@@ -38,7 +36,7 @@ export function ExecutionToolbar() {
     }
 
     try {
-      reset();
+      actions.reset();
       await startScenario(currentScenarioId);
     } catch (error) {
       toast.error('Failed to start scenario', {

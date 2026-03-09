@@ -15,7 +15,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
-  useExecutionAnimationActions,
+  useExecutionActions,
   useExecutionActionLogs,
   useExecutionReadOnly,
   useExecutionStatus,
@@ -74,7 +74,7 @@ export function Canvas() {
   const status = useExecutionStatus();
   const isReadOnly = useExecutionReadOnly();
   const actionLogs = useExecutionActionLogs();
-  const { addEdgeAnimation } = useExecutionAnimationActions();
+  const executionActions = useExecutionActions();
   const lastLogCountRef = useRef(0);
 
   const onDrop = (event: React.DragEvent) => {
@@ -188,9 +188,9 @@ export function Canvas() {
         duration: 1000,
       };
 
-      addEdgeAnimation(animation);
+      executionActions.addEdgeAnimation(animation);
     });
-  }, [status, actionLogs, edges, addEdgeAnimation]);
+  }, [status, actionLogs, edges, executionActions]);
 
   // Keyboard shortcut: Ctrl+S / Cmd+S to save
   useEffect(() => {

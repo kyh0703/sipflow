@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
 import {
-  useExecutionAnimationActions,
+  useExecutionActions,
   useExecutionEdgeAnimations,
 } from '../hooks/use-execution';
 
@@ -16,7 +16,7 @@ export function AnimatedMessageEdge({
   data,
 }: EdgeProps) {
   const edgeAnimations = useExecutionEdgeAnimations(id);
-  const { removeEdgeAnimation } = useExecutionAnimationActions();
+  const executionActions = useExecutionActions();
 
   const [edgePath] = getSmoothStepPath({
     sourceX,
@@ -42,14 +42,14 @@ export function AnimatedMessageEdge({
 
     const timers = edgeAnimations.map((anim) =>
       setTimeout(() => {
-        removeEdgeAnimation(anim.id);
+        executionActions.removeEdgeAnimation(anim.id);
       }, anim.duration)
     );
 
     return () => {
       timers.forEach((timer) => clearTimeout(timer));
     };
-  }, [edgeAnimations, removeEdgeAnimation]);
+  }, [edgeAnimations, executionActions]);
 
   return (
     <>

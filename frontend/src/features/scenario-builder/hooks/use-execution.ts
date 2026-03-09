@@ -9,26 +9,12 @@ export function useExecutionReadOnly() {
   return useExecutionStore((state) => state.status === 'running');
 }
 
-export function useExecutionListeningActions() {
+export function useExecutionActions() {
   return useExecutionStore(
     useShallow((state) => ({
       startListening: state.startListening,
       stopListening: state.stopListening,
-    }))
-  );
-}
-
-export function useExecutionControlActions() {
-  return useExecutionStore(
-    useShallow((state) => ({
       reset: state.reset,
-    }))
-  );
-}
-
-export function useExecutionAnimationActions() {
-  return useExecutionStore(
-    useShallow((state) => ({
       addEdgeAnimation: state.addEdgeAnimation,
       removeEdgeAnimation: state.removeEdgeAnimation,
     }))
