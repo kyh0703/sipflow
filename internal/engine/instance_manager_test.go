@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"net"
+	"syscall"
 	"testing"
 
 	"github.com/emiago/diago/media"
@@ -42,6 +44,71 @@ func TestAllocatePort_Sequential(t *testing.T) {
 	// nextPort가 올바르게 업데이트되었는지 확인
 	if im.nextPort != 15066 {
 		t.Errorf("Expected nextPort to be 15066, got %d", im.nextPort)
+	}
+}
+
+func TestAllocatePort_PermissionDeniedFallback(t *testing.T) {
+	originalListenPacket := listenPacket
+	listenPacket = func(network, address string) (net.PacketConn, error) {
+		return nil, &net.OpError{
+			Op:  "listen",
+			Net: network,
+			Err: syscall.EPERM,
+		}
+	}
+	t.Cleanup(func() {
+		listenPacket = originalListenPacket
+	})
+
+	im := NewInstanceManager()
+	im.basePort = 15060
+	im.nextPort = 15060
+
+	port1, err := im.allocatePort()
+	if err != nil {
+		t.Fatalf("permission fallback should still allocate a port: %v", err)
+	}
+	if port1 != 15060 {
+		t.Fatalf("expected fallback port 15060, got %d", port1)
+	}
+
+	port2, err := im.allocatePort()
+	if err != nil {
+		t.Fatalf("second permission fallback allocation failed: %v", err)
+	}
+	if port2 != 15062 {
+		t.Fatalf("expected second fallback port 15062, got %d", port2)
+	}
+}
+
+func TestAllocatePort_RetriesOnPortConflict(t *testing.T) {
+	originalListenPacket := listenPacket
+	attempts := 0
+	listenPacket = func(network, address string) (net.PacketConn, error) {
+		attempts++
+		if attempts == 1 {
+			return nil, &net.OpError{
+				Op:  "listen",
+				Net: network,
+				Err: syscall.EADDRINUSE,
+			}
+		}
+		return originalListenPacket(network, address)
+	}
+	t.Cleanup(func() {
+		listenPacket = originalListenPacket
+	})
+
+	im := NewInstanceManager()
+	im.basePort = 15110
+	im.nextPort = 15110
+
+	port, err := im.allocatePort()
+	if err != nil {
+		t.Fatalf("expected allocation after retry, got %v", err)
+	}
+	if port != 15112 {
+		t.Fatalf("expected retry to move to 15112, got %d", port)
 	}
 }
 

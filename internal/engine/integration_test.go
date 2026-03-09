@@ -2,8 +2,11 @@ package engine
 
 import (
 	"encoding/json"
+	"errors"
+	"os"
 	"path/filepath"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -63,6 +66,8 @@ func buildTestFlowData(t *testing.T, nodes []FlowNode, edges []FlowEdge) string 
 // newTestEngine creates a test engine with temporary database and TestEventEmitter
 func newTestEngine(t *testing.T, basePort int) (*Engine, *scenario.Repository, *TestEventEmitter) {
 	t.Helper()
+	requireUDPNetworking(t)
+
 	dbPath := filepath.Join(t.TempDir(), "test.db")
 	repo, err := scenario.NewRepository(dbPath)
 	if err != nil {
@@ -78,6 +83,22 @@ func newTestEngine(t *testing.T, basePort int) (*Engine, *scenario.Repository, *
 	eng.SetEventEmitter(te)
 
 	return eng, repo, te
+}
+
+func requireUDPNetworking(t *testing.T) {
+	t.Helper()
+
+	conn, err := listenPacket("udp", "127.0.0.1:0")
+	if err == nil {
+		_ = conn.Close()
+		return
+	}
+
+	if errors.Is(err, syscall.EPERM) || errors.Is(err, syscall.EACCES) || os.IsPermission(err) {
+		t.Skipf("UDP sockets unavailable in this environment: %v", err)
+	}
+
+	t.Fatalf("failed to probe UDP networking: %v", err)
 }
 
 // waitForEvent waits for an event with the specified name within timeout
