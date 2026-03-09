@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { useScenarioFlow } from '../hooks/use-scenario-flow';
 import { useScenarioApi, type ScenarioListItem } from '../hooks/use-scenario-api';
 import { useScenarioStore } from '../store/scenario-store';
 
@@ -11,8 +12,7 @@ export function ScenarioTree() {
   const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
   const isDirty = useScenarioStore((state) => state.isDirty);
   const setCurrentScenario = useScenarioStore((state) => state.setCurrentScenario);
-  const clearCanvas = useScenarioStore((state) => state.clearCanvas);
-  const loadFromJSON = useScenarioStore((state) => state.loadFromJSON);
+  const { clearCanvas, loadFromJSON } = useScenarioFlow();
 
   const loadScenarios = async () => {
     try {

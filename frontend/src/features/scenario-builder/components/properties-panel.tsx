@@ -1,4 +1,4 @@
-import { useScenarioStore } from '../store/scenario-store';
+import { useScenarioFlow } from '../hooks/use-scenario-flow';
 import { SipInstanceProperties } from './properties/sip-instance-properties';
 import { CommandProperties } from './properties/command-properties';
 import { EventProperties } from './properties/event-properties';
@@ -8,11 +8,7 @@ import { FileQuestion } from 'lucide-react';
 import type { SipInstanceNode, CommandNode, EventNode } from '../types/scenario';
 
 export function PropertiesPanel() {
-  const selectedNodeId = useScenarioStore((state) => state.selectedNodeId);
-  const nodes = useScenarioStore((state) => state.nodes);
-  const updateNodeData = useScenarioStore((state) => state.updateNodeData);
-
-  const selectedNode = nodes.find((node) => node.id === selectedNodeId);
+  const { selectedNode, sipInstanceNodes, updateNodeData } = useScenarioFlow();
 
   // Empty state
   if (!selectedNode) {
@@ -84,6 +80,7 @@ export function PropertiesPanel() {
       {selectedNode.type === 'command' && (
         <CommandProperties
           node={selectedNode as CommandNode}
+          sipInstanceNodes={sipInstanceNodes}
           onUpdate={handleUpdate}
         />
       )}
@@ -91,6 +88,7 @@ export function PropertiesPanel() {
       {selectedNode.type === 'event' && (
         <EventProperties
           node={selectedNode as EventNode}
+          sipInstanceNodes={sipInstanceNodes}
           onUpdate={handleUpdate}
         />
       )}

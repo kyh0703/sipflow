@@ -3,21 +3,18 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { useScenarioStore } from '../../store/scenario-store';
+import type { Node } from '@xyflow/react';
 import { DEFAULT_CALL_ID, type EventNode } from '../../types/scenario';
 import { getInstanceDisplayName } from '../../lib/instance-key';
 
 interface EventPropertiesProps {
   node: EventNode;
+  sipInstanceNodes: Node[];
   onUpdate: (data: Partial<EventNode['data']>) => void;
 }
 
-export function EventProperties({ node, onUpdate }: EventPropertiesProps) {
+export function EventProperties({ node, sipInstanceNodes, onUpdate }: EventPropertiesProps) {
   const { data } = node;
-  const nodes = useScenarioStore((state) => state.nodes);
-
-  // Filter SIP Instance nodes for instance assignment
-  const sipInstanceNodes = nodes.filter((n) => n.type === 'sipInstance');
 
   return (
     <div className="space-y-4 nodrag">

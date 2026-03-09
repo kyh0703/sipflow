@@ -16,6 +16,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { useScenarioStore } from '../store/scenario-store';
 import { useExecutionStore } from '../store/execution-store';
+import { useScenarioFlow } from '../hooks/use-scenario-flow';
 import { useUndoRedo } from '../hooks/use-undo-redo';
 import { useValidation } from '../hooks/use-validation';
 import { wouldCreateCycle } from '../lib/validation';
@@ -44,16 +45,10 @@ export function Canvas() {
   const { validateAndNotify } = useValidation();
   const { resolvedTheme } = useTheme();
 
-  const nodes = useScenarioStore((state) => state.nodes);
-  const edges = useScenarioStore((state) => state.edges);
-  const onNodesChange = useScenarioStore((state) => state.onNodesChange);
-  const onEdgesChange = useScenarioStore((state) => state.onEdgesChange);
-  const onConnect = useScenarioStore((state) => state.onConnect);
-  const addNode = useScenarioStore((state) => state.addNode);
   const setSelectedNode = useScenarioStore((state) => state.setSelectedNode);
   const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
   const setDirty = useScenarioStore((state) => state.setDirty);
-  const saveNow = useScenarioStore((state) => state.saveNow);
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, saveNow } = useScenarioFlow();
   const {
     canUndo,
     canRedo,

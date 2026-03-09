@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { toast } from 'sonner';
+import { useScenarioFlow } from './use-scenario-flow';
 import { useScenarioStore } from '../store/scenario-store';
 import { validateScenario, type ValidationError } from '../lib/validation';
 
 export function useValidation() {
-  const nodes = useScenarioStore((state) => state.nodes);
-  const edges = useScenarioStore((state) => state.edges);
+  const { nodes, edges } = useScenarioFlow();
   const setValidationErrors = useScenarioStore((state) => state.setValidationErrors);
   const validationErrors = useScenarioStore((state) => state.validationErrors);
 
