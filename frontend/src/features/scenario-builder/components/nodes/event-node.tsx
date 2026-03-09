@@ -11,7 +11,7 @@ import {
   Ear,
 } from 'lucide-react';
 import type { EventNode as EventNodeType } from '../../types/scenario';
-import { useExecutionStore } from '../../store/execution-store';
+import { useExecutionNodeState } from '../../hooks/use-execution';
 import { useScenarioFlow } from '../../hooks/use-scenario-flow';
 
 const EVENT_ICONS = {
@@ -44,7 +44,7 @@ export function EventNode({ data, id }: NodeProps<EventNodeType>) {
   const instanceColor = data.sipInstanceId ? '#f59e0b' : '#6b7280';
   const { validationErrors } = useScenarioFlow();
   const hasError = validationErrors.some((error) => error.nodeId === id);
-  const nodeExecState = useExecutionStore((state) => state.nodeStates[id]);
+  const nodeExecState = useExecutionNodeState(id);
 
   // Execution state takes priority over validation errors
   const ringStyle = nodeExecState?.status

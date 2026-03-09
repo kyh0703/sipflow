@@ -14,7 +14,12 @@ import {
   type Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useExecutionStore } from '../store/execution-store';
+import {
+  useExecutionAnimationActions,
+  useExecutionActionLogs,
+  useExecutionReadOnly,
+  useExecutionStatus,
+} from '../hooks/use-execution';
 import { useScenarioFlow } from '../hooks/use-scenario-flow';
 import { useUndoRedo } from '../hooks/use-undo-redo';
 import { useValidation } from '../hooks/use-validation';
@@ -66,15 +71,16 @@ export function Canvas() {
     handleSelectionChange,
   } = useUndoRedo();
 
-  const status = useExecutionStore((state) => state.status);
-  const actionLogs = useExecutionStore((state) => state.actionLogs);
-  const addEdgeAnimation = useExecutionStore((state) => state.addEdgeAnimation);
+  const status = useExecutionStatus();
+  const isReadOnly = useExecutionReadOnly();
+  const actionLogs = useExecutionActionLogs();
+  const { addEdgeAnimation } = useExecutionAnimationActions();
   const lastLogCountRef = useRef(0);
 
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
 
-    if (!dragType) {
+    if (isReadOnly || !dragType) {
       return;
     }
 
@@ -132,7 +138,7 @@ export function Canvas() {
 
   const onDragOver = (event: React.DragEvent) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
+    event.dataTransfer.dropEffect = isReadOnly ? 'none' : 'move';
   };
 
   const onNodeClick = (_event: React.MouseEvent, node: Node) => {
@@ -144,6 +150,9 @@ export function Canvas() {
   };
 
   const onNodeDragStop = () => {
+    if (isReadOnly) {
+      return;
+    }
     // Mark as dirty when node drag completes (position changes)
     setDirty(true);
   };
@@ -290,7 +299,11 @@ export function Canvas() {
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
-      onConnect={onConnect}
+      onConnect={(connection) => {
+        if (!isReadOnly) {
+          onConnect(connection);
+        }
+      }}
       onDrop={onDrop}
       onDragOver={onDragOver}
       onNodeClick={onNodeClick}
@@ -301,6 +314,10 @@ export function Canvas() {
       edgeTypes={edgeTypes}
       isValidConnection={isValidConnection}
       connectionLineStyle={connectionLineStyle}
+      nodesDraggable={!isReadOnly}
+      nodesConnectable={!isReadOnly}
+      elementsSelectable
+      connectOnClick={!isReadOnly}
       defaultEdgeOptions={defaultEdgeOptions}
       fitView
     >

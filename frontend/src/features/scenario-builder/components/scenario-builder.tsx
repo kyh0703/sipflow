@@ -16,7 +16,7 @@ import { ExecutionToolbar } from './execution-toolbar';
 import { ExecutionLog } from './execution-log';
 import { ExecutionTimeline } from './execution-timeline';
 import { validateBackendContract } from '../lib/backend-contract';
-import { useExecutionStore } from '../store/execution-store';
+import { useExecutionStatus } from '../hooks/use-execution';
 
 function ScenarioBuilderContent() {
   const {
@@ -26,7 +26,7 @@ function ScenarioBuilderContent() {
     saveNow,
     selectedNodeId,
   } = useScenarioFlow();
-  const executionStatus = useExecutionStore((state) => state.status);
+  const executionStatus = useExecutionStatus();
   const [bottomTab, setBottomTab] = useState<'log' | 'timeline'>('log');
   const [activePanel, setActivePanel] = useState<'scenario' | 'palette' | null>('scenario');
   const sidebarRef = useRef<PanelImperativeHandle>(null);
