@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -230,6 +231,15 @@ func newTestExecutor(t *testing.T) (*Executor, *TestEventEmitter) {
 type fakeTransferDialog struct {
 	dialogSIP     *sipgo.Dialog
 	remoteContact *sip.ContactHeader
+	hangupCalled  int
+	inviteCalled  int
+	ackCalled     int
+	referCalled   int
+	inviteErr     error
+	ackErr        error
+	referErr      error
+	notifyCodes   []int
+	lastReferTo   *sip.Uri
 }
 
 type fakeHangupDialog struct {
@@ -241,7 +251,10 @@ func (d *fakeTransferDialog) Id() string { return "fake-transfer-dialog" }
 
 func (d *fakeTransferDialog) Context() context.Context { return context.Background() }
 
-func (d *fakeTransferDialog) Hangup(ctx context.Context) error { return nil }
+func (d *fakeTransferDialog) Hangup(ctx context.Context) error {
+	d.hangupCalled++
+	return nil
+}
 
 func (d *fakeTransferDialog) Media() *diago.DialogMedia { return nil }
 
@@ -254,6 +267,28 @@ func (d *fakeTransferDialog) Do(ctx context.Context, req *sip.Request) (*sip.Res
 func (d *fakeTransferDialog) Close() error { return nil }
 
 func (d *fakeTransferDialog) RemoteContact() *sip.ContactHeader { return d.remoteContact }
+
+func (d *fakeTransferDialog) Invite(ctx context.Context, opts diago.InviteClientOptions) error {
+	d.inviteCalled++
+	return d.inviteErr
+}
+
+func (d *fakeTransferDialog) Ack(ctx context.Context) error {
+	d.ackCalled++
+	return d.ackErr
+}
+
+func (d *fakeTransferDialog) ReferOptions(ctx context.Context, referTo sip.Uri, opts diago.ReferClientOptions) error {
+	d.referCalled++
+	cloned := referTo
+	d.lastReferTo = &cloned
+	for _, statusCode := range d.notifyCodes {
+		if opts.OnNotify != nil {
+			opts.OnNotify(statusCode)
+		}
+	}
+	return d.referErr
+}
 
 func (d *fakeHangupDialog) Id() string { return "fake-hangup-dialog" }
 
@@ -276,6 +311,16 @@ func (d *fakeHangupDialog) Close() error { return nil }
 
 func newFakeTransferDialogWithCallID(callID string) *fakeTransferDialog {
 	callIDHeader := sip.CallIDHeader(callID)
+	from := &sip.FromHeader{
+		Address: sip.Uri{User: "100", Host: "127.0.0.1"},
+		Params:  sip.NewParams(),
+	}
+	from.Params.Add("tag", "from-tag")
+	to := &sip.ToHeader{
+		Address: sip.Uri{User: "200", Host: "127.0.0.1"},
+		Params:  sip.NewParams(),
+	}
+	to.Params.Add("tag", "to-tag")
 	dialog := &fakeTransferDialog{
 		dialogSIP: &sipgo.Dialog{
 			InviteRequest:  sip.NewRequest(sip.INVITE, sip.Uri{User: "200", Host: "127.0.0.1"}),
@@ -286,6 +331,8 @@ func newFakeTransferDialogWithCallID(callID string) *fakeTransferDialog {
 		},
 	}
 	dialog.dialogSIP.InviteRequest.AppendHeader(&callIDHeader)
+	dialog.dialogSIP.InviteRequest.AppendHeader(from)
+	dialog.dialogSIP.InviteResponse.AppendHeader(to)
 	return dialog
 }
 
@@ -879,6 +926,115 @@ func TestBuildMuteTransferReferTo(t *testing.T) {
 	}
 }
 
+func TestHandleAnswerRefer_SuccessStoresDialogAndEmitsLog(t *testing.T) {
+	ex, emitter := newTestExecutor(t)
+	node := &GraphNode{ID: "answer-node", Type: "command", Command: "Answer"}
+
+	referDialog := &fakeTransferDialog{
+		dialogSIP: &sipgo.Dialog{
+			InviteRequest: sip.NewRequest(sip.INVITE, sip.Uri{
+				Scheme:  "sip",
+				User:    "300",
+				Host:    "127.0.0.1",
+				Headers: sip.NewParams(),
+			}),
+			InviteResponse: sip.NewResponse(200, "OK"),
+		},
+		remoteContact: &sip.ContactHeader{
+			Address: sip.Uri{Scheme: "sip", User: "300", Host: "127.0.0.1", Port: 5060},
+		},
+	}
+	referDialog.dialogSIP.InviteRequest.Recipient.Headers.Add("Replaces", "consult-call-id%3Bto-tag%3Dto-tag-456%3Bfrom-tag%3Dfrom-tag-123")
+	callIDHeader := sip.CallIDHeader("sip-call-referred")
+	referDialog.dialogSIP.InviteRequest.AppendHeader(&callIDHeader)
+
+	if err := ex.handleAnswerRefer("inst-1", "primary", node, referDialog); err != nil {
+		t.Fatalf("handleAnswerRefer failed: %v", err)
+	}
+
+	if referDialog.inviteCalled != 1 {
+		t.Fatalf("expected Invite to be called once, got %d", referDialog.inviteCalled)
+	}
+	if referDialog.ackCalled != 1 {
+		t.Fatalf("expected Ack to be called once, got %d", referDialog.ackCalled)
+	}
+
+	stored, exists := ex.sessions.GetDialog("inst-1", "primary")
+	if !exists || stored != referDialog {
+		t.Fatal("expected referred dialog to replace the original session")
+	}
+
+	logs := emitter.GetEventsByName(EventActionLog)
+	if len(logs) < 2 {
+		t.Fatalf("expected refer flow logs to be emitted, got %d", len(logs))
+	}
+	if !strings.Contains(logs[0].Data["message"].(string), "REFER received") {
+		t.Fatalf("expected first action log to mention received REFER, got %+v", logs[0].Data)
+	}
+	if !strings.Contains(logs[len(logs)-1].Data["message"].(string), "session replaced") {
+		t.Fatalf("expected final action log to mention session replacement, got %+v", logs[len(logs)-1].Data)
+	}
+}
+
+func TestHandleAnswerRefer_WithReplacesEmitsReplacesAwareLogs(t *testing.T) {
+	ex, emitter := newTestExecutor(t)
+	node := &GraphNode{ID: "answer-node", Type: "command", Command: "Answer"}
+	referDialog := newFakeTransferDialogWithCallID("sip-call-referred")
+	referDialog.dialogSIP.InviteRequest.Recipient.Headers = sip.NewParams()
+	referDialog.dialogSIP.InviteRequest.Recipient.Headers.Add("Replaces", "consult-call-id%3Bto-tag%3Dto-tag%3Bfrom-tag%3Dfrom-tag")
+
+	if err := ex.handleAnswerRefer("inst-1", "primary", node, referDialog); err != nil {
+		t.Fatalf("handleAnswerRefer failed: %v", err)
+	}
+
+	logs := emitter.GetEventsByName(EventActionLog)
+	if len(logs) < 2 {
+		t.Fatalf("expected refer flow logs to be emitted, got %d", len(logs))
+	}
+	if !strings.Contains(logs[0].Data["message"].(string), "with Replaces") {
+		t.Fatalf("expected first refer log to mention Replaces, got %+v", logs[0].Data)
+	}
+	if !strings.Contains(logs[len(logs)-1].Data["message"].(string), "Replaces dialog") {
+		t.Fatalf("expected final refer log to mention Replaces dialog, got %+v", logs[len(logs)-1].Data)
+	}
+}
+
+func TestHandleAnswerRefer_InviteFailure(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{ID: "answer-node", Type: "command", Command: "Answer"}
+	referDialog := newFakeTransferDialogWithCallID("sip-call-referred")
+	referDialog.inviteErr = errors.New("invite failed")
+
+	err := ex.handleAnswerRefer("inst-1", "primary", node, referDialog)
+	if err == nil {
+		t.Fatal("expected invite failure")
+	}
+	if !strings.Contains(err.Error(), "referDialog Invite failed") {
+		t.Fatalf("expected wrapped invite failure, got %v", err)
+	}
+	if _, exists := ex.sessions.GetDialog("inst-1", "primary"); exists {
+		t.Fatal("expected dialog not to be stored on invite failure")
+	}
+}
+
+func TestHandleAnswerRefer_AckFailure(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{ID: "answer-node", Type: "command", Command: "Answer"}
+	referDialog := newFakeTransferDialogWithCallID("sip-call-referred")
+	referDialog.ackErr = errors.New("ack failed")
+
+	err := ex.handleAnswerRefer("inst-1", "primary", node, referDialog)
+	if err == nil {
+		t.Fatal("expected ack failure")
+	}
+	if !strings.Contains(err.Error(), "referDialog Ack failed") {
+		t.Fatalf("expected wrapped ack failure, got %v", err)
+	}
+	if _, exists := ex.sessions.GetDialog("inst-1", "primary"); exists {
+		t.Fatal("expected dialog not to be stored on ack failure")
+	}
+}
+
 func TestExecuteMuteTransfer_EmptyConsultCallID(t *testing.T) {
 	ex, _ := newTestExecutor(t)
 	node := &GraphNode{
@@ -938,6 +1094,263 @@ func TestExecuteMuteTransfer_NoConsultDialog(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "no consult dialog") {
 		t.Fatalf("expected consult dialog error, got %v", err)
+	}
+}
+
+func TestExecuteMuteTransfer_Success(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:            "mute-node",
+		Type:          "command",
+		Command:       "MuteTransfer",
+		PrimaryCallID: "primary",
+		ConsultCallID: "consult",
+		Timeout:       500 * time.Millisecond,
+	}
+
+	primary := newFakeTransferDialogWithCallID("sip-call-primary")
+	primary.notifyCodes = []int{180, 200}
+	consult := newFakeTransferDialogWithCallID("sip-call-consult")
+	ex.sessions.StoreDialog("inst-1", "primary", primary)
+	ex.sessions.StoreDialog("inst-1", "consult", consult)
+
+	if err := ex.executeMuteTransfer(context.Background(), "inst-1", node); err != nil {
+		t.Fatalf("executeMuteTransfer failed: %v", err)
+	}
+
+	if primary.referCalled != 1 {
+		t.Fatalf("expected ReferOptions to be called once, got %d", primary.referCalled)
+	}
+	if primary.lastReferTo == nil {
+		t.Fatal("expected Refer-To URI to be captured")
+	}
+	replaces, ok := primary.lastReferTo.Headers.Get("Replaces")
+	if !ok || replaces == "" {
+		t.Fatalf("expected Replaces header on Refer-To URI, got %+v", primary.lastReferTo)
+	}
+	if primary.hangupCalled != 1 || consult.hangupCalled != 1 {
+		t.Fatalf("expected both dialogs to be cleaned up, got primary=%d consult=%d", primary.hangupCalled, consult.hangupCalled)
+	}
+	if _, exists := ex.sessions.GetDialog("inst-1", "primary"); exists {
+		t.Fatal("expected primary dialog removed after successful transfer")
+	}
+	if _, exists := ex.sessions.GetDialog("inst-1", "consult"); exists {
+		t.Fatal("expected consult dialog removed after successful transfer")
+	}
+}
+
+func TestExecuteMuteTransfer_FinalNotifyTimeout(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:            "mute-node",
+		Type:          "command",
+		Command:       "MuteTransfer",
+		PrimaryCallID: "primary",
+		ConsultCallID: "consult",
+		Timeout:       50 * time.Millisecond,
+	}
+
+	primary := newFakeTransferDialogWithCallID("sip-call-primary")
+	consult := newFakeTransferDialogWithCallID("sip-call-consult")
+	ex.sessions.StoreDialog("inst-1", "primary", primary)
+	ex.sessions.StoreDialog("inst-1", "consult", consult)
+
+	err := ex.executeMuteTransfer(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected final NOTIFY timeout")
+	}
+	if !strings.Contains(err.Error(), "final NOTIFY timeout") {
+		t.Fatalf("expected final NOTIFY timeout error, got %v", err)
+	}
+	if primary.hangupCalled != 0 || consult.hangupCalled != 0 {
+		t.Fatal("expected dialogs not to be cleaned up on timeout")
+	}
+	if _, exists := ex.sessions.GetDialog("inst-1", "primary"); !exists {
+		t.Fatal("expected primary dialog to remain after timeout")
+	}
+	if _, exists := ex.sessions.GetDialog("inst-1", "consult"); !exists {
+		t.Fatal("expected consult dialog to remain after timeout")
+	}
+}
+
+func TestExecuteMuteTransfer_FinalNotifyFailure(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{
+		ID:            "mute-node",
+		Type:          "command",
+		Command:       "MuteTransfer",
+		PrimaryCallID: "primary",
+		ConsultCallID: "consult",
+		Timeout:       500 * time.Millisecond,
+	}
+
+	primary := newFakeTransferDialogWithCallID("sip-call-primary")
+	primary.notifyCodes = []int{180, 486}
+	consult := newFakeTransferDialogWithCallID("sip-call-consult")
+	ex.sessions.StoreDialog("inst-1", "primary", primary)
+	ex.sessions.StoreDialog("inst-1", "consult", consult)
+
+	err := ex.executeMuteTransfer(context.Background(), "inst-1", node)
+	if err == nil {
+		t.Fatal("expected final NOTIFY failure")
+	}
+	if !strings.Contains(err.Error(), "final NOTIFY failed") {
+		t.Fatalf("expected final NOTIFY failure, got %v", err)
+	}
+	if primary.hangupCalled != 0 || consult.hangupCalled != 0 {
+		t.Fatalf("expected dialogs untouched on failed final NOTIFY, got primary=%d consult=%d", primary.hangupCalled, consult.hangupCalled)
+	}
+	if _, exists := ex.sessions.GetDialog("inst-1", "primary"); !exists {
+		t.Fatal("expected primary dialog to remain after failed final NOTIFY")
+	}
+	if _, exists := ex.sessions.GetDialog("inst-1", "consult"); !exists {
+		t.Fatal("expected consult dialog to remain after failed final NOTIFY")
+	}
+}
+
+func TestHandleMuteTransferNotifyFinal_SuccessCleansUpDialogs(t *testing.T) {
+	ex, emitter := newTestExecutor(t)
+	node := &GraphNode{ID: "mute-node", Type: "command", Command: "MuteTransfer"}
+
+	primary := newFakeHangupDialogWithCallID("sip-call-primary")
+	consult := newFakeHangupDialogWithCallID("sip-call-consult")
+	ex.sessions.StoreDialog("inst-1", "primary", primary)
+	ex.sessions.StoreDialog("inst-1", "consult", consult)
+
+	transfer := &muteTransferContext{
+		primaryCallID: "primary",
+		consultCallID: "consult",
+		primaryDialog: primary,
+		consultDialog: consult,
+	}
+
+	if err := ex.handleMuteTransferNotifyFinal(context.Background(), "inst-1", node, transfer, 200); err != nil {
+		t.Fatalf("handleMuteTransferNotifyFinal failed: %v", err)
+	}
+
+	if primary.hangupCalled != 1 {
+		t.Fatalf("expected primary dialog hangup once, got %d", primary.hangupCalled)
+	}
+	if consult.hangupCalled != 1 {
+		t.Fatalf("expected consult dialog hangup once, got %d", consult.hangupCalled)
+	}
+	if _, exists := ex.sessions.GetDialog("inst-1", "primary"); exists {
+		t.Fatal("expected primary dialog to be removed from session store")
+	}
+	if _, exists := ex.sessions.GetDialog("inst-1", "consult"); exists {
+		t.Fatal("expected consult dialog to be removed from session store")
+	}
+
+	logs := emitter.GetEventsByName(EventActionLog)
+	if len(logs) == 0 || !strings.Contains(logs[0].Data["message"].(string), "MuteTransfer succeeded") {
+		t.Fatalf("expected success log after final notify, got %+v", logs)
+	}
+}
+
+func TestHandleMuteTransferNotifyFinal_FailureDoesNotCleanupDialogs(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{ID: "mute-node", Type: "command", Command: "MuteTransfer"}
+
+	primary := newFakeHangupDialogWithCallID("sip-call-primary")
+	consult := newFakeHangupDialogWithCallID("sip-call-consult")
+	ex.sessions.StoreDialog("inst-1", "primary", primary)
+	ex.sessions.StoreDialog("inst-1", "consult", consult)
+
+	transfer := &muteTransferContext{
+		primaryCallID: "primary",
+		consultCallID: "consult",
+		primaryDialog: primary,
+		consultDialog: consult,
+	}
+
+	err := ex.handleMuteTransferNotifyFinal(context.Background(), "inst-1", node, transfer, 486)
+	if err == nil {
+		t.Fatal("expected final NOTIFY failure")
+	}
+	if !strings.Contains(err.Error(), "final NOTIFY failed") {
+		t.Fatalf("expected final notify failure, got %v", err)
+	}
+	if primary.hangupCalled != 0 || consult.hangupCalled != 0 {
+		t.Fatal("expected dialogs not to be hung up on failed final NOTIFY")
+	}
+	if _, exists := ex.sessions.GetDialog("inst-1", "primary"); !exists {
+		t.Fatal("expected primary dialog to remain in session store on failure")
+	}
+	if _, exists := ex.sessions.GetDialog("inst-1", "consult"); !exists {
+		t.Fatal("expected consult dialog to remain in session store on failure")
+	}
+}
+
+func TestCreateNotifyHandler_ProgressThenFinal(t *testing.T) {
+	ex, emitter := newTestExecutor(t)
+	node := &GraphNode{ID: "mute-node", Type: "command", Command: "MuteTransfer"}
+
+	primary := newFakeHangupDialogWithCallID("sip-call-primary")
+	consult := newFakeHangupDialogWithCallID("sip-call-consult")
+	ex.sessions.StoreDialog("inst-1", "primary", primary)
+	ex.sessions.StoreDialog("inst-1", "consult", consult)
+
+	transfer := &muteTransferContext{
+		primaryCallID: "primary",
+		primarySIPID:  "sip-call-primary",
+		consultCallID: "consult",
+		primaryDialog: primary,
+		consultDialog: consult,
+	}
+
+	handler := ex.createNotifyHandler(context.Background(), "inst-1", node, transfer, 500*time.Millisecond)
+	defer handler.Close()
+
+	if err := ex.sessions.SubscribeSIPEventHandlerBySIPCallID("sip-call-primary", handler); err != nil {
+		t.Fatalf("subscribe notify handler failed: %v", err)
+	}
+	defer ex.sessions.UnsubscribeSIPEventHandler("sip-call-primary", handler)
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		ex.sessions.emitSIPEventBySIPCallID("sip-call-primary", "inst-1", eventhandler.SIPEventNotify, "primary", 180)
+		time.Sleep(50 * time.Millisecond)
+		ex.sessions.emitSIPEventBySIPCallID("sip-call-primary", "inst-1", eventhandler.SIPEventNotify, "primary", 200)
+	}()
+
+	if err := handler.Poll(context.Background()); err != nil {
+		t.Fatalf("expected notify handler to complete, got %v", err)
+	}
+
+	if primary.hangupCalled != 1 || consult.hangupCalled != 1 {
+		t.Fatalf("expected both dialogs to be cleaned up after final NOTIFY, got primary=%d consult=%d", primary.hangupCalled, consult.hangupCalled)
+	}
+
+	logs := emitter.GetEventsByName(EventActionLog)
+	progressSeen := false
+	for _, event := range logs {
+		if strings.Contains(event.Data["message"].(string), "NOTIFY progress 180") {
+			progressSeen = true
+			break
+		}
+	}
+	if !progressSeen {
+		t.Fatalf("expected progress NOTIFY log, got %+v", logs)
+	}
+}
+
+func TestCreateNotifyHandler_TimesOutWithoutFinalNotify(t *testing.T) {
+	ex, _ := newTestExecutor(t)
+	node := &GraphNode{ID: "mute-node", Type: "command", Command: "MuteTransfer"}
+
+	transfer := &muteTransferContext{
+		primaryCallID: "primary",
+		consultCallID: "consult",
+		primaryDialog: newFakeHangupDialogWithCallID("sip-call-primary"),
+		consultDialog: newFakeHangupDialogWithCallID("sip-call-consult"),
+	}
+
+	handler := ex.createNotifyHandler(context.Background(), "inst-1", node, transfer, 50*time.Millisecond)
+	defer handler.Close()
+
+	err := handler.Poll(context.Background())
+	if !errors.Is(err, eventhandler.ErrTimeout) {
+		t.Fatalf("expected notify handler timeout, got %v", err)
 	}
 }
 

@@ -221,6 +221,22 @@ type Executor struct {
 	sessions *SessionStore    // 활성 세션 저장소
 }
 
+type answerReferDialog interface {
+	diago.DialogSession
+	Invite(ctx context.Context, opts diago.InviteClientOptions) error
+	Ack(ctx context.Context) error
+}
+
+type referClientTransferDialog interface {
+	diago.DialogSession
+	ReferOptions(ctx context.Context, referTo sip.Uri, opts diago.ReferClientOptions) error
+}
+
+type referServerTransferDialog interface {
+	diago.DialogSession
+	ReferOptions(ctx context.Context, referTo sip.Uri, opts diago.ReferServerOptions) error
+}
+
 // NewExecutor는 새로운 Executor를 생성한다
 func NewExecutor(engine *Engine, im *InstanceManager) *Executor {
 	return &Executor{
@@ -425,39 +441,7 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 		},
 		// OnRefer: 상대방 REFER 수신 시 콜백 (Refer-To URI 추출 + 새 dialog 활성화 + SessionStore 교체)
 		OnRefer: func(referDialog *diago.DialogClientSession) error {
-			// 1. Refer-To URI 추출 (ROADMAP 성공기준 4번)
-			referToURIStr := "<unknown>"
-			if referDialog.InviteRequest != nil {
-				referToURIStr = referDialog.InviteRequest.Recipient.String()
-			}
-
-			// 2. ActionLog에 Refer-To URI 기록 (수신 로그)
-			ex.engine.emitActionLog(node.ID, instanceID,
-				fmt.Sprintf("REFER received: Refer-To=%s", referToURIStr), "info",
-				WithSIPMessage("received", "REFER", 202, "", "", referToURIStr))
-
-			// 3. 새 dialog (referDialog)로 INVITE 전송 + ACK
-			inviteCtx := referDialog.Context()
-			if err := referDialog.Invite(inviteCtx, diago.InviteClientOptions{}); err != nil {
-				ex.engine.emitActionLog(node.ID, instanceID,
-					fmt.Sprintf("TransferEvent: Invite to Refer-To failed: %v", err), "error")
-				return fmt.Errorf("TransferEvent: referDialog Invite failed: %w", err)
-			}
-			if err := referDialog.Ack(inviteCtx); err != nil {
-				ex.engine.emitActionLog(node.ID, instanceID,
-					fmt.Sprintf("TransferEvent: Ack failed: %v", err), "error")
-				return fmt.Errorf("TransferEvent: referDialog Ack failed: %w", err)
-			}
-
-			// 4. SessionStore 교체 (기존 dialog → referDialog)
-			ex.sessions.StoreDialog(instanceID, callID, referDialog)
-
-			// 5. TRANSFERRED 이벤트 발행 (executeWaitSIPEvent 대기 해제)
-			ex.engine.emitSIPEvent(instanceID, eventhandler.SIPEventTransferred, callID)
-
-			ex.engine.emitActionLog(node.ID, instanceID,
-				fmt.Sprintf("TransferEvent: session replaced with new dialog (Refer-To: %s)", referToURIStr), "info")
-			return nil
+			return ex.handleAnswerRefer(instanceID, callID, node, referDialog)
 		},
 	}
 
@@ -489,6 +473,65 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 	toUser := serverSession.ToUser()
 	ex.engine.emitActionLog(node.ID, instanceID, "Answer succeeded", "info",
 		WithSIPMessage("received", "INVITE", 200, "", fromUser, toUser))
+	return nil
+}
+
+func referToURIString(referDialog answerReferDialog) string {
+	dialogSIP := referDialog.DialogSIP()
+	if dialogSIP == nil || dialogSIP.InviteRequest == nil {
+		return "<unknown>"
+	}
+	return dialogSIP.InviteRequest.Recipient.String()
+}
+
+func referHasReplaces(referDialog answerReferDialog) bool {
+	dialogSIP := referDialog.DialogSIP()
+	if dialogSIP == nil || dialogSIP.InviteRequest == nil {
+		return false
+	}
+
+	referTo := dialogSIP.InviteRequest.Recipient
+	if referTo.Headers == nil {
+		return false
+	}
+
+	replaces, ok := referTo.Headers.Get("Replaces")
+	return ok && replaces != ""
+}
+
+func (ex *Executor) handleAnswerRefer(instanceID, callID string, node *GraphNode, referDialog answerReferDialog) error {
+	referToURIStr := referToURIString(referDialog)
+	hasReplaces := referHasReplaces(referDialog)
+	receivedMessage := fmt.Sprintf("REFER received: Refer-To=%s", referToURIStr)
+	if hasReplaces {
+		receivedMessage = fmt.Sprintf("REFER received with Replaces: Refer-To=%s", referToURIStr)
+	}
+
+	ex.engine.emitActionLog(node.ID, instanceID,
+		receivedMessage, "info",
+		WithSIPMessage("received", "REFER", 202, "", "", referToURIStr))
+
+	inviteCtx := referDialog.Context()
+	if err := referDialog.Invite(inviteCtx, diago.InviteClientOptions{}); err != nil {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("TransferEvent: Invite to Refer-To failed: %v", err), "error")
+		return fmt.Errorf("TransferEvent: referDialog Invite failed: %w", err)
+	}
+	if err := referDialog.Ack(inviteCtx); err != nil {
+		ex.engine.emitActionLog(node.ID, instanceID,
+			fmt.Sprintf("TransferEvent: Ack failed: %v", err), "error")
+		return fmt.Errorf("TransferEvent: referDialog Ack failed: %w", err)
+	}
+
+	ex.sessions.StoreDialog(instanceID, callID, referDialog)
+	ex.engine.emitSIPEvent(instanceID, eventhandler.SIPEventTransferred, callID)
+
+	successMessage := fmt.Sprintf("TransferEvent: session replaced with new dialog (Refer-To: %s)", referToURIStr)
+	if hasReplaces {
+		successMessage = fmt.Sprintf("TransferEvent: session replaced with Replaces dialog (Refer-To: %s)", referToURIStr)
+	}
+	ex.engine.emitActionLog(node.ID, instanceID,
+		successMessage, "info")
 	return nil
 }
 
@@ -1126,9 +1169,9 @@ func (ex *Executor) executeMuteTransferRefer(ctx context.Context, instanceID str
 
 	var err error
 	switch dialog := transfer.primaryDialog.(type) {
-	case *diago.DialogClientSession:
+	case referClientTransferDialog:
 		err = dialog.ReferOptions(ctx, transfer.referTo, diago.ReferClientOptions{OnNotify: onNotify})
-	case *diago.DialogServerSession:
+	case referServerTransferDialog:
 		err = dialog.ReferOptions(ctx, transfer.referTo, diago.ReferServerOptions{OnNotify: onNotify})
 	default:
 		err = fmt.Errorf("MuteTransfer: primary dialog type %T does not support ReferOptions", transfer.primaryDialog)
