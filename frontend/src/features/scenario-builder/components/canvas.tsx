@@ -8,6 +8,7 @@ import {
   BackgroundVariant,
   Controls,
   MiniMap,
+  Panel,
   useReactFlow,
   type Node,
   type Edge,
@@ -15,16 +16,26 @@ import {
 import '@xyflow/react/dist/style.css';
 import { useScenarioStore } from '../store/scenario-store';
 import { useExecutionStore } from '../store/execution-store';
+import { useUndoRedo } from '../hooks/use-undo-redo';
 import { useValidation } from '../hooks/use-validation';
 import { wouldCreateCycle } from '../lib/validation';
 import { edgeTypes } from '../edges/branch-edge';
 import { useDnD } from '../hooks/use-dnd';
 import { nodeTypes } from './nodes';
+import { CanvasToolbar } from './canvas-toolbar';
 import { INSTANCE_COLORS, DEFAULT_CODECS } from '../types/scenario';
 import type { EdgeAnimationMessage } from '../types/execution';
 
 function createNodeID(): string {
   return uuidv4();
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable ||
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+  );
 }
 
 export function Canvas() {
@@ -43,6 +54,15 @@ export function Canvas() {
   const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
   const setDirty = useScenarioStore((state) => state.setDirty);
   const saveNow = useScenarioStore((state) => state.saveNow);
+  const {
+    canUndo,
+    canRedo,
+    canDelete,
+    undo,
+    redo,
+    deleteSelection,
+    handleSelectionChange,
+  } = useUndoRedo();
 
   const status = useExecutionStore((state) => state.status);
   const actionLogs = useExecutionStore((state) => state.actionLogs);
@@ -164,8 +184,12 @@ export function Canvas() {
   // Keyboard shortcut: Ctrl+S / Cmd+S to save
   useEffect(() => {
     const handleKeyDown = async (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      const hasModifier = event.ctrlKey || event.metaKey;
+      const isEditable = isEditableTarget(event.target);
+
       // Check for Ctrl+S (Windows/Linux) or Cmd+S (Mac)
-      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+      if (hasModifier && key === 's') {
         event.preventDefault();
 
         if (!currentScenarioId) {
@@ -182,6 +206,29 @@ export function Canvas() {
         } catch (error) {
           toast.error('Failed to save scenario: ' + error);
         }
+
+        return;
+      }
+
+      if (isEditable) {
+        return;
+      }
+
+      if (hasModifier && key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        undo();
+        return;
+      }
+
+      if ((hasModifier && key === 'z' && event.shiftKey) || (event.ctrlKey && key === 'y')) {
+        event.preventDefault();
+        redo();
+        return;
+      }
+
+      if ((key === 'delete' || key === 'backspace') && canDelete) {
+        event.preventDefault();
+        deleteSelection();
       }
     };
 
@@ -189,7 +236,15 @@ export function Canvas() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [currentScenarioId, saveNow, validateAndNotify]);
+  }, [
+    currentScenarioId,
+    canDelete,
+    deleteSelection,
+    redo,
+    saveNow,
+    undo,
+    validateAndNotify,
+  ]);
 
   const isValidConnection = (connection: Edge | { source: string; target: string; sourceHandle?: string | null }) => {
     // Prevent self-connections
@@ -238,6 +293,7 @@ export function Canvas() {
       onDragOver={onDragOver}
       onNodeClick={onNodeClick}
       onPaneClick={onPaneClick}
+      onSelectionChange={handleSelectionChange}
       onNodeDragStop={onNodeDragStop}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
@@ -246,6 +302,16 @@ export function Canvas() {
       defaultEdgeOptions={defaultEdgeOptions}
       fitView
     >
+      <Panel position="top-right">
+        <CanvasToolbar
+          canUndo={canUndo}
+          canRedo={canRedo}
+          canDelete={canDelete}
+          onUndo={undo}
+          onRedo={redo}
+          onDelete={deleteSelection}
+        />
+      </Panel>
       <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={backgroundColor} />
       <Controls />
       <MiniMap />
