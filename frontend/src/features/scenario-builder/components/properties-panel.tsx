@@ -1,4 +1,4 @@
-import { useScenarioFlow } from '../hooks/use-scenario-flow';
+import { useScenarioFlow } from '../context/scenario-flow-context';
 import { SipInstanceProperties } from './properties/sip-instance-properties';
 import { CommandProperties } from './properties/command-properties';
 import { EventProperties } from './properties/event-properties';

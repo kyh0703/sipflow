@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { toast } from 'sonner';
-import { useScenarioFlow } from './use-scenario-flow';
+import { useScenarioFlow } from '../context/scenario-flow-context';
 import { validateScenario, type ValidationError } from '../lib/validation';
 
 export function useValidation() {

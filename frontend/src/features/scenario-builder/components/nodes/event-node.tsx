@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import type { EventNode as EventNodeType } from '../../types/scenario';
 import { useExecutionNodeState } from '../../hooks/use-execution';
-import { useScenarioFlow } from '../../hooks/use-scenario-flow';
+import { useScenarioFlow } from '../../context/scenario-flow-context';
 
 const EVENT_ICONS = {
   INCOMING: Bell,

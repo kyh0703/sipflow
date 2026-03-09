@@ -20,7 +20,7 @@ import {
   useExecutionReadOnly,
   useExecutionStatus,
 } from '../hooks/use-execution';
-import { useScenarioFlow } from '../hooks/use-scenario-flow';
+import { useScenarioFlow } from '../context/scenario-flow-context';
 import { useUndoRedo } from '../hooks/use-undo-redo';
 import { useValidation } from '../hooks/use-validation';
 import { wouldCreateCycle } from '../lib/validation';

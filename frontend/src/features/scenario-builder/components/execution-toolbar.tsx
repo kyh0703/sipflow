@@ -6,7 +6,7 @@ import {
   useExecutionStatus,
 } from '../hooks/use-execution';
 import { useEngineApi } from '../hooks/use-engine-api';
-import { useScenarioFlow } from '../hooks/use-scenario-flow';
+import { useScenarioFlow } from '../context/scenario-flow-context';
 
 const statusStyles: Record<string, string> = {
   idle: 'bg-muted text-muted-foreground',

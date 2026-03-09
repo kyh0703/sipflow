@@ -1,6 +1,6 @@
 import type { Edge, Node, OnSelectionChangeParams } from '@xyflow/react';
 import { useExecutionReadOnly } from './use-execution';
-import { useScenarioFlow } from './use-scenario-flow';
+import { useScenarioFlow } from '../context/scenario-flow-context';
 
 export function useUndoRedo() {
   const { canUndo, canRedo, canDelete, undo, redo, deleteSelection, setSelectedNode } = useScenarioFlow();

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useExecutionReadOnly } from '../hooks/use-execution';
-import { useScenarioFlow } from '../hooks/use-scenario-flow';
+import { useScenarioFlow } from '../context/scenario-flow-context';
 import { useScenarioApi, type ScenarioListItem } from '../hooks/use-scenario-api';
 
 export function ScenarioTree() {

@@ -3,7 +3,7 @@ import { Play } from 'lucide-react';
 import type { SipInstanceNode } from '../../types/scenario';
 import { DEFAULT_CODECS } from '../../types/scenario';
 import { useExecutionStatus } from '../../hooks/use-execution';
-import { useScenarioFlow } from '../../hooks/use-scenario-flow';
+import { useScenarioFlow } from '../../context/scenario-flow-context';
 
 export function SipInstanceNode({ data, id }: NodeProps<SipInstanceNode>) {
   const { validationErrors } = useScenarioFlow();

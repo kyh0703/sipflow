@@ -2,7 +2,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Phone, PhoneIncoming, PhoneOff, Volume2, Hash, Pause, Play, ArrowRightLeft } from 'lucide-react';
 import type { CommandNode as CommandNodeType } from '../../types/scenario';
 import { useExecutionNodeState } from '../../hooks/use-execution';
-import { useScenarioFlow } from '../../hooks/use-scenario-flow';
+import { useScenarioFlow } from '../../context/scenario-flow-context';
 
 const COMMAND_ICONS = {
   MakeCall: Phone,
