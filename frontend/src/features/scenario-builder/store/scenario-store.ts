@@ -13,6 +13,11 @@ import type { ScenarioNode, BranchEdgeData } from '../types/scenario';
 import type { ValidationError } from '../lib/validation';
 import { SaveScenario } from '../../../../wailsjs/go/binding/ScenarioBinding';
 
+interface FlowSnapshot {
+  nodes: Node[];
+  edges: Edge[];
+}
+
 interface ScenarioState {
   nodes: Node[];
   edges: Edge[];
@@ -22,11 +27,16 @@ interface ScenarioState {
   isDirty: boolean;
   saveStatus: 'saved' | 'modified' | 'saving';
   validationErrors: ValidationError[];
+  historyPast: FlowSnapshot[];
+  historyFuture: FlowSnapshot[];
+  canUndo: boolean;
+  canRedo: boolean;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
   addNode: (node: Node) => void;
   removeNode: (nodeId: string) => void;
+  removeSelectedElements: () => void;
   updateNodeData: (nodeId: string, data: Partial<any>) => void;
   setSelectedNode: (nodeId: string | null) => void;
   setNodes: (nodes: Node[]) => void;
@@ -42,10 +52,44 @@ interface ScenarioState {
   clearValidationErrors: () => void;
   toFlowJSON: () => string;
   loadFromJSON: (json: string) => void;
+  undo: () => void;
+  redo: () => void;
 }
 
 function buildEdgeID(source: string, target: string): string {
   return `${source}-${target}`;
+}
+
+function cloneNodes(nodes: Node[]): Node[] {
+  return nodes.map((node) => ({
+    ...node,
+    data: { ...node.data },
+    position: { ...node.position },
+  }));
+}
+
+function cloneEdges(edges: Edge[]): Edge[] {
+  return edges.map((edge) => ({
+    ...edge,
+    data: edge.data ? { ...edge.data } : edge.data,
+  }));
+}
+
+function createSnapshot(nodes: Node[], edges: Edge[]): FlowSnapshot {
+  return {
+    nodes: cloneNodes(nodes),
+    edges: cloneEdges(edges),
+  };
+}
+
+function withHistory(state: ScenarioState): Pick<ScenarioState, 'historyPast' | 'historyFuture' | 'canUndo' | 'canRedo'> {
+  const nextPast = [...state.historyPast, createSnapshot(state.nodes, state.edges)].slice(-50);
+  return {
+    historyPast: nextPast,
+    historyFuture: [],
+    canUndo: nextPast.length > 0,
+    canRedo: false,
+  };
 }
 
 // Inline debounce utility to avoid external dependencies
@@ -74,22 +118,36 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
   isDirty: false,
   saveStatus: 'saved',
   validationErrors: [],
+  historyPast: [],
+  historyFuture: [],
+  canUndo: false,
+  canRedo: false,
 
   onNodesChange: (changes) => {
-    // Only set isDirty for non-position changes (position changes are handled by onNodeDragStop)
-    const hasNonPositionChange = changes.some((change) => change.type !== 'position');
+    const hasPersistentChange = changes.some(
+      (change) => change.type !== 'position' && change.type !== 'select'
+    );
+    const hasStructuralChange = changes.some(
+      (change) => change.type !== 'position' && change.type !== 'select'
+    );
+    const historyState = hasStructuralChange ? withHistory(get()) : null;
 
     set({
       nodes: applyNodeChanges(changes, get().nodes),
-      ...(hasNonPositionChange && { isDirty: true, saveStatus: 'modified' as const }),
+      ...(hasPersistentChange && { isDirty: true, saveStatus: 'modified' as const }),
+      ...(historyState ?? {}),
     });
   },
 
   onEdgesChange: (changes) => {
+    const hasPersistentChange = changes.some((change) => change.type !== 'select');
+    const hasStructuralChange = changes.some((change) => change.type !== 'select');
+    const historyState = hasStructuralChange ? withHistory(get()) : null;
+
     set({
       edges: applyEdgeChanges(changes, get().edges),
-      isDirty: true,
-      saveStatus: 'modified',
+      ...(hasPersistentChange && { isDirty: true, saveStatus: 'modified' as const }),
+      ...(historyState ?? {}),
     });
   },
 
@@ -101,38 +159,83 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       type: 'branch',
       data: { branchType } as BranchEdgeData,
     };
+    const historyState = withHistory(get());
 
     set({
       edges: addEdge(newEdge, get().edges),
       isDirty: true,
       saveStatus: 'modified',
+      ...historyState,
     });
   },
 
   addNode: (node) => {
+    const historyState = withHistory(get());
     set({
       nodes: [...get().nodes, node],
       isDirty: true,
       saveStatus: 'modified',
+      ...historyState,
     });
   },
 
   removeNode: (nodeId) => {
+    const historyState = withHistory(get());
     set({
       nodes: get().nodes.filter((n) => n.id !== nodeId),
       edges: get().edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
       isDirty: true,
       saveStatus: 'modified',
+      ...historyState,
+    });
+  },
+
+  removeSelectedElements: () => {
+    const { nodes, edges, selectedNodeId } = get();
+    const selectedNodeIds = new Set(
+      nodes.filter((node) => node.selected).map((node) => node.id)
+    );
+
+    if (selectedNodeId) {
+      selectedNodeIds.add(selectedNodeId);
+    }
+
+    const selectedEdgeIds = new Set(
+      edges
+        .filter(
+          (edge) =>
+            edge.selected ||
+            selectedNodeIds.has(edge.source) ||
+            selectedNodeIds.has(edge.target)
+        )
+        .map((edge) => edge.id)
+    );
+
+    if (selectedNodeIds.size === 0 && selectedEdgeIds.size === 0) {
+      return;
+    }
+
+    const historyState = withHistory(get());
+
+    set({
+      nodes: nodes.filter((node) => !selectedNodeIds.has(node.id)),
+      edges: edges.filter((edge) => !selectedEdgeIds.has(edge.id)),
+      isDirty: true,
+      saveStatus: 'modified',
+      selectedNodeId: null,
+      ...historyState,
     });
   },
 
   updateNodeData: (nodeId, data) => {
+    const historyState = withHistory(get());
     set({
       nodes: get().nodes.map((node) =>
         node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
       ),
       isDirty: true,
       saveStatus: 'modified',
+      ...historyState,
     });
   },
 
@@ -153,6 +256,10 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       nodes: [],
       edges: [],
       selectedNodeId: null,
+      historyPast: [],
+      historyFuture: [],
+      canUndo: false,
+      canRedo: false,
     });
   },
 
@@ -176,6 +283,10 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       currentScenarioName: name,
       isDirty: false,
       saveStatus: 'saved',
+      historyPast: [],
+      historyFuture: [],
+      canUndo: false,
+      canRedo: false,
     });
   },
 
@@ -238,11 +349,63 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
         })),
         isDirty: false,
         saveStatus: 'saved',
+        historyPast: [],
+        historyFuture: [],
+        canUndo: false,
+        canRedo: false,
       });
     } catch (error) {
       console.error('Failed to parse flow JSON:', error);
       throw error;
     }
+  },
+
+  undo: () => {
+    const { historyPast, historyFuture, nodes, edges } = get();
+    if (historyPast.length === 0) {
+      return;
+    }
+
+    const previous = historyPast[historyPast.length - 1];
+    const currentSnapshot = createSnapshot(nodes, edges);
+    const nextPast = historyPast.slice(0, -1);
+    const nextFuture = [...historyFuture, currentSnapshot].slice(-50);
+
+    set({
+      nodes: cloneNodes(previous.nodes),
+      edges: cloneEdges(previous.edges),
+      historyPast: nextPast,
+      historyFuture: nextFuture,
+      canUndo: nextPast.length > 0,
+      canRedo: true,
+      isDirty: true,
+      saveStatus: 'modified',
+      selectedNodeId: null,
+    });
+  },
+
+  redo: () => {
+    const { historyPast, historyFuture, nodes, edges } = get();
+    if (historyFuture.length === 0) {
+      return;
+    }
+
+    const next = historyFuture[historyFuture.length - 1];
+    const currentSnapshot = createSnapshot(nodes, edges);
+    const nextPast = [...historyPast, currentSnapshot].slice(-50);
+    const remainingFuture = historyFuture.slice(0, -1);
+
+    set({
+      nodes: cloneNodes(next.nodes),
+      edges: cloneEdges(next.edges),
+      historyPast: nextPast,
+      historyFuture: remainingFuture,
+      canUndo: true,
+      canRedo: remainingFuture.length > 0,
+      isDirty: true,
+      saveStatus: 'modified',
+      selectedNodeId: null,
+    });
   },
 }));
 

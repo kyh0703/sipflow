@@ -8,7 +8,9 @@ import {
   BackgroundVariant,
   Controls,
   MiniMap,
+  Panel,
   useReactFlow,
+  type OnSelectionChangeParams,
   type Node,
   type Edge,
 } from '@xyflow/react';
@@ -20,11 +22,20 @@ import { wouldCreateCycle } from '../lib/validation';
 import { edgeTypes } from '../edges/branch-edge';
 import { useDnD } from '../hooks/use-dnd';
 import { nodeTypes } from './nodes';
+import { CanvasToolbar } from './canvas-toolbar';
 import { INSTANCE_COLORS, DEFAULT_CODECS } from '../types/scenario';
 import type { EdgeAnimationMessage } from '../types/execution';
 
 function createNodeID(): string {
   return uuidv4();
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable ||
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+  );
 }
 
 export function Canvas() {
@@ -39,10 +50,20 @@ export function Canvas() {
   const onEdgesChange = useScenarioStore((state) => state.onEdgesChange);
   const onConnect = useScenarioStore((state) => state.onConnect);
   const addNode = useScenarioStore((state) => state.addNode);
+  const removeSelectedElements = useScenarioStore((state) => state.removeSelectedElements);
   const setSelectedNode = useScenarioStore((state) => state.setSelectedNode);
   const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
   const setDirty = useScenarioStore((state) => state.setDirty);
   const saveNow = useScenarioStore((state) => state.saveNow);
+  const selectedNodeId = useScenarioStore((state) => state.selectedNodeId);
+  const canUndo = useScenarioStore((state) => state.canUndo);
+  const canRedo = useScenarioStore((state) => state.canRedo);
+  const undo = useScenarioStore((state) => state.undo);
+  const redo = useScenarioStore((state) => state.redo);
+  const hasSelectedElements =
+    Boolean(selectedNodeId) ||
+    nodes.some((node) => node.selected) ||
+    edges.some((edge) => edge.selected);
 
   const status = useExecutionStore((state) => state.status);
   const actionLogs = useExecutionStore((state) => state.actionLogs);
@@ -164,8 +185,12 @@ export function Canvas() {
   // Keyboard shortcut: Ctrl+S / Cmd+S to save
   useEffect(() => {
     const handleKeyDown = async (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      const hasModifier = event.ctrlKey || event.metaKey;
+      const isEditable = isEditableTarget(event.target);
+
       // Check for Ctrl+S (Windows/Linux) or Cmd+S (Mac)
-      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+      if (hasModifier && key === 's') {
         event.preventDefault();
 
         if (!currentScenarioId) {
@@ -182,6 +207,29 @@ export function Canvas() {
         } catch (error) {
           toast.error('Failed to save scenario: ' + error);
         }
+
+        return;
+      }
+
+      if (isEditable) {
+        return;
+      }
+
+      if (hasModifier && key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        undo();
+        return;
+      }
+
+      if ((hasModifier && key === 'z' && event.shiftKey) || (event.ctrlKey && key === 'y')) {
+        event.preventDefault();
+        redo();
+        return;
+      }
+
+      if ((key === 'delete' || key === 'backspace') && hasSelectedElements) {
+        event.preventDefault();
+        removeSelectedElements();
       }
     };
 
@@ -189,7 +237,15 @@ export function Canvas() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [currentScenarioId, saveNow, validateAndNotify]);
+  }, [
+    currentScenarioId,
+    hasSelectedElements,
+    redo,
+    removeSelectedElements,
+    saveNow,
+    undo,
+    validateAndNotify,
+  ]);
 
   const isValidConnection = (connection: Edge | { source: string; target: string; sourceHandle?: string | null }) => {
     // Prevent self-connections
@@ -227,6 +283,18 @@ export function Canvas() {
   // Background color: light mode uses gray-300 (#d1d5db), dark mode uses gray-600 (#52525b)
   const backgroundColor = resolvedTheme === 'dark' ? '#52525b' : '#d1d5db';
 
+  const handleDeleteSelected = () => {
+    if (!hasSelectedElements) {
+      return;
+    }
+
+    removeSelectedElements();
+  };
+
+  const handleSelectionChange = ({ nodes: selectedNodes }: OnSelectionChangeParams<Node, Edge>) => {
+    setSelectedNode(selectedNodes.length === 1 ? selectedNodes[0].id : null);
+  };
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -238,6 +306,7 @@ export function Canvas() {
       onDragOver={onDragOver}
       onNodeClick={onNodeClick}
       onPaneClick={onPaneClick}
+      onSelectionChange={handleSelectionChange}
       onNodeDragStop={onNodeDragStop}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
@@ -246,6 +315,16 @@ export function Canvas() {
       defaultEdgeOptions={defaultEdgeOptions}
       fitView
     >
+      <Panel position="top-right">
+        <CanvasToolbar
+          canUndo={canUndo}
+          canRedo={canRedo}
+          canDelete={hasSelectedElements}
+          onUndo={undo}
+          onRedo={redo}
+          onDelete={handleDeleteSelected}
+        />
+      </Panel>
       <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={backgroundColor} />
       <Controls />
       <MiniMap />
