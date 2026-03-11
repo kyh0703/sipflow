@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
-import { useExecutionStore } from '../store/execution-store';
+import {
+  useExecutionActionLogs,
+  useExecutionStatus,
+} from '../store/execution-store';
 
 const logLevelStyles: Record<string, string> = {
   info: 'text-foreground',
@@ -22,8 +24,8 @@ function formatTimestamp(timestamp: number): string {
 }
 
 export function ExecutionLog() {
-  const actionLogs = useExecutionStore(useShallow((state) => state.actionLogs));
-  const status = useExecutionStore((state) => state.status);
+  const actionLogs = useExecutionActionLogs();
+  const status = useExecutionStatus();
   const endRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);

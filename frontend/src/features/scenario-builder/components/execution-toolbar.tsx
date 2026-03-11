@@ -1,8 +1,11 @@
 import { useEffect } from 'react';
 import { Play, Square, ToggleLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { useExecutionStore } from '../store/execution-store';
-import { useScenarioStore } from '../store/scenario-store';
+import {
+  useExecutionActions,
+  useExecutionStatus,
+} from '../store/execution-store';
+import { useScenarioCurrentScenarioId } from '../store/scenario-store';
 import { useEngineApi } from '../hooks/use-engine-api';
 
 const statusStyles: Record<string, string> = {
@@ -14,11 +17,9 @@ const statusStyles: Record<string, string> = {
 };
 
 export function ExecutionToolbar() {
-  const status = useExecutionStore((state) => state.status);
-  const startListening = useExecutionStore((state) => state.startListening);
-  const stopListening = useExecutionStore((state) => state.stopListening);
-  const reset = useExecutionStore((state) => state.reset);
-  const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
+  const status = useExecutionStatus();
+  const { reset, startListening, stopListening } = useExecutionActions();
+  const currentScenarioId = useScenarioCurrentScenarioId();
   const { startScenario, stopScenario } = useEngineApi();
 
   useEffect(() => {

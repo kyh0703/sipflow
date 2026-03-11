@@ -1,5 +1,4 @@
-import { FolderTree, Puzzle, Settings } from 'lucide-react'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { FolderTree, Puzzle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ActivityIconProps {
@@ -17,57 +16,41 @@ function ActivityIcon({ icon: Icon, isActive, onClick, title, disabled }: Activi
       title={title}
       disabled={disabled}
       className={cn(
-        'relative flex items-center justify-center w-full h-10 transition-colors',
+        'relative flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
         disabled && 'opacity-40 cursor-not-allowed',
-        !disabled && isActive && 'text-foreground',
-        !disabled && !isActive && 'text-muted-foreground hover:text-foreground',
+        !disabled && isActive && 'bg-background text-foreground shadow-sm',
+        !disabled && !isActive && 'text-muted-foreground hover:bg-background/80 hover:text-foreground',
       )}
     >
       {isActive && (
-        <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-primary rounded-r" />
+        <div className="absolute left-0 top-2 bottom-2 w-0.5 rounded-r bg-primary" />
       )}
-      <Icon className="w-5 h-5" />
+      <Icon className="h-4 w-4" />
     </button>
   )
 }
 
 interface ActivityBarProps {
   activePanel: 'scenario' | 'palette' | null
-  onPanelToggle: (panel: 'scenario' | 'palette') => void
+  onPanelSelect: (panel: 'scenario' | 'palette') => void
 }
 
-export function ActivityBar({ activePanel, onPanelToggle }: ActivityBarProps) {
+export function ActivityBar({ activePanel, onPanelSelect }: ActivityBarProps) {
   return (
-    <div className="w-12 border-r border-border bg-muted flex flex-col items-center py-2 shrink-0">
-      {/* Upper: panel icons */}
+    <div className="flex w-11 shrink-0 flex-col items-center border-r border-border bg-muted py-2">
       <div className="flex flex-col items-center gap-1">
         <ActivityIcon
           icon={FolderTree}
           isActive={activePanel === 'scenario'}
-          onClick={() => onPanelToggle('scenario')}
+          onClick={() => onPanelSelect('scenario')}
           title="Scenario Tree"
         />
         <ActivityIcon
           icon={Puzzle}
           isActive={activePanel === 'palette'}
-          onClick={() => onPanelToggle('palette')}
+          onClick={() => onPanelSelect('palette')}
           title="Node Palette"
         />
-      </div>
-
-      {/* Spacer */}
-      <div className="flex-1" />
-
-      {/* Lower: settings + theme */}
-      <div className="flex flex-col items-center gap-1">
-        <ActivityIcon
-          icon={Settings}
-          isActive={false}
-          onClick={() => {}}
-          title="Settings"
-          disabled
-        />
-        <ThemeToggle />
       </div>
     </div>
   )
