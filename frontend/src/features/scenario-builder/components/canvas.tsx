@@ -7,6 +7,7 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  MarkerType,
   MiniMap,
   Panel,
   useReactFlow,
@@ -296,7 +297,15 @@ export function Canvas() {
   };
 
   const connectionLineStyle = { stroke: '#cbd5e1', strokeWidth: 1.5 };
-  const defaultEdgeOptions = { type: 'branch' };
+  const defaultEdgeOptions = {
+    type: 'branch',
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      width: 12,
+      height: 12,
+      color: '#cbd5e1',
+    },
+  };
 
   // Keep the canvas visually quiet so nodes stand out.
   const backgroundColor = resolvedTheme === 'dark' ? '#334155' : '#e5e7eb';

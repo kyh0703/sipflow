@@ -91,4 +91,5 @@ export type ScenarioNode = SipInstanceNode | CommandNode | EventNode;
 // Branch edge data
 export interface BranchEdgeData {
   branchType: 'success' | 'failure';
+  condition?: string;
 }

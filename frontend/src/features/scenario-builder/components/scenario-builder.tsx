@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { PanelImperativeHandle } from 'react-resizable-panels';
 import { toast } from 'sonner';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { DnDProvider } from '../hooks/use-dnd';
 import { Canvas } from './canvas';
 import { NodePalette } from './node-palette';
@@ -120,6 +121,7 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
               )}
             </div>
             <div className="flex items-center gap-3">
+              <ThemeToggle className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground" />
               <ExecutionToolbar />
               <button
                 onClick={handleSave}

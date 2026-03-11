@@ -56,7 +56,9 @@ export const useAppSettingsStore = createPersistStore<AppSettingsStoreState>(
       },
       updatePbxInstance: (id, patch) => {
         set((state) => {
-          const target = state.pbxInstances.find((instance) => instance.id === id);
+          const target = state.pbxInstances.find(
+            (instance: PbxInstanceSettings) => instance.id === id
+          );
 
           if (!target) {
             return;
@@ -67,7 +69,9 @@ export const useAppSettingsStore = createPersistStore<AppSettingsStoreState>(
       },
       removePbxInstance: (id) => {
         set((state) => {
-          state.pbxInstances = state.pbxInstances.filter((instance) => instance.id !== id);
+          state.pbxInstances = state.pbxInstances.filter(
+            (instance: PbxInstanceSettings) => instance.id !== id
+          );
         });
       },
     },

@@ -144,7 +144,9 @@ export const useExecutionStore = createStore<ExecutionStore>(
       },
       removeEdgeAnimation: (id) => {
         set((state) => {
-          state.edgeAnimations = state.edgeAnimations.filter((anim) => anim.id !== id);
+          state.edgeAnimations = state.edgeAnimations.filter(
+            (anim: EdgeAnimationMessage) => anim.id !== id
+          );
         });
       },
       reset: () => {

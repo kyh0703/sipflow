@@ -1,5 +1,5 @@
 import type { NodeProps } from '@xyflow/react';
-import { Play } from 'lucide-react';
+import { Phone } from 'lucide-react';
 import type { SipInstanceNode } from '../../types/scenario';
 import { DEFAULT_CODECS } from '../../types/scenario';
 import { useFlowEditorValidationErrors } from '../../store/flow-editor-context';
@@ -43,7 +43,7 @@ export function SipInstanceNode({ data, id }: NodeProps<SipInstanceNode>) {
       category="SIP / Instance"
       source={data.mode}
       title={displayName}
-      icon={<Play className="h-4 w-4 fill-current" />}
+      icon={<Phone className="h-4 w-4" />}
       status={hasError ? 'error' : isActive ? 'running' : null}
       summary={pbxLabel}
       showTargetHandle={false}
