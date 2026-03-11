@@ -1,13 +1,18 @@
 import { useMemo } from 'react';
 import { toast } from 'sonner';
-import { useScenarioStore } from '../store/scenario-store';
+import {
+  useFlowEditorActions,
+  useFlowEditorEdges,
+  useFlowEditorNodes,
+  useFlowEditorValidationErrors,
+} from '../store/flow-editor-context';
 import { validateScenario, type ValidationError } from '../lib/validation';
 
 export function useValidation() {
-  const nodes = useScenarioStore((state) => state.nodes);
-  const edges = useScenarioStore((state) => state.edges);
-  const setValidationErrors = useScenarioStore((state) => state.setValidationErrors);
-  const validationErrors = useScenarioStore((state) => state.validationErrors);
+  const nodes = useFlowEditorNodes();
+  const edges = useFlowEditorEdges();
+  const validationErrors = useFlowEditorValidationErrors();
+  const { setValidationErrors } = useFlowEditorActions();
 
   /**
    * Run validation and store errors in the store.

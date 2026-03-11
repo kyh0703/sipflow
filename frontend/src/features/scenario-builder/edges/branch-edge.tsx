@@ -1,8 +1,16 @@
-import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
+import {
+  BaseEdge,
+  getSmoothStepPath,
+  useInternalNode,
+  type EdgeProps,
+} from '@xyflow/react';
 import { AnimatedMessageEdge } from './animated-message-edge';
+import { getEdgeParams, toPositionByInternalNode } from '../lib/easy-connection';
 
 export function BranchEdge({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -11,21 +19,28 @@ export function BranchEdge({
   targetPosition,
   data,
 }: EdgeProps) {
+  const sourceNode = useInternalNode(source);
+  const targetNode = useInternalNode(target);
+  const edgeParams =
+    sourceNode && targetNode
+      ? getEdgeParams(
+          toPositionByInternalNode(sourceNode),
+          toPositionByInternalNode(targetNode)
+        )
+      : null;
+
   const [edgePath] = getSmoothStepPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
+    sourceX: edgeParams?.sx ?? sourceX,
+    sourceY: edgeParams?.sy ?? sourceY,
+    sourcePosition: edgeParams?.sourcePos ?? sourcePosition,
+    targetX: edgeParams?.tx ?? targetX,
+    targetY: edgeParams?.ty ?? targetY,
+    targetPosition: edgeParams?.targetPos ?? targetPosition,
   });
 
   const branchType = (data as any)?.branchType;
-  const color = branchType === 'success'
-    ? '#22c55e' // green
-    : branchType === 'failure'
-    ? '#ef4444' // red
-    : '#94a3b8'; // gray
+  const color = branchType === 'failure' ? '#e7a7b3' : '#cbd5e1';
+  const strokeDasharray = branchType === 'failure' ? '6 6' : undefined;
 
   return (
     <BaseEdge
@@ -33,7 +48,9 @@ export function BranchEdge({
       path={edgePath}
       style={{
         stroke: color,
-        strokeWidth: 2,
+        strokeWidth: 1.5,
+        strokeDasharray,
+        strokeLinecap: 'round',
       }}
     />
   );

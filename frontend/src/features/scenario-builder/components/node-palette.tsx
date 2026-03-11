@@ -13,11 +13,15 @@ import {
   Pause,
   Play,
   ArrowRightLeft,
-  MessageSquare,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { useDnD } from '../hooks/use-dnd';
+import { formatEventLabel } from '../lib/event-label';
+
+const PALETTE_ITEM_CLASS =
+  'bg-card border-border text-foreground hover:bg-muted/70';
 
 interface PaletteItemProps {
   type: string;
@@ -76,127 +80,125 @@ function Section({ title, children, defaultOpen = true }: SectionProps) {
 
 export function NodePalette() {
   return (
-    <div>
+    <div className="space-y-3">
       <Section title="SIP Instance">
         <PaletteItem
           type="sipInstance"
           label="SIP Instance"
           icon={Play}
-          colorClass="bg-emerald-50 border-emerald-400 text-emerald-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
       </Section>
+
+      <Separator />
 
       <Section title="Commands">
         <PaletteItem
           type="command-MakeCall"
           label="MakeCall"
           icon={Phone}
-          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="command-Answer"
           label="Answer"
           icon={PhoneIncoming}
-          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="command-Release"
           label="Release"
           icon={PhoneOff}
-          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="command-PlayAudio"
           label="PlayAudio"
           icon={Volume2}
-          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="command-SendDTMF"
           label="SendDTMF"
           icon={Hash}
-          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="command-Hold"
           label="Hold"
           icon={Pause}
-          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="command-Retrieve"
           label="Retrieve"
           icon={Play}
-          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="command-BlindTransfer"
           label="BlindTransfer"
           icon={ArrowRightLeft}
-          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="command-MuteTransfer"
           label="MuteTransfer"
           icon={ArrowRightLeft}
-          colorClass="bg-blue-50 border-blue-400 text-blue-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
       </Section>
+
+      <Separator />
 
       <Section title="Events">
         <PaletteItem
           type="event-INCOMING"
-          label="INCOMING"
+          label={formatEventLabel('INCOMING')}
           icon={Bell}
-          colorClass="bg-amber-50 border-amber-400 text-amber-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="event-DISCONNECTED"
-          label="DISCONNECTED"
+          label={formatEventLabel('DISCONNECTED')}
           icon={PhoneMissed}
-          colorClass="bg-amber-50 border-amber-400 text-amber-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="event-RINGING"
-          label="RINGING"
+          label={formatEventLabel('RINGING')}
           icon={BellRing}
-          colorClass="bg-amber-50 border-amber-400 text-amber-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="event-TIMEOUT"
-          label="TIMEOUT"
+          label={formatEventLabel('TIMEOUT')}
           icon={Clock}
-          colorClass="bg-amber-50 border-amber-400 text-amber-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="event-HELD"
-          label="HELD"
+          label={formatEventLabel('HELD')}
           icon={Pause}
-          colorClass="bg-amber-50 border-amber-400 text-amber-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="event-RETRIEVED"
-          label="RETRIEVED"
+          label={formatEventLabel('RETRIEVED')}
           icon={Play}
-          colorClass="bg-amber-50 border-amber-400 text-amber-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="event-TRANSFERRED"
-          label="TRANSFERRED"
+          label={formatEventLabel('TRANSFERRED')}
           icon={ArrowRightLeft}
-          colorClass="bg-amber-50 border-amber-400 text-amber-900"
-        />
-        <PaletteItem
-          type="event-NOTIFY"
-          label="NOTIFY"
-          icon={MessageSquare}
-          colorClass="bg-amber-50 border-amber-400 text-amber-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
         <PaletteItem
           type="event-DTMFReceived"
-          label="DTMFReceived"
+          label={formatEventLabel('DTMFReceived')}
           icon={Ear}
-          colorClass="bg-amber-50 border-amber-400 text-amber-900"
+          colorClass={PALETTE_ITEM_CLASS}
         />
       </Section>
     </div>

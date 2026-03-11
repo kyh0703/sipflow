@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useScenarioApi, type ScenarioListItem } from '../hooks/use-scenario-api';
-import { useScenarioStore } from '../store/scenario-store';
+import {
+  useScenarioActions,
+  useScenarioCurrentScenarioId,
+  useScenarioIsDirty,
+} from '../store/scenario-store';
+import { useFlowEditorActions } from '../store/flow-editor-context';
 
 export function ScenarioTree() {
   const api = useScenarioApi();
   const [scenarios, setScenarios] = useState<ScenarioListItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
-  const isDirty = useScenarioStore((state) => state.isDirty);
-  const setCurrentScenario = useScenarioStore((state) => state.setCurrentScenario);
-  const clearCanvas = useScenarioStore((state) => state.clearCanvas);
-  const loadFromJSON = useScenarioStore((state) => state.loadFromJSON);
+  const currentScenarioId = useScenarioCurrentScenarioId();
+  const isDirty = useScenarioIsDirty();
+  const { setCurrentScenario } = useScenarioActions();
+  const { clearCanvas } = useFlowEditorActions();
 
   const loadScenarios = async () => {
     try {
@@ -58,9 +62,7 @@ export function ScenarioTree() {
     }
 
     try {
-      const loaded = await api.loadScenario(scenario.id);
-      loadFromJSON(loaded.flow_data);
-      setCurrentScenario(loaded.id, loaded.name);
+      setCurrentScenario(scenario.id, scenario.name);
     } catch (error) {
       alert('Failed to load scenario: ' + error);
     }

@@ -1,16 +1,18 @@
-import { useScenarioStore } from '../store/scenario-store';
+import {
+  useFlowEditorActions,
+  useFlowEditorNodes,
+  useFlowEditorSelectedNodeId,
+} from '../store/flow-editor-context';
 import { SipInstanceProperties } from './properties/sip-instance-properties';
 import { CommandProperties } from './properties/command-properties';
 import { EventProperties } from './properties/event-properties';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { FileQuestion } from 'lucide-react';
 import type { SipInstanceNode, CommandNode, EventNode } from '../types/scenario';
 
 export function PropertiesPanel() {
-  const selectedNodeId = useScenarioStore((state) => state.selectedNodeId);
-  const nodes = useScenarioStore((state) => state.nodes);
-  const updateNodeData = useScenarioStore((state) => state.updateNodeData);
+  const selectedNodeId = useFlowEditorSelectedNodeId();
+  const nodes = useFlowEditorNodes();
+  const { updateNodeData } = useFlowEditorActions();
 
   const selectedNode = nodes.find((node) => node.id === selectedNodeId);
 
@@ -26,53 +28,12 @@ export function PropertiesPanel() {
     );
   }
 
-  // Node type badge color mapping
-  const getNodeTypeBadgeVariant = (type: string): 'default' | 'secondary' | 'outline' | 'destructive' => {
-    switch (type) {
-      case 'sipInstance':
-        return 'default';
-      case 'command':
-        return 'secondary';
-      case 'event':
-        return 'outline';
-      default:
-        return 'secondary';
-    }
-  };
-
-  const getNodeTypeLabel = (type: string): string => {
-    switch (type) {
-      case 'sipInstance':
-        return 'SIP Instance';
-      case 'command':
-        return 'Command';
-      case 'event':
-        return 'Event';
-      default:
-        return type;
-    }
-  };
-
   const handleUpdate = (data: Partial<any>) => {
     updateNodeData(selectedNode.id, data);
   };
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Badge variant={getNodeTypeBadgeVariant(selectedNode.type ?? 'command')}>
-            {getNodeTypeLabel(selectedNode.type ?? 'command')}
-          </Badge>
-        </div>
-        <p className="text-xs text-muted-foreground font-mono">
-          {selectedNode.id}
-        </p>
-      </div>
-
-      <Separator />
-
       {/* Properties Form */}
       {selectedNode.type === 'sipInstance' && (
         <SipInstanceProperties

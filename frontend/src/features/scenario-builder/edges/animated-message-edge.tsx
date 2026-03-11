@@ -1,10 +1,20 @@
 import { useEffect } from 'react';
-import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
-import { useShallow } from 'zustand/react/shallow';
-import { useExecutionStore } from '../store/execution-store';
+import {
+  BaseEdge,
+  getSmoothStepPath,
+  useInternalNode,
+  type EdgeProps,
+} from '@xyflow/react';
+import {
+  useExecutionActions,
+  useExecutionEdgeAnimations,
+} from '../store/execution-store';
+import { getEdgeParams, toPositionByInternalNode } from '../lib/easy-connection';
 
 export function AnimatedMessageEdge({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -13,31 +23,31 @@ export function AnimatedMessageEdge({
   targetPosition,
   data,
 }: EdgeProps) {
-  // Filter animations for this specific edge using useShallow for performance
-  const edgeAnimations = useExecutionStore(
-    useShallow((state) => state.edgeAnimations.filter((a) => a.edgeId === id))
-  );
-  const removeEdgeAnimation = useExecutionStore((state) => state.removeEdgeAnimation);
+  const edgeAnimations = useExecutionEdgeAnimations(id);
+  const { removeEdgeAnimation } = useExecutionActions();
+  const sourceNode = useInternalNode(source);
+  const targetNode = useInternalNode(target);
+  const edgeParams =
+    sourceNode && targetNode
+      ? getEdgeParams(
+          toPositionByInternalNode(sourceNode),
+          toPositionByInternalNode(targetNode)
+        )
+      : null;
 
   const [edgePath] = getSmoothStepPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
+    sourceX: edgeParams?.sx ?? sourceX,
+    sourceY: edgeParams?.sy ?? sourceY,
+    sourcePosition: edgeParams?.sourcePos ?? sourcePosition,
+    targetX: edgeParams?.tx ?? targetX,
+    targetY: edgeParams?.ty ?? targetY,
+    targetPosition: edgeParams?.targetPos ?? targetPosition,
   });
 
-  // Branch color logic (same as BranchEdge for compatibility)
   const branchType = (data as any)?.branchType;
-  const color =
-    branchType === 'success'
-      ? '#22c55e' // green
-      : branchType === 'failure'
-      ? '#ef4444' // red
-      : '#94a3b8'; // gray
+  const color = branchType === 'failure' ? '#e7a7b3' : '#cbd5e1';
+  const strokeDasharray = branchType === 'failure' ? '6 6' : undefined;
 
-  // Auto-remove animations after their duration (memory leak prevention)
   useEffect(() => {
     if (edgeAnimations.length === 0) return;
 
@@ -59,11 +69,13 @@ export function AnimatedMessageEdge({
         path={edgePath}
         style={{
           stroke: color,
-          strokeWidth: 2,
+          strokeWidth: 1.5,
+          strokeDasharray,
+          strokeLinecap: 'round',
         }}
       />
       {edgeAnimations.map((anim) => (
-        <circle key={anim.id} r="5" fill="#3b82f6" opacity="0.9">
+        <circle key={anim.id} r="4" fill="#94a3b8" opacity="0.95">
           <animateMotion
             dur={`${anim.duration / 1000}s`}
             path={edgePath}

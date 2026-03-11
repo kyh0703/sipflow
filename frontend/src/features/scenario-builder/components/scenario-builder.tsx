@@ -3,10 +3,8 @@ import { Save, Check, Circle, Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { PanelImperativeHandle } from 'react-resizable-panels';
 import { toast } from 'sonner';
-import { Toaster } from '@/components/ui/sonner';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { DnDProvider } from '../hooks/use-dnd';
-import { ActivityBar } from './activity-bar';
 import { Canvas } from './canvas';
 import { NodePalette } from './node-palette';
 import { PropertiesPanel } from './properties-panel';
@@ -15,22 +13,30 @@ import { ExecutionToolbar } from './execution-toolbar';
 import { ExecutionLog } from './execution-log';
 import { ExecutionTimeline } from './execution-timeline';
 import { validateBackendContract } from '../lib/backend-contract';
-import { useScenarioStore } from '../store/scenario-store';
-import { useScenarioApi } from '../hooks/use-scenario-api';
-import { useExecutionStore } from '../store/execution-store';
+import {
+  useScenarioCurrentScenarioId,
+  useScenarioCurrentScenarioName,
+  useScenarioSaveStatus,
+} from '../store/scenario-store';
+import {
+  useFlowEditorActions,
+  useFlowEditorSelectedNodeId,
+} from '../store/flow-editor-context';
+import { useExecutionStatus } from '../store/execution-store';
 
-export function ScenarioBuilder() {
-  const api = useScenarioApi();
-  const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
-  const currentScenarioName = useScenarioStore((state) => state.currentScenarioName);
-  const saveStatus = useScenarioStore((state) => state.saveStatus);
-  const saveNow = useScenarioStore((state) => state.saveNow);
-  const executionStatus = useExecutionStore((state) => state.status);
+interface ScenarioBuilderProps {
+  activePanel: 'scenario' | 'palette';
+}
+
+export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
+  const currentScenarioId = useScenarioCurrentScenarioId();
+  const currentScenarioName = useScenarioCurrentScenarioName();
+  const saveStatus = useScenarioSaveStatus();
+  const executionStatus = useExecutionStatus();
   const [bottomTab, setBottomTab] = useState<'log' | 'timeline'>('log');
-  const [activePanel, setActivePanel] = useState<'scenario' | 'palette' | null>('scenario');
-  const sidebarRef = useRef<PanelImperativeHandle>(null);
   const propertiesRef = useRef<PanelImperativeHandle>(null);
-  const selectedNodeId = useScenarioStore((state) => state.selectedNodeId);
+  const selectedNodeId = useFlowEditorSelectedNodeId();
+  const { saveNow } = useFlowEditorActions();
 
   // Properties panel: expand when a node is selected, collapse when deselected
   useEffect(() => {
@@ -69,16 +75,6 @@ export function ScenarioBuilder() {
     };
   }, []);
 
-  const handlePanelToggle = (panel: 'scenario' | 'palette') => {
-    if (activePanel === panel && !sidebarRef.current?.isCollapsed()) {
-      sidebarRef.current?.collapse();
-      setActivePanel(null);
-    } else {
-      sidebarRef.current?.expand();
-      setActivePanel(panel);
-    }
-  };
-
   const handleSave = async () => {
     if (!currentScenarioId) {
       toast.error('No scenario selected. Create or select a scenario first.');
@@ -96,8 +92,7 @@ export function ScenarioBuilder() {
   return (
     <ReactFlowProvider>
       <DnDProvider>
-        <Toaster position="bottom-right" richColors />
-        <div className="flex flex-col h-screen w-screen">
+        <div className="flex h-full w-full flex-col">
           {/* Header Bar */}
           <div className="h-10 border-b border-border bg-background flex items-center justify-between px-4">
             <div className="flex items-center gap-2">
@@ -140,12 +135,6 @@ export function ScenarioBuilder() {
 
           {/* Main content */}
           <div className="flex flex-1 overflow-hidden">
-            {/* Activity Bar (fixed 48px) */}
-            <ActivityBar
-              activePanel={activePanel}
-              onPanelToggle={handlePanelToggle}
-            />
-
             {/* Resizable layout */}
             <ResizablePanelGroup
               orientation="horizontal"
@@ -157,12 +146,6 @@ export function ScenarioBuilder() {
                 id="sidebar"
                 minSize="17%"
                 maxSize="30%"
-                collapsible
-                collapsedSize={0}
-                panelRef={sidebarRef}
-                onResize={(size) => {
-                  if (size.asPercentage === 0) setActivePanel(null);
-                }}
               >
                 <div className="h-full overflow-y-auto">
                   {activePanel === 'scenario' && <ScenarioTree />}
