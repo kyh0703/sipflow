@@ -31,6 +31,7 @@ import { ScenarioTree } from './scenario-tree';
 import { ExecutionToolbar } from './execution-toolbar';
 import { ExecutionLog } from './execution-log';
 import { ExecutionTimeline } from './execution-timeline';
+import { SettingsPanel } from './settings-panel';
 import { validateBackendContract } from '../lib/backend-contract';
 import { useExecutionStatus } from '../hooks/use-execution';
 import { SaveScenario } from '../../../../wailsjs/go/binding/ScenarioBinding';
@@ -192,14 +193,28 @@ function ScenarioFlowProvider({ children }: { children: React.ReactNode }) {
       type: 'branch',
       data: { branchType } as BranchEdgeData,
     };
+    const shouldAutoAssignInstance =
+      flowState.nodes.some((node) => node.id === connection.source && node.type === 'sipInstance') &&
+      flowState.nodes.some(
+        (node) =>
+          node.id === connection.target &&
+          (node.type === 'command' || node.type === 'event')
+      );
 
     setFlowState((current) => ({
       ...current,
+      nodes: shouldAutoAssignInstance
+        ? current.nodes.map((node) =>
+            node.id === connection.target
+              ? { ...node, data: { ...node.data, sipInstanceId: connection.source } }
+              : node
+          )
+        : current.nodes,
       edges: addEdge(newEdge, current.edges),
       ...withHistory(current),
     }));
     markModified();
-  }, [markModified]);
+  }, [flowState.nodes, markModified]);
 
   const addNode = useCallback((node: Node) => {
     setFlowState((current) => ({
@@ -489,7 +504,7 @@ function ScenarioBuilderContent() {
   } = useScenarioFlow();
   const executionStatus = useExecutionStatus();
   const [bottomTab, setBottomTab] = useState<'log' | 'timeline'>('log');
-  const [activePanel, setActivePanel] = useState<'scenario' | 'palette' | null>('scenario');
+  const [activePanel, setActivePanel] = useState<'scenario' | 'palette' | 'settings' | null>('scenario');
   const sidebarRef = useRef<PanelImperativeHandle>(null);
   const propertiesRef = useRef<PanelImperativeHandle>(null);
 
@@ -529,7 +544,7 @@ function ScenarioBuilderContent() {
     };
   }, []);
 
-  const handlePanelToggle = (panel: 'scenario' | 'palette') => {
+  const handlePanelToggle = (panel: 'scenario' | 'palette' | 'settings') => {
     if (activePanel === panel && !sidebarRef.current?.isCollapsed()) {
       sidebarRef.current?.collapse();
       setActivePanel(null);
@@ -624,6 +639,7 @@ function ScenarioBuilderContent() {
                     <NodePalette />
                   </div>
                 )}
+                {activePanel === 'settings' && <SettingsPanel />}
               </div>
             </ResizablePanel>
 

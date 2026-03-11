@@ -195,13 +195,22 @@ export function detectIsolatedNodes(nodes: Node[], edges: Edge[]): ValidationErr
 /**
  * Validate that all command/event nodes have a SIP instance assignment.
  */
-export function validateInstanceAssignments(nodes: Node[]): ValidationError[] {
+export function validateInstanceAssignments(nodes: Node[], edges: Edge[]): ValidationError[] {
   const errors: ValidationError[] = [];
 
   nodes.forEach((node) => {
     if (node.type === 'command' || node.type === 'event') {
       const data = node.data as any;
+      const hasDirectSipInstanceParent = edges.some(
+        (edge) =>
+          edge.target === node.id &&
+          nodes.some((candidate) => candidate.id === edge.source && candidate.type === 'sipInstance')
+      );
+
       if (!data.sipInstanceId) {
+        if (hasDirectSipInstanceParent) {
+          return;
+        }
         errors.push({
           type: 'instance-assignment',
           nodeId: node.id,
@@ -234,6 +243,33 @@ export function validateRequiredFields(nodes: Node[]): ValidationError[] {
             type: 'required-field',
             nodeId: node.id,
             message: 'MakeCall command requires targetUri',
+          });
+        }
+      }
+
+      if (data.command === 'BlindTransfer') {
+        if (!data.targetUser || data.targetUser.trim() === '') {
+          errors.push({
+            type: 'required-field',
+            nodeId: node.id,
+            message: 'BlindTransfer command requires targetUser',
+          });
+        }
+        if (!data.targetHost || data.targetHost.trim() === '') {
+          errors.push({
+            type: 'required-field',
+            nodeId: node.id,
+            message: 'BlindTransfer command requires targetHost',
+          });
+        }
+      }
+
+      if (data.command === 'MuteTransfer') {
+        if (!data.consultCallId || data.consultCallId.trim() === '') {
+          errors.push({
+            type: 'required-field',
+            nodeId: node.id,
+            message: 'MuteTransfer command requires consultCallId',
           });
         }
       }
@@ -283,7 +319,7 @@ export function validateScenario(nodes: Node[], edges: Edge[]): ValidationError[
 
   errors.push(...detectCycles(nodes, edges));
   errors.push(...detectIsolatedNodes(nodes, edges));
-  errors.push(...validateInstanceAssignments(nodes));
+  errors.push(...validateInstanceAssignments(nodes, edges));
   errors.push(...validateRequiredFields(nodes));
 
   return errors;

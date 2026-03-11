@@ -116,11 +116,10 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 	for _, node := range flow.Nodes {
 		if node.Type == "command" || node.Type == "event" {
 			sipInstanceID := getStringField(node.Data, "sipInstanceId", "")
-			if sipInstanceID == "" {
-				return nil, fmt.Errorf("node %s is missing sipInstanceId", node.ID)
-			}
-			if _, exists := graph.Instances[sipInstanceID]; !exists {
-				return nil, fmt.Errorf("node %s references unknown instance %s", node.ID, sipInstanceID)
+			if sipInstanceID != "" {
+				if _, exists := graph.Instances[sipInstanceID]; !exists {
+					return nil, fmt.Errorf("node %s references unknown instance %s", node.ID, sipInstanceID)
+				}
 			}
 
 			gnode := &GraphNode{
@@ -179,6 +178,9 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 			if targetExists {
 				instance := graph.Instances[edge.Source]
 				instance.StartNodes = append(instance.StartNodes, targetNode)
+				if targetNode.InstanceID == "" {
+					targetNode.InstanceID = edge.Source
+				}
 			}
 		} else if sourceType == "command" || sourceType == "event" {
 			// command/event -> command/event: SuccessNext/FailureNext 설정
@@ -193,7 +195,17 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 		}
 	}
 
-	// 4. 검증: 인스턴스가 0개이면 에러
+	// 4. 검증: 모든 command/event 노드는 최종적으로 인스턴스가 결정되어야 함
+	for _, node := range graph.Nodes {
+		if node.InstanceID == "" {
+			return nil, fmt.Errorf("node %s is missing sipInstanceId", node.ID)
+		}
+		if _, exists := graph.Instances[node.InstanceID]; !exists {
+			return nil, fmt.Errorf("node %s references unknown instance %s", node.ID, node.InstanceID)
+		}
+	}
+
+	// 5. 검증: 인스턴스가 0개이면 에러
 	if len(graph.Instances) == 0 {
 		return nil, fmt.Errorf("no sipInstance nodes found")
 	}
