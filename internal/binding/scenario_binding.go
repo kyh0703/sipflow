@@ -28,7 +28,7 @@ func (s *ScenarioBinding) SetContext(ctx context.Context) {
 }
 
 // CreateScenario creates a new scenario with the given name
-func (s *ScenarioBinding) CreateScenario(name string) (*scenario.Scenario, error) {
+func (s *ScenarioBinding) CreateScenario(name string) (*ScenarioDTO, error) {
 	runtime.LogInfo(s.ctx, fmt.Sprintf("Creating scenario: %s", name))
 
 	sc, err := s.repo.CreateScenario("default", name)
@@ -38,7 +38,7 @@ func (s *ScenarioBinding) CreateScenario(name string) (*scenario.Scenario, error
 	}
 
 	runtime.LogInfo(s.ctx, fmt.Sprintf("Scenario created: %s (ID: %s)", name, sc.ID))
-	return sc, nil
+	return newScenarioDTO(sc), nil
 }
 
 // SaveScenario saves the flow data for an existing scenario
@@ -56,7 +56,7 @@ func (s *ScenarioBinding) SaveScenario(id, flowData string) error {
 }
 
 // LoadScenario loads a scenario by ID
-func (s *ScenarioBinding) LoadScenario(id string) (*scenario.Scenario, error) {
+func (s *ScenarioBinding) LoadScenario(id string) (*ScenarioDTO, error) {
 	runtime.LogInfo(s.ctx, fmt.Sprintf("Loading scenario: %s", id))
 
 	sc, err := s.repo.LoadScenario(id)
@@ -66,11 +66,11 @@ func (s *ScenarioBinding) LoadScenario(id string) (*scenario.Scenario, error) {
 	}
 
 	runtime.LogInfo(s.ctx, fmt.Sprintf("Scenario loaded: %s", id))
-	return sc, nil
+	return newScenarioDTO(sc), nil
 }
 
 // ListScenarios lists all scenarios in the default project
-func (s *ScenarioBinding) ListScenarios() ([]scenario.ScenarioListItem, error) {
+func (s *ScenarioBinding) ListScenarios() ([]ScenarioListItemDTO, error) {
 	runtime.LogInfo(s.ctx, "Listing scenarios")
 
 	scenarios, err := s.repo.ListScenarios("default")
@@ -80,7 +80,12 @@ func (s *ScenarioBinding) ListScenarios() ([]scenario.ScenarioListItem, error) {
 	}
 
 	runtime.LogInfo(s.ctx, fmt.Sprintf("Found %d scenarios", len(scenarios)))
-	return scenarios, nil
+	items := make([]ScenarioListItemDTO, 0, len(scenarios))
+	for _, scenarioItem := range scenarios {
+		items = append(items, newScenarioListItemDTO(scenarioItem))
+	}
+
+	return items, nil
 }
 
 // DeleteScenario deletes a scenario by ID

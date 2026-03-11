@@ -6,10 +6,10 @@ import {
   DeleteScenario,
   RenameScenario,
 } from '../../../../wailsjs/go/binding/ScenarioBinding';
-import { scenario } from '../../../../wailsjs/go/models';
+import { binding } from '../../../../wailsjs/go/models';
 
-export type ScenarioListItem = scenario.ScenarioListItem;
-export type Scenario = scenario.Scenario;
+export type ScenarioListItem = binding.ScenarioListItemDTO;
+export type Scenario = binding.ScenarioDTO;
 
 /**
  * Hook providing typed wrappers around Wails ScenarioBinding calls
