@@ -1,9 +1,10 @@
 import React from 'react'
 import {createRoot} from 'react-dom/client'
 import { ThemeProvider } from 'next-themes'
+import { RouterProvider } from '@tanstack/react-router'
 import './index.css'
 import './style.css'
-import App from './App'
+import { router } from './router'
 
 const container = document.getElementById('root')
 
@@ -19,7 +20,7 @@ root.render(
             storageKey="sipflow-theme"
             themes={['light', 'dark']}
         >
-            <App/>
+            <RouterProvider router={router} />
         </ThemeProvider>
     </React.StrictMode>
 )
