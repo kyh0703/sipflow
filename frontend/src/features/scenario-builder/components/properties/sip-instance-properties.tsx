@@ -1,19 +1,35 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import type { SipInstanceNode } from '../../types/scenario';
-import { INSTANCE_COLORS, DEFAULT_CODECS } from '../../types/scenario';
+import { DEFAULT_CODECS } from '../../types/scenario';
 import { CodecListItem } from './codec-list-item';
+import { usePbxInstances, type PbxInstanceSettings } from '../../store/app-settings-store';
 
 interface SipInstancePropertiesProps {
   node: SipInstanceNode;
   onUpdate: (data: Partial<SipInstanceNode['data']>) => void;
 }
 
+function getPbxInstanceLabel(instance: PbxInstanceSettings) {
+  if (instance.name.trim()) {
+    return instance.name;
+  }
+
+  if (instance.host.trim()) {
+    return `${instance.host}:${instance.port || '5060'}`;
+  }
+
+  return 'Unnamed PBX';
+}
+
 export function SipInstanceProperties({ node, onUpdate }: SipInstancePropertiesProps) {
   const { data } = node;
+  const pbxInstances = usePbxInstances();
+  const numberValue =
+    data.dn || (data.label && data.label !== 'SIP Instance' ? data.label : '');
+  const selectedPbxInstanceId = data.pbxInstanceId || data.serverId || 'none';
 
   const handleModeChange = (mode: 'DN' | 'Endpoint') => {
     onUpdate({
@@ -36,108 +52,100 @@ export function SipInstanceProperties({ node, onUpdate }: SipInstancePropertiesP
 
   return (
     <div className="space-y-4 nodrag">
-      {/* Label */}
-      <div className="space-y-2">
-        <Label htmlFor="label">Label</Label>
-        <Input
-          id="label"
-          value={data.label}
-          onChange={(e) => onUpdate({ label: e.target.value })}
-          placeholder="SIP Instance name"
-        />
-      </div>
+      <section className="space-y-3">
+        <div className="space-y-1">
+          <h4 className="text-base font-semibold text-foreground">기본 정보</h4>
+        </div>
 
-      <Separator />
-
-      {/* Mode */}
-      <div className="space-y-2">
-        <Label htmlFor="mode">Mode</Label>
-        <Select value={data.mode} onValueChange={handleModeChange}>
-          <SelectTrigger id="mode">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="DN">DN</SelectItem>
-            <SelectItem value="Endpoint">Endpoint</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* DN Number - visible only for DN mode */}
-      {data.mode === 'DN' && (
         <div className="space-y-2">
-          <Label htmlFor="dn">DN Number</Label>
+          <Label htmlFor="dn">Number</Label>
           <Input
             id="dn"
-            value={data.dn || ''}
-            onChange={(e) => onUpdate({ dn: e.target.value })}
-            placeholder="e.g., 1001"
+            value={numberValue}
+            onChange={(e) => {
+              const value = e.target.value;
+              onUpdate({ dn: value, label: value });
+            }}
+            placeholder="4300"
           />
         </div>
-      )}
 
-      {/* SIP Server - visible only for Endpoint mode */}
-      {data.mode === 'Endpoint' && (
+        <Separator />
+
         <div className="space-y-2">
-          <Label htmlFor="serverId">SIP Server</Label>
-          <Input
-            id="serverId"
-            value={data.serverId || ''}
-            onChange={(e) => onUpdate({ serverId: e.target.value })}
-            placeholder="sip:server:5060"
-          />
+          <Label htmlFor="mode">Mode</Label>
+          <Select value={data.mode} onValueChange={handleModeChange}>
+            <SelectTrigger id="mode">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="DN">DN</SelectItem>
+              <SelectItem value="Endpoint">Endpoint</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-      )}
-
-      {/* Register */}
-      <div className="flex items-center justify-between">
-        <Label htmlFor="register">Register</Label>
-        <Switch
-          id="register"
-          checked={data.register}
-          onCheckedChange={(checked) => onUpdate({ register: checked })}
-        />
-      </div>
+      </section>
 
       <Separator />
 
-      {/* Color Picker */}
-      <div className="space-y-2">
-        <Label>Color</Label>
-        <div className="flex gap-2">
-          {INSTANCE_COLORS.map((color) => (
-            <button
-              key={color}
-              type="button"
-              className="w-8 h-8 rounded-full border-2 transition-all hover:scale-110"
-              style={{
-                backgroundColor: color,
-                borderColor: data.color === color ? '#000' : 'transparent',
-              }}
-              onClick={() => onUpdate({ color })}
-              aria-label={`Select color ${color}`}
-            />
-          ))}
+      <section className="space-y-3">
+        <div className="space-y-1">
+          <h4 className="text-base font-semibold text-foreground">연결 설정</h4>
         </div>
-      </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="pbxInstanceId">PBX Instance</Label>
+          <Select
+            value={selectedPbxInstanceId}
+            onValueChange={(value) =>
+              onUpdate({
+                pbxInstanceId: value === 'none' ? undefined : value,
+                serverId: value === 'none' ? undefined : value,
+              })
+            }
+          >
+            <SelectTrigger id="pbxInstanceId">
+              <SelectValue placeholder="Select PBX instance..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              {pbxInstances.map((instance) => (
+                <SelectItem key={instance.id} value={instance.id}>
+                  {getPbxInstanceLabel(instance)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {pbxInstances.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              Settings에서 PBX 인스턴스를 먼저 추가해 주세요.
+            </p>
+          )}
+        </div>
+      </section>
 
       <Separator />
 
-      {/* Codec Selection */}
-      <div className="space-y-2">
-        <Label>Preferred Codecs</Label>
-        <p className="text-xs text-muted-foreground">Drag to reorder priority.</p>
-        <div className="space-y-2">
-          {displayCodecs.map((codec, index) => (
-            <CodecListItem
-              key={codec}
-              codec={codec}
-              index={index}
-              onMove={moveCodec}
-            />
-          ))}
+      <section className="space-y-3">
+        <div className="space-y-1">
+          <h4 className="text-base font-semibold text-foreground">코덱 우선순위</h4>
         </div>
-      </div>
+
+        <div className="space-y-2">
+          <Label>Preferred Codecs</Label>
+          <p className="text-xs text-muted-foreground">Drag to reorder priority.</p>
+          <div className="space-y-2">
+            {displayCodecs.map((codec, index) => (
+              <CodecListItem
+                key={codec}
+                codec={codec}
+                index={index}
+                onMove={moveCodec}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

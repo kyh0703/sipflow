@@ -207,6 +207,23 @@ export function validateInstanceAssignments(nodes: Node[], edges: Edge[]): Valid
           nodes.some((candidate) => candidate.id === edge.source && candidate.type === 'sipInstance')
       );
 
+      if (node.type === 'event' && data.event === 'INCOMING') {
+        if (data.number && data.number.trim() !== '') {
+          return;
+        }
+
+        if (hasDirectSipInstanceParent) {
+          return;
+        }
+
+        errors.push({
+          type: 'instance-assignment',
+          nodeId: node.id,
+          message: 'Incoming event must specify a Number or be connected to a SIP Instance',
+        });
+        return;
+      }
+
       if (!data.sipInstanceId) {
         if (hasDirectSipInstanceParent) {
           return;
@@ -274,6 +291,28 @@ export function validateRequiredFields(nodes: Node[]): ValidationError[] {
         }
       }
     } else if (node.type === 'event') {
+      if (data.event === 'INCOMING') {
+        if (!data.number || data.number.trim() === '') {
+          errors.push({
+            type: 'required-field',
+            nodeId: node.id,
+            message: 'INCOMING event requires a Number',
+          });
+        } else {
+          const hasMatchingDN = nodes.some(
+            (candidate) => candidate.type === 'sipInstance' && (candidate.data as any).dn?.trim() === data.number.trim()
+          );
+
+          if (!hasMatchingDN) {
+            errors.push({
+              type: 'required-field',
+              nodeId: node.id,
+              message: `No SIP Instance found for number ${data.number.trim()}`,
+            });
+          }
+        }
+      }
+
       if (data.event === 'TIMEOUT') {
         if (!data.timeout || data.timeout <= 0) {
           errors.push({

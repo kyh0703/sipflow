@@ -1,10 +1,10 @@
 # SIPFLOW Project State
 
 ## 현재 상태
-- **마일스톤**: v1.3 — AttendedTransfer
-- **페이즈**: Phase 15 — AttendedTransfer 백엔드
-- **상태**: `phase15_in_progress`
-- **최근 활동**: 2026-03-09 — Phase 15 MuteTransfer 백엔드 검증 완료 + 포트 할당 fallback 수정
+- **마일스톤**: v1.4 — 통화 녹음 + 미디어 확장
+- **페이즈**: Phase 17 — Recording Backend Foundation (계획 완료, 착수 대기)
+- **상태**: `phase17_ready`
+- **최근 활동**: 2026-03-09 — v1.4 요구사항/로드맵 초안 작성 완료
 
 ## 프로젝트 참조
 
@@ -14,30 +14,34 @@
 - **N개 SIP 인스턴스**: 다중 SIP UA를 동시에 생성하여 복잡한 시나리오 검증
 - **이중 모드**: 로컬 시뮬레이션 모드 + 실제 SIP 트래픽 생성 모드
 
-### 현재 초점 (v1.3)
-SessionStore 복합 키 리팩토링을 선행하고, Attended Transfer Command 노드를 구현하여 상담 통화 후 통화 전환 시나리오를 지원한다.
+### 현재 초점 (v1.4)
+StartRecording/StopRecording 백엔드 구조와 recorder 생명주기 설계를 코드에 반영할 준비를 한다.
 
 ## 현재 위치
 
-### 마일스톤: v1.3 — AttendedTransfer
-**목표:** SessionStore 리팩토링 + Attended Transfer 구현
-**상태:** Phase 14 완료, Phase 15 진행 중
+### 마일스톤: v1.4 — 통화 녹음 + 미디어 확장
+**목표:** 녹음 제어, 미디어 상태 추적, 후속 QA 분석 기능 기반 마련
+**상태:** Phase 17 착수 대기
 
 ### 페이즈 진행
 
 ```
-Phase 14: SessionStore 멀티 다이얼로그  [ 완료 ]
-Phase 15: AttendedTransfer 백엔드       [ 진행 중 ]
-Phase 16: callID UI + AttendedTransfer UI [ 대기 ]
+v1.3: SessionStore 멀티 다이얼로그      [ 완료 ]
+v1.3: MuteTransfer 백엔드               [ 완료 ]
+v1.3: callID UI + MuteTransfer UI       [ 완료 ]
+v1.4: Phase 17 Recording Foundation     [ 다음 ]
+v1.4: Phase 18 Playback 확장            [ 대기 ]
+v1.4: Phase 19 UI/Validation            [ 대기 ]
 ```
 
-**진행률:** 1/3 페이즈 완료 + 1개 페이즈 진행 중
+**진행률:** v1.0~v1.3 마일스톤 완료, v1.4 계획 완료
 
 ## 성능 지표
 
 ### 프로젝트 전체
-- **완료된 마일스톤**: 3 (v1.0, v1.1, v1.2)
-- **진행 중 마일스톤**: 1 (v1.3)
+- **완료된 마일스톤**: 4 (v1.0, v1.1, v1.2, v1.3)
+- **진행 중 마일스톤**: 0
+- **다음 마일스톤**: 1 (v1.4)
 - **총 페이즈 (v1.0+v1.1+v1.2)**: 13 (모두 완료)
 - **v1.3 페이즈**: 3 (Phase 14~16)
 
@@ -48,12 +52,12 @@ Phase 16: callID UI + AttendedTransfer UI [ 대기 ]
 | 항목 | 결정 | 이유 |
 |------|------|------|
 | SessionStore 키 구조 | instanceID + callID 복합 키 | 하나의 인스턴스에서 복수 dialog 관리 |
-| callID 기본값 | 빈 문자열 또는 "default" | v1.2 시나리오 하위 호환성 보장 |
+| callID 기본값 | `call-1` | v1.2 시나리오 하위 호환성 보장 |
 | incomingCh 버퍼 | 확장 (1 → N) | 동일 인스턴스 다중 INVITE 수신 지원 |
 | Replaces 헤더 구성 | 수동 추출 (sipgo.Dialog.Replaces 미지원) | diago API 제약, MEDIUM 신뢰도 |
-| AttendedTransfer 접근 | Composable 노드 조합 | Hold + MakeCall + AttendedTransfer 분리 |
-| AttendedTransfer 역할 | REFER+Replaces 전송만 담당 | 단일 책임, 다른 노드와 조합 |
-| Transferee 자동 처리 | OnRefer에서 Replaces 감지 시 자동 INVITE | 엔진 레벨 처리, 사용자 노드 불필요 |
+| MuteTransfer 접근 | Composable 노드 조합 | Hold + MakeCall + MuteTransfer 분리 |
+| MuteTransfer 역할 | REFER+Replaces 전송 + final NOTIFY 대기 | 단일 책임, 다른 노드와 조합 |
+| Transferee 자동 처리 | OnRefer에서 Replaces 감지 시 자동 INVITE/Ack | 엔진 레벨 처리, 사용자 노드 불필요 |
 
 ### v1.2 핵심 설계 결정 (사전 리서치)
 
@@ -69,8 +73,12 @@ Phase 16: callID UI + AttendedTransfer UI [ 대기 ]
 
 ### 할일 (TODO)
 - [x] Phase 14 계획 수립 + 실행 완료
-- [ ] Phase 15 계획 수립 + 실행
-- [ ] Phase 16 계획 수립 + 실행
+- [x] Phase 15 계획 수립 + 실행 완료
+- [x] Phase 16 계획 수립 + 실행 완료
+- [x] v1.4 요구사항 정의
+- [x] v1.4 Phase 분해 및 검증 기준 작성
+- [ ] Phase 17 recorder 저장소/정리 경로 구현
+- [ ] Phase 17 StartRecording/StopRecording executor 구현
 - [x] Phase 10 계획 수립 + 실행 완료
 - [x] Phase 11 계획 수립 + 실행 완료
 - [x] Phase 12 계획 수립 + 실행 완료
@@ -86,12 +94,14 @@ Phase 16: callID UI + AttendedTransfer UI [ 대기 ]
 - **v1.0 — MVP**: 시각적 시나리오 빌더 + 시뮬레이션 실행 (5 phases, 22 plans, 78 commits, 2026-02-11 완료)
 - **v1.1 — 미디어 + DTMF**: 미디어 재생, DTMF 송수신, 코덱 선택 (4 phases, 8 plans, 36 commits, 2026-02-19 완료)
 - **v1.2 — Transfer + UI 개선**: Hold/Retrieve, BlindTransfer, UI 리디자인 (4 phases, 7 plans, 32 commits, 2026-02-20 완료)
+- **v1.3 — MuteTransfer + callID UI**: 멀티 다이얼로그, Replaces REFER 전환, callID 기반 UI/하위 호환 (2026-03-09 완료)
 
 ## 세션 연속성
 - **Last session:** 2026-03-08
-- **Stopped at:** Phase 15 백엔드 검증 + 포트 할당 회귀 수정
+- **Stopped at:** v1.3 검증 완료 후 문서 정리
+- **Stopped at:** v1.4 계획 완료
 - **Resume file:** None
-- **다음 단계:** Phase 16 UI 정리 및 마일스톤 마무리
+- **다음 단계:** Phase 17 recorder 백엔드 구현
 
 ## 프로젝트 메모리
 
@@ -115,9 +125,9 @@ Phase 16: callID UI + AttendedTransfer UI [ 대기 ]
 - AnswerOptions.OnRefer 콜백 — TransferEvent 감지에 사용
 - Answer() → AnswerOptions() 전환 필수 (이벤트 콜백 수신 전제조건)
 - diago Replaces 헤더: sipgo.Dialog.Replaces 미지원 → 수동 구성 필요 (MEDIUM 신뢰도)
-- SessionStore 현재 구조: map[instanceID]dialog (1:1, v1.3에서 복합 키로 리팩토링 예정)
-- incomingCh: 현재 버퍼 1 → v1.3에서 확장 필요
-- OnRefer 콜백: v1.2에서 BlindTransfer용 구현됨, Replaces 파라미터 처리 추가 필요
+- SessionStore 현재 구조: map[instanceID:callID]dialog (복합 키 적용 완료)
+- incomingCh: 다중 INVITE 대응 버퍼 확장 적용 완료
+- OnRefer 콜백: Replaces REFER 감지 시 Invite/Ack 후 dialog 교체 처리
 
 ### 기술적 제약
 - Wails v2 Windows hot reload 불안정 (Linux에서 개발 권장)

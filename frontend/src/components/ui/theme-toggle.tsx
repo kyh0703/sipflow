@@ -1,9 +1,10 @@
+import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { Sun, Moon, Monitor } from 'lucide-react'
 import { Button } from './button'
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string } = {}) {
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
 
@@ -51,7 +52,7 @@ export function ThemeToggle() {
       size="icon"
       onClick={cycleTheme}
       title={getTitle()}
-      className="size-8"
+      className={cn('size-8', className)}
     >
       {getIcon()}
       <span className="sr-only">Toggle theme</span>

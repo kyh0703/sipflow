@@ -10,7 +10,7 @@ export const NODE_CATEGORIES = {
 // Command types (MVP Phase 2 + v1.2 Hold/Retrieve/BlindTransfer + v1.3 MuteTransfer UI)
 export const COMMAND_TYPES = ['MakeCall', 'Answer', 'Release', 'PlayAudio', 'SendDTMF', 'Hold', 'Retrieve', 'BlindTransfer', 'MuteTransfer'] as const;
 
-// Event types (full set)
+// Event types (backend-supported set)
 export const EVENT_TYPES = [
   'INCOMING',
   'DISCONNECTED',
@@ -19,7 +19,6 @@ export const EVENT_TYPES = [
   'HELD',
   'RETRIEVED',
   'TRANSFERRED',
-  'NOTIFY',
   'DTMFReceived',
 ] as const;
 
@@ -46,6 +45,7 @@ export interface SipInstanceNodeData extends Record<string, unknown> {
   mode: 'DN' | 'Endpoint';
   dn?: string;
   register: boolean;
+  pbxInstanceId?: string;
   serverId?: string;
   color: string;
   codecs?: string[]; // ["PCMU", "PCMA"] — codec priority order
@@ -77,6 +77,7 @@ export interface EventNodeData extends Record<string, unknown> {
   label: string;
   event: (typeof EVENT_TYPES)[number];
   sipInstanceId?: string; // sipInstance node.id (내부 PK)
+  number?: string; // for INCOMING: DN/number to wait for
   callId?: string;
   timeout?: number; // for TIMEOUT event
   expectedDigit?: string; // for DTMFReceived: specific digit to wait for (empty = any digit)

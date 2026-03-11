@@ -10,26 +10,38 @@ import {
   MiniMap,
   Panel,
   useReactFlow,
+  type OnSelectionChangeParams,
   type Node,
   type Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { useScenarioCurrentScenarioId } from '../store/scenario-store';
 import {
-  useExecutionActions,
+  useFlowEditorActions,
+  useFlowEditorCanRedo,
+  useFlowEditorCanUndo,
+  useFlowEditorEdges,
+  useFlowEditorHorizontalLine,
+  useFlowEditorNodes,
+  useFlowEditorSelectedNodeId,
+  useFlowEditorVerticalLine,
+} from '../store/flow-editor-context';
+import {
   useExecutionActionLogs,
-  useExecutionReadOnly,
+  useExecutionActions,
   useExecutionStatus,
-} from '../hooks/use-execution';
-import { useScenarioFlow } from '../context/scenario-flow-context';
-import { useUndoRedo } from '../hooks/use-undo-redo';
+} from '../store/execution-store';
 import { useValidation } from '../hooks/use-validation';
 import { wouldCreateCycle } from '../lib/validation';
 import { edgeTypes } from '../edges/branch-edge';
 import { useDnD } from '../hooks/use-dnd';
 import { nodeTypes } from './nodes';
 import { CanvasToolbar } from './canvas-toolbar';
+import { HelperLines } from './helper-lines';
+import { ConnectionLine } from './connection-line';
 import { INSTANCE_COLORS, DEFAULT_CODECS } from '../types/scenario';
 import type { EdgeAnimationMessage } from '../types/execution';
+import { formatEventLabel } from '../lib/event-label';
 
 function createNodeID(): string {
   return uuidv4();
@@ -49,38 +61,40 @@ export function Canvas() {
   const { validateAndNotify } = useValidation();
   const { resolvedTheme } = useTheme();
 
+  const nodes = useFlowEditorNodes();
+  const edges = useFlowEditorEdges();
+  const currentScenarioId = useScenarioCurrentScenarioId();
+  const selectedNodeId = useFlowEditorSelectedNodeId();
+  const horizontalLine = useFlowEditorHorizontalLine();
+  const verticalLine = useFlowEditorVerticalLine();
+  const canUndo = useFlowEditorCanUndo();
+  const canRedo = useFlowEditorCanRedo();
   const {
-    currentScenarioId,
-    nodes,
-    edges,
     onNodesChange,
     onEdgesChange,
     onConnect,
     addNode,
-    saveNow,
+    removeSelectedElements,
     setSelectedNode,
     setDirty,
-  } = useScenarioFlow();
-  const {
-    canUndo,
-    canRedo,
-    canDelete,
+    saveNow,
     undo,
     redo,
-    deleteSelection,
-    handleSelectionChange,
-  } = useUndoRedo();
+  } = useFlowEditorActions();
+  const hasSelectedElements =
+    Boolean(selectedNodeId) ||
+    nodes.some((node) => node.selected) ||
+    edges.some((edge) => edge.selected);
 
   const status = useExecutionStatus();
-  const isReadOnly = useExecutionReadOnly();
   const actionLogs = useExecutionActionLogs();
-  const executionActions = useExecutionActions();
+  const { addEdgeAnimation } = useExecutionActions();
   const lastLogCountRef = useRef(0);
 
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
 
-    if (isReadOnly || !dragType) {
+    if (!dragType) {
       return;
     }
 
@@ -97,7 +111,8 @@ export function Canvas() {
       const instanceCount = nodes.filter((n) => n.type === 'sipInstance').length;
       nodeType = 'sipInstance';
       nodeData = {
-        label: 'SIP Instance',
+        label: '',
+        dn: '',
         mode: 'DN',
         register: true,
         color: INSTANCE_COLORS[instanceCount % INSTANCE_COLORS.length],
@@ -116,7 +131,7 @@ export function Canvas() {
       const eventName = dragType.replace('event-', '');
       nodeType = 'event';
       nodeData = {
-        label: eventName,
+        label: formatEventLabel(eventName),
         event: eventName,
       };
     } else {
@@ -138,7 +153,7 @@ export function Canvas() {
 
   const onDragOver = (event: React.DragEvent) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = isReadOnly ? 'none' : 'move';
+    event.dataTransfer.dropEffect = 'move';
   };
 
   const onNodeClick = (_event: React.MouseEvent, node: Node) => {
@@ -150,9 +165,6 @@ export function Canvas() {
   };
 
   const onNodeDragStop = () => {
-    if (isReadOnly) {
-      return;
-    }
     // Mark as dirty when node drag completes (position changes)
     setDirty(true);
   };
@@ -188,9 +200,9 @@ export function Canvas() {
         duration: 1000,
       };
 
-      executionActions.addEdgeAnimation(animation);
+      addEdgeAnimation(animation);
     });
-  }, [status, actionLogs, edges, executionActions]);
+  }, [status, actionLogs, edges, addEdgeAnimation]);
 
   // Keyboard shortcut: Ctrl+S / Cmd+S to save
   useEffect(() => {
@@ -237,9 +249,9 @@ export function Canvas() {
         return;
       }
 
-      if ((key === 'delete' || key === 'backspace') && canDelete) {
+      if ((key === 'delete' || key === 'backspace') && hasSelectedElements) {
         event.preventDefault();
-        deleteSelection();
+        removeSelectedElements();
       }
     };
 
@@ -249,9 +261,9 @@ export function Canvas() {
     };
   }, [
     currentScenarioId,
-    canDelete,
-    deleteSelection,
+    hasSelectedElements,
     redo,
+    removeSelectedElements,
     saveNow,
     undo,
     validateAndNotify,
@@ -269,12 +281,8 @@ export function Canvas() {
       return false;
     }
 
-    // Prevent duplicate connections from the same source handle
-    const existingEdge = edges.find(
-      (edge) =>
-        edge.source === connection.source &&
-        edge.sourceHandle === connection.sourceHandle
-    );
+    // Prevent duplicate connections from the same source node
+    const existingEdge = edges.find((edge) => edge.source === connection.source);
     if (existingEdge) {
       return false;
     }
@@ -287,11 +295,23 @@ export function Canvas() {
     return true;
   };
 
-  const connectionLineStyle = { stroke: '#94a3b8', strokeWidth: 2 };
+  const connectionLineStyle = { stroke: '#cbd5e1', strokeWidth: 1.5 };
   const defaultEdgeOptions = { type: 'branch' };
 
-  // Background color: light mode uses gray-300 (#d1d5db), dark mode uses gray-600 (#52525b)
-  const backgroundColor = resolvedTheme === 'dark' ? '#52525b' : '#d1d5db';
+  // Keep the canvas visually quiet so nodes stand out.
+  const backgroundColor = resolvedTheme === 'dark' ? '#334155' : '#e5e7eb';
+
+  const handleDeleteSelected = () => {
+    if (!hasSelectedElements) {
+      return;
+    }
+
+    removeSelectedElements();
+  };
+
+  const handleSelectionChange = ({ nodes: selectedNodes }: OnSelectionChangeParams<Node, Edge>) => {
+    setSelectedNode(selectedNodes.length === 1 ? selectedNodes[0].id : null);
+  };
 
   return (
     <ReactFlow
@@ -299,11 +319,7 @@ export function Canvas() {
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
-      onConnect={(connection) => {
-        if (!isReadOnly) {
-          onConnect(connection);
-        }
-      }}
+      onConnect={onConnect}
       onDrop={onDrop}
       onDragOver={onDragOver}
       onNodeClick={onNodeClick}
@@ -314,10 +330,9 @@ export function Canvas() {
       edgeTypes={edgeTypes}
       isValidConnection={isValidConnection}
       connectionLineStyle={connectionLineStyle}
-      nodesDraggable={!isReadOnly}
-      nodesConnectable={!isReadOnly}
-      elementsSelectable
-      connectOnClick={!isReadOnly}
+      connectionLineComponent={ConnectionLine}
+      connectOnClick
+      connectionRadius={28}
       defaultEdgeOptions={defaultEdgeOptions}
       fitView
     >
@@ -325,13 +340,15 @@ export function Canvas() {
         <CanvasToolbar
           canUndo={canUndo}
           canRedo={canRedo}
-          canDelete={canDelete}
+          canDelete={hasSelectedElements}
           onUndo={undo}
           onRedo={redo}
-          onDelete={deleteSelection}
+          onDelete={handleDeleteSelected}
         />
       </Panel>
-      <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={backgroundColor} />
+
+      <HelperLines horizontal={horizontalLine} vertical={verticalLine} />
+      <Background variant={BackgroundVariant.Dots} gap={28} size={1} color={backgroundColor} />
       <Controls />
       <MiniMap />
     </ReactFlow>

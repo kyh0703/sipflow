@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
-import { useExecutionReadOnly } from '../hooks/use-execution';
-import { useScenarioFlow } from '../context/scenario-flow-context';
 import { useScenarioApi, type ScenarioListItem } from '../hooks/use-scenario-api';
+import {
+  useScenarioActions,
+  useScenarioCurrentScenarioId,
+  useScenarioIsDirty,
+} from '../store/scenario-store';
+import { useFlowEditorActions } from '../store/flow-editor-context';
 
 export function ScenarioTree() {
   const api = useScenarioApi();
   const [scenarios, setScenarios] = useState<ScenarioListItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const { currentScenarioId, isDirty, setCurrentScenario, clearCanvas, loadFromJSON } = useScenarioFlow();
-  const isReadOnly = useExecutionReadOnly();
+  const currentScenarioId = useScenarioCurrentScenarioId();
+  const isDirty = useScenarioIsDirty();
+  const { setCurrentScenario } = useScenarioActions();
+  const { clearCanvas } = useFlowEditorActions();
 
   const loadScenarios = async () => {
     try {
@@ -29,9 +35,6 @@ export function ScenarioTree() {
   }, []);
 
   const handleNewScenario = async () => {
-    if (isReadOnly) {
-      return;
-    }
     const name = window.prompt('Enter scenario name:');
     if (!name || name.trim() === '') {
       return;
@@ -48,9 +51,6 @@ export function ScenarioTree() {
   };
 
   const handleLoadScenario = async (scenario: ScenarioListItem) => {
-    if (isReadOnly) {
-      return;
-    }
     // Check for unsaved changes
     if (isDirty) {
       const confirm = window.confirm(
@@ -62,9 +62,7 @@ export function ScenarioTree() {
     }
 
     try {
-      const loaded = await api.loadScenario(scenario.id);
-      loadFromJSON(loaded.flow_data);
-      setCurrentScenario(loaded.id, loaded.name);
+      setCurrentScenario(scenario.id, scenario.name);
     } catch (error) {
       alert('Failed to load scenario: ' + error);
     }
@@ -72,9 +70,6 @@ export function ScenarioTree() {
 
   const handleRename = async (scenario: ScenarioListItem, event: React.MouseEvent) => {
     event.stopPropagation();
-    if (isReadOnly) {
-      return;
-    }
     const newName = window.prompt('Enter new name:', scenario.name);
     if (!newName || newName.trim() === '') {
       return;
@@ -95,9 +90,6 @@ export function ScenarioTree() {
 
   const handleDelete = async (scenario: ScenarioListItem, event: React.MouseEvent) => {
     event.stopPropagation();
-    if (isReadOnly) {
-      return;
-    }
     const confirm = window.confirm(
       `Are you sure you want to delete "${scenario.name}"? This action cannot be undone.`
     );
@@ -126,8 +118,7 @@ export function ScenarioTree() {
       <div className="p-3 border-b border-border">
         <button
           onClick={handleNewScenario}
-          disabled={isReadOnly}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
         >
           <Plus size={16} />
           New Scenario
@@ -147,16 +138,11 @@ export function ScenarioTree() {
               return (
                 <div
                   key={scenario.id}
-                  onClick={() => {
-                    if (!isReadOnly) {
-                      void handleLoadScenario(scenario);
-                    }
-                  }}
+                  onClick={() => handleLoadScenario(scenario)}
                   className={`
                     group flex items-center justify-between px-3 py-2 cursor-pointer
                     border-b border-border last:border-b-0
-                    ${isReadOnly ? 'opacity-70 cursor-not-allowed' : 'hover:bg-accent'}
-                    transition-colors
+                    hover:bg-accent transition-colors
                     ${isActive ? 'bg-accent' : ''}
                   `}
                 >
@@ -174,16 +160,14 @@ export function ScenarioTree() {
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={(e) => handleRename(scenario, e)}
-                      disabled={isReadOnly}
-                      className="p-1 hover:bg-background rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1 hover:bg-background rounded"
                       title="Rename"
                     >
                       <Pencil size={14} className="text-muted-foreground" />
                     </button>
                     <button
                       onClick={(e) => handleDelete(scenario, e)}
-                      disabled={isReadOnly}
-                      className="p-1 hover:bg-background rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1 hover:bg-background rounded"
                       title="Delete"
                     >
                       <Trash2 size={14} className="text-destructive" />

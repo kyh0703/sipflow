@@ -1,8 +1,12 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import type { NodeProps } from '@xyflow/react';
 import { Phone, PhoneIncoming, PhoneOff, Volume2, Hash, Pause, Play, ArrowRightLeft } from 'lucide-react';
 import type { CommandNode as CommandNodeType } from '../../types/scenario';
-import { useExecutionNodeState } from '../../hooks/use-execution';
-import { useScenarioFlow } from '../../context/scenario-flow-context';
+import {
+  useFlowEditorNodes,
+  useFlowEditorValidationErrors,
+} from '../../store/flow-editor-context';
+import { useExecutionNodeState } from '../../store/execution-store';
+import { NodeShell } from './node-shell';
 
 const COMMAND_ICONS = {
   MakeCall: Phone,
@@ -16,113 +20,84 @@ const COMMAND_ICONS = {
   MuteTransfer: ArrowRightLeft,
 } as const;
 
-function getExecutionStyle(status?: string): string {
+function getExecutionState(status?: string): 'running' | 'completed' | 'failed' | null {
   switch (status) {
     case 'running':
-      return 'ring-2 ring-yellow-400 shadow-yellow-200 animate-pulse';
+      return 'running';
     case 'completed':
-      return 'ring-2 ring-green-400 shadow-green-200';
+      return 'completed';
     case 'failed':
-      return 'ring-2 ring-red-400 shadow-red-200';
+      return 'failed';
     default:
-      return '';
+      return null;
+  }
+}
+
+function getCommandSummary(data: CommandNodeType['data']): string | null {
+  switch (data.command) {
+    case 'MakeCall':
+      return data.targetUri ?? null;
+    case 'PlayAudio':
+      return data.filePath?.split(/[\\/]/).pop() ?? null;
+    case 'SendDTMF':
+      return data.digits ? `Digits ${data.digits}` : null;
+    case 'BlindTransfer':
+      return data.targetUser
+        ? `${data.targetUser}${data.targetHost ? `@${data.targetHost}` : ''}`
+        : null;
+    case 'MuteTransfer':
+      return 'Consult transfer';
+    default:
+      return null;
   }
 }
 
 export function CommandNode({ data, id }: NodeProps<CommandNodeType>) {
-  const Icon = COMMAND_ICONS[data.command as keyof typeof COMMAND_ICONS];
-  const instanceColor = data.sipInstanceId ? '#3b82f6' : '#6b7280';
-  const { validationErrors } = useScenarioFlow();
+  const Icon = COMMAND_ICONS[data.command as keyof typeof COMMAND_ICONS] ?? Phone;
+  const validationErrors = useFlowEditorValidationErrors();
+  const nodes = useFlowEditorNodes();
   const hasError = validationErrors.some((error) => error.nodeId === id);
   const nodeExecState = useExecutionNodeState(id);
-
-  // Execution state takes priority over validation errors
-  const ringStyle = nodeExecState?.status
-    ? getExecutionStyle(nodeExecState.status)
-    : hasError
-    ? 'ring-2 ring-red-500 shadow-red-200'
-    : '';
+  const instanceNode = data.sipInstanceId
+    ? nodes.find((node) => node.id === data.sipInstanceId)
+    : null;
+  const instanceLabel =
+    typeof instanceNode?.data?.dn === 'string' && instanceNode.data.dn.length > 0
+      ? instanceNode.data.dn
+      : typeof instanceNode?.data?.label === 'string' && instanceNode.data.label.length > 0
+      ? instanceNode.data.label
+      : data.sipInstanceId
+      ? 'Linked instance'
+      : 'No instance';
+  const details = [
+    data.callId ? { label: 'Call ID', value: data.callId } : null,
+    data.timeout ? { label: 'Timeout', value: `${data.timeout}ms` } : null,
+    data.primaryCallId ? { label: 'Primary', value: data.primaryCallId } : null,
+    data.consultCallId ? { label: 'Consult', value: data.consultCallId } : null,
+  ].filter(Boolean) as Array<{ label: string; value: string }>;
 
   return (
-    <div
-      className={`bg-blue-50 border-2 border-blue-400 rounded-md shadow-md min-w-[150px] ${ringStyle}`}
-      style={{ borderLeftWidth: '4px', borderLeftColor: instanceColor }}
+    <NodeShell
+      nodeId={id}
+      category="Action / Command"
+      source={instanceLabel}
+      title={data.label}
+      icon={<Icon className="h-4 w-4" />}
+      status={nodeExecState?.status ? getExecutionState(nodeExecState.status) : hasError ? 'error' : null}
+      summary={getCommandSummary(data)}
     >
-      <Handle
-        type="target"
-        position={Position.Top}
-        id="target"
-        className="!w-3 !h-3 !bg-gray-400 !border-2 !border-gray-600"
-      />
-
-      <div className="px-3 py-2 flex items-center gap-2">
-        <Icon className="w-4 h-4 text-blue-600" />
-        <span className="text-sm font-bold text-blue-900">{data.label}</span>
-      </div>
-
-      {data.command === 'MakeCall' && data.targetUri && (
-        <div className="px-3 pb-2">
-          <div className="text-xs text-muted-foreground">To: {data.targetUri}</div>
+      {details.length > 0 ? (
+        <div className="space-y-2">
+          {details.map((detail) => (
+            <div key={detail.label} className="flex items-center justify-between gap-3 text-xs">
+              <span className="text-muted-foreground">{detail.label}</span>
+              <span className="max-w-[132px] truncate font-medium text-card-foreground" title={detail.value}>
+                {detail.value}
+              </span>
+            </div>
+          ))}
         </div>
-      )}
-
-      {data.command === 'PlayAudio' && data.filePath && (
-        <div className="px-3 pb-2">
-          <div className="text-xs text-muted-foreground truncate max-w-[140px]" title={data.filePath}>
-            {data.filePath.split(/[\\/]/).pop()}
-          </div>
-        </div>
-      )}
-
-      {data.command === 'SendDTMF' && data.digits && (
-        <div className="px-3 pb-2">
-          <div className="text-xs text-muted-foreground">Digits: {data.digits}</div>
-        </div>
-      )}
-
-      {data.command === 'BlindTransfer' && data.targetUser && (
-        <div className="px-3 pb-2">
-          <div className="text-xs text-muted-foreground">To: {data.targetUser}{data.targetHost ? `@${data.targetHost}` : ''}</div>
-        </div>
-      )}
-
-      {data.command === 'MuteTransfer' && (
-        <div className="px-3 pb-2 space-y-1">
-          {data.primaryCallId && (
-            <div className="text-xs text-muted-foreground">Primary: {data.primaryCallId}</div>
-          )}
-          {data.consultCallId && (
-            <div className="text-xs text-muted-foreground">Consult: {data.consultCallId}</div>
-          )}
-        </div>
-      )}
-
-      {data.callId && (
-        <div className="px-3 pb-2">
-          <div className="text-xs text-muted-foreground">Call ID: {data.callId}</div>
-        </div>
-      )}
-
-      {data.timeout && (
-        <div className="px-3 pb-2">
-          <div className="text-xs text-muted-foreground">Timeout: {data.timeout}ms</div>
-        </div>
-      )}
-
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="success"
-        className="!w-3 !h-3 !bg-green-500 !border-2 !border-green-700"
-        style={{ left: '30%' }}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="failure"
-        className="!w-3 !h-3 !bg-red-500 !border-2 !border-red-700"
-        style={{ left: '70%' }}
-      />
-    </div>
+      ) : null}
+    </NodeShell>
   );
 }

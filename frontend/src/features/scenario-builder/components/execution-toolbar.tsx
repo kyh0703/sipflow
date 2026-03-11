@@ -4,9 +4,9 @@ import { toast } from 'sonner';
 import {
   useExecutionActions,
   useExecutionStatus,
-} from '../hooks/use-execution';
+} from '../store/execution-store';
+import { useScenarioCurrentScenarioId } from '../store/scenario-store';
 import { useEngineApi } from '../hooks/use-engine-api';
-import { useScenarioFlow } from '../context/scenario-flow-context';
 
 const statusStyles: Record<string, string> = {
   idle: 'bg-muted text-muted-foreground',
@@ -18,14 +18,14 @@ const statusStyles: Record<string, string> = {
 
 export function ExecutionToolbar() {
   const status = useExecutionStatus();
-  const actions = useExecutionActions();
-  const { currentScenarioId } = useScenarioFlow();
+  const { reset, startListening, stopListening } = useExecutionActions();
+  const currentScenarioId = useScenarioCurrentScenarioId();
   const { startScenario, stopScenario } = useEngineApi();
 
   useEffect(() => {
-    actions.startListening();
-    return () => actions.stopListening();
-  }, [actions]);
+    startListening();
+    return () => stopListening();
+  }, [startListening, stopListening]);
 
   const handleStart = async () => {
     if (!currentScenarioId) {
@@ -36,7 +36,7 @@ export function ExecutionToolbar() {
     }
 
     try {
-      actions.reset();
+      reset();
       await startScenario(currentScenarioId);
     } catch (error) {
       toast.error('Failed to start scenario', {

@@ -6,21 +6,23 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import type { Node } from '@xyflow/react';
+import { useFlowEditorNodes } from '../../store/flow-editor-context';
 import type { CommandNode } from '../../types/scenario';
-import { DEFAULT_CALL_ID } from '../../types/scenario';
 import { getInstanceDisplayName } from '../../lib/instance-key';
 import { SelectWAVFile } from '../../../../../wailsjs/go/binding/MediaBinding';
 
 interface CommandPropertiesProps {
   node: CommandNode;
-  sipInstanceNodes: Node[];
   onUpdate: (data: Partial<CommandNode['data']>) => void;
 }
 
-export function CommandProperties({ node, sipInstanceNodes, onUpdate }: CommandPropertiesProps) {
+export function CommandProperties({ node, onUpdate }: CommandPropertiesProps) {
   const { data } = node;
+  const nodes = useFlowEditorNodes();
   const [isSelecting, setIsSelecting] = useState(false);
+
+  // Filter SIP Instance nodes for instance assignment
+  const sipInstanceNodes = nodes.filter((n) => n.type === 'sipInstance');
 
   const handleSelectAudioFile = async () => {
     setIsSelecting(true);
@@ -38,62 +40,32 @@ export function CommandProperties({ node, sipInstanceNodes, onUpdate }: CommandP
 
   return (
     <div className="space-y-4 nodrag">
-      {/* Command Type (read-only) */}
-      <div className="space-y-2">
-        <Label>Command Type</Label>
-        <Badge variant="secondary" className="w-fit">
-          {data.command}
-        </Badge>
-      </div>
+      {data.command !== 'MakeCall' && (
+        <>
+          {/* SIP Instance Assignment */}
+          <div className="space-y-2">
+            <Label htmlFor="sipInstance">SIP Number</Label>
+            <Select
+              value={data.sipInstanceId || 'none'}
+              onValueChange={(value) => onUpdate({ sipInstanceId: value === 'none' ? undefined : value })}
+            >
+              <SelectTrigger id="sipInstance">
+                <SelectValue placeholder="Select number..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {sipInstanceNodes.map((instance) => (
+                  <SelectItem key={instance.id} value={instance.id}>
+                    {getInstanceDisplayName(instance)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-      <Separator />
-
-      {/* Label */}
-      <div className="space-y-2">
-        <Label htmlFor="label">Label</Label>
-        <Input
-          id="label"
-          value={data.label}
-          onChange={(e) => onUpdate({ label: e.target.value })}
-          placeholder="Command label"
-        />
-      </div>
-
-      {/* SIP Instance Assignment */}
-      <div className="space-y-2">
-        <Label htmlFor="sipInstance">SIP Number</Label>
-        <Select
-          value={data.sipInstanceId || 'none'}
-          onValueChange={(value) => onUpdate({ sipInstanceId: value === 'none' ? undefined : value })}
-        >
-          <SelectTrigger id="sipInstance">
-            <SelectValue placeholder="Select number..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">None</SelectItem>
-            {sipInstanceNodes.map((instance) => (
-              <SelectItem key={instance.id} value={instance.id}>
-                {getInstanceDisplayName(instance)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="callId">Call ID</Label>
-        <Input
-          id="callId"
-          value={data.callId || ''}
-          onChange={(e) => onUpdate({ callId: e.target.value })}
-          placeholder={DEFAULT_CALL_ID}
-        />
-        <p className="text-xs text-muted-foreground">
-          Leave empty to use default: {DEFAULT_CALL_ID}
-        </p>
-      </div>
-
-      <Separator />
+          <Separator />
+        </>
+      )}
 
       {/* Command-specific fields */}
       {data.command === 'MakeCall' && (
@@ -110,42 +82,7 @@ export function CommandProperties({ node, sipInstanceNodes, onUpdate }: CommandP
               Enter another SIP instance number, or a full SIP URI for external targets.
             </p>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="timeout">Timeout (ms)</Label>
-            <Input
-              id="timeout"
-              type="number"
-              value={data.timeout || 30000}
-              onChange={(e) => onUpdate({ timeout: parseInt(e.target.value, 10) })}
-            />
-          </div>
         </>
-      )}
-
-      {data.command === 'Answer' && (
-        <div className="space-y-2">
-          <Label htmlFor="responseCode">Response Code</Label>
-          <Input
-            id="responseCode"
-            type="number"
-            value={200}
-            disabled
-            className="bg-muted"
-          />
-        </div>
-      )}
-
-      {data.command === 'Release' && (
-        <div className="space-y-2">
-          <Label htmlFor="cause">Cause</Label>
-          <Input
-            id="cause"
-            value={(data as any).cause || ''}
-            onChange={(e) => onUpdate({ cause: e.target.value } as any)}
-            placeholder="Normal clearing"
-          />
-        </div>
       )}
 
       {data.command === 'PlayAudio' && (

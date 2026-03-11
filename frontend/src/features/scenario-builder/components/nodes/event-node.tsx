@@ -1,4 +1,4 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import type { NodeProps } from '@xyflow/react';
 import {
   Bell,
   PhoneMissed,
@@ -7,12 +7,16 @@ import {
   Pause,
   Play,
   ArrowRightLeft,
-  MessageSquare,
   Ear,
 } from 'lucide-react';
 import type { EventNode as EventNodeType } from '../../types/scenario';
-import { useExecutionNodeState } from '../../hooks/use-execution';
-import { useScenarioFlow } from '../../context/scenario-flow-context';
+import {
+  useFlowEditorNodes,
+  useFlowEditorValidationErrors,
+} from '../../store/flow-editor-context';
+import { useExecutionNodeState } from '../../store/execution-store';
+import { formatEventLabel } from '../../lib/event-label';
+import { NodeShell } from './node-shell';
 
 const EVENT_ICONS = {
   INCOMING: Bell,
@@ -22,89 +26,81 @@ const EVENT_ICONS = {
   HELD: Pause,
   RETRIEVED: Play,
   TRANSFERRED: ArrowRightLeft,
-  NOTIFY: MessageSquare,
   DTMFReceived: Ear,
 } as const;
 
-function getExecutionStyle(status?: string): string {
+function getExecutionState(status?: string): 'running' | 'completed' | 'failed' | null {
   switch (status) {
     case 'running':
-      return 'ring-2 ring-yellow-400 shadow-yellow-200 animate-pulse';
+      return 'running';
     case 'completed':
-      return 'ring-2 ring-green-400 shadow-green-200';
+      return 'completed';
     case 'failed':
-      return 'ring-2 ring-red-400 shadow-red-200';
+      return 'failed';
     default:
-      return '';
+      return null;
+  }
+}
+
+function getEventSummary(data: EventNodeType['data']): string | null {
+  switch (data.event) {
+    case 'TIMEOUT':
+      return data.timeout ? `Wait ${data.timeout}ms` : 'Waiting for timeout';
+    case 'DTMFReceived':
+      return data.expectedDigit ? `Expect ${data.expectedDigit}` : 'Expect any digit';
+    case 'INCOMING':
+      return data.number ? `Wait for ${data.number}` : 'Wait for inbound call';
+    default:
+      return null;
   }
 }
 
 export function EventNode({ data, id }: NodeProps<EventNodeType>) {
-  const Icon = EVENT_ICONS[data.event as keyof typeof EVENT_ICONS];
-  const instanceColor = data.sipInstanceId ? '#f59e0b' : '#6b7280';
-  const { validationErrors } = useScenarioFlow();
+  const Icon = EVENT_ICONS[data.event as keyof typeof EVENT_ICONS] ?? Bell;
+  const validationErrors = useFlowEditorValidationErrors();
+  const nodes = useFlowEditorNodes();
   const hasError = validationErrors.some((error) => error.nodeId === id);
   const nodeExecState = useExecutionNodeState(id);
-
-  // Execution state takes priority over validation errors
-  const ringStyle = nodeExecState?.status
-    ? getExecutionStyle(nodeExecState.status)
-    : hasError
-    ? 'ring-2 ring-red-500 shadow-red-200'
-    : '';
+  const instanceNode = data.sipInstanceId
+    ? nodes.find((node) => node.id === data.sipInstanceId)
+    : null;
+  const instanceLabel =
+    data.event === 'INCOMING' && data.number
+      ? data.number
+      : typeof instanceNode?.data?.dn === 'string' && instanceNode.data.dn.length > 0
+      ? instanceNode.data.dn
+      : typeof instanceNode?.data?.label === 'string' && instanceNode.data.label.length > 0
+      ? instanceNode.data.label
+      : data.sipInstanceId
+      ? 'Linked instance'
+      : 'No instance';
+  const details = [data.callId ? { label: 'Call ID', value: data.callId } : null].filter(Boolean) as Array<{
+    label: string;
+    value: string;
+  }>;
 
   return (
-    <div
-      className={`bg-amber-50 border-2 border-amber-400 rounded-xl shadow-md min-w-[150px] ${ringStyle}`}
-      style={{ borderLeftWidth: '4px', borderLeftColor: instanceColor }}
+    <NodeShell
+      nodeId={id}
+      category="Event / Wait"
+      source={instanceLabel}
+      title={formatEventLabel(data.event)}
+      icon={<Icon className="h-4 w-4" />}
+      status={nodeExecState?.status ? getExecutionState(nodeExecState.status) : hasError ? 'error' : null}
+      summary={getEventSummary(data)}
     >
-      <Handle
-        type="target"
-        position={Position.Top}
-        id="target"
-        className="!w-3 !h-3 !bg-gray-400 !border-2 !border-gray-600"
-      />
-
-      <div className="px-3 py-2 flex items-center gap-2">
-        <Icon className="w-4 h-4 text-amber-600" />
-        <span className="text-sm font-bold text-amber-900">{data.label}</span>
-        {nodeExecState?.status === 'running' && (
-          <span className="text-xs text-amber-600 ml-auto">Waiting...</span>
-        )}
-      </div>
-
-      {data.event === 'TIMEOUT' && data.timeout && (
-        <div className="px-3 pb-2">
-          <div className="text-xs text-muted-foreground">Wait: {data.timeout}ms</div>
+      {details.length > 0 ? (
+        <div className="space-y-2">
+          {details.map((detail) => (
+            <div key={detail.label} className="flex items-center justify-between gap-3 text-xs">
+              <span className="text-muted-foreground">{detail.label}</span>
+              <span className="max-w-[132px] truncate font-medium text-card-foreground" title={detail.value}>
+                {detail.value}
+              </span>
+            </div>
+          ))}
         </div>
-      )}
-
-      {data.event === 'DTMFReceived' && data.expectedDigit && (
-        <div className="px-3 pb-2">
-          <div className="text-xs text-muted-foreground">Expect: {data.expectedDigit}</div>
-        </div>
-      )}
-
-      {data.callId && (
-        <div className="px-3 pb-2">
-          <div className="text-xs text-muted-foreground">Call ID: {data.callId}</div>
-        </div>
-      )}
-
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="success"
-        className="!w-3 !h-3 !bg-green-500 !border-2 !border-green-700"
-        style={{ left: '30%' }}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="failure"
-        className="!w-3 !h-3 !bg-red-500 !border-2 !border-red-700"
-        style={{ left: '70%' }}
-      />
-    </div>
+      ) : null}
+    </NodeShell>
   );
 }

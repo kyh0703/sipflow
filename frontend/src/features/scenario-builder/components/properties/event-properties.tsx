@@ -1,77 +1,56 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import type { Node } from '@xyflow/react';
-import { DEFAULT_CALL_ID, type EventNode } from '../../types/scenario';
+import { useFlowEditorNodes } from '../../store/flow-editor-context';
+import { type EventNode } from '../../types/scenario';
 import { getInstanceDisplayName } from '../../lib/instance-key';
 
 interface EventPropertiesProps {
   node: EventNode;
-  sipInstanceNodes: Node[];
   onUpdate: (data: Partial<EventNode['data']>) => void;
 }
 
-export function EventProperties({ node, sipInstanceNodes, onUpdate }: EventPropertiesProps) {
+export function EventProperties({ node, onUpdate }: EventPropertiesProps) {
   const { data } = node;
+  const nodes = useFlowEditorNodes();
+
+  // Filter SIP Instance nodes for instance assignment
+  const sipInstanceNodes = nodes.filter((n) => n.type === 'sipInstance');
 
   return (
     <div className="space-y-4 nodrag">
-      {/* Event Type (read-only) */}
-      <div className="space-y-2">
-        <Label>Event Type</Label>
-        <Badge variant="secondary" className="w-fit">
-          {data.event}
-        </Badge>
-      </div>
-
-      <Separator />
-
-      {/* Label */}
-      <div className="space-y-2">
-        <Label htmlFor="label">Label</Label>
-        <Input
-          id="label"
-          value={data.label}
-          onChange={(e) => onUpdate({ label: e.target.value })}
-          placeholder="Event label"
-        />
-      </div>
-
-      {/* SIP Instance Assignment */}
-      <div className="space-y-2">
-        <Label htmlFor="sipInstance">SIP Number</Label>
-        <Select
-          value={data.sipInstanceId || 'none'}
-          onValueChange={(value) => onUpdate({ sipInstanceId: value === 'none' ? undefined : value })}
-        >
-          <SelectTrigger id="sipInstance">
-            <SelectValue placeholder="Select number..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">None</SelectItem>
-            {sipInstanceNodes.map((instance) => (
-              <SelectItem key={instance.id} value={instance.id}>
-                {getInstanceDisplayName(instance)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="callId">Call ID</Label>
-        <Input
-          id="callId"
-          value={data.callId || ''}
-          onChange={(e) => onUpdate({ callId: e.target.value })}
-          placeholder={DEFAULT_CALL_ID}
-        />
-        <p className="text-xs text-muted-foreground">
-          Leave empty to use default: {DEFAULT_CALL_ID}
-        </p>
-      </div>
+      {data.event === 'INCOMING' ? (
+        <div className="space-y-2">
+          <Label htmlFor="incomingNumber">Number</Label>
+          <Input
+            id="incomingNumber"
+            value={data.number || ''}
+            onChange={(e) => onUpdate({ number: e.target.value })}
+            placeholder="4300"
+          />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Label htmlFor="sipInstance">SIP Number</Label>
+          <Select
+            value={data.sipInstanceId || 'none'}
+            onValueChange={(value) => onUpdate({ sipInstanceId: value === 'none' ? undefined : value })}
+          >
+            <SelectTrigger id="sipInstance">
+              <SelectValue placeholder="Select number..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              {sipInstanceNodes.map((instance) => (
+                <SelectItem key={instance.id} value={instance.id}>
+                  {getInstanceDisplayName(instance)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Timeout - only visible for TIMEOUT event */}
       {data.event === 'TIMEOUT' && (

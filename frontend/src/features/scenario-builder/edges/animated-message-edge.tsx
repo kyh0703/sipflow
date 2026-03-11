@@ -1,12 +1,20 @@
 import { useEffect } from 'react';
-import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
+import {
+  BaseEdge,
+  getSmoothStepPath,
+  useInternalNode,
+  type EdgeProps,
+} from '@xyflow/react';
 import {
   useExecutionActions,
   useExecutionEdgeAnimations,
-} from '../hooks/use-execution';
+} from '../store/execution-store';
+import { getEdgeParams, toPositionByInternalNode } from '../lib/easy-connection';
 
 export function AnimatedMessageEdge({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -16,40 +24,43 @@ export function AnimatedMessageEdge({
   data,
 }: EdgeProps) {
   const edgeAnimations = useExecutionEdgeAnimations(id);
-  const executionActions = useExecutionActions();
+  const { removeEdgeAnimation } = useExecutionActions();
+  const sourceNode = useInternalNode(source);
+  const targetNode = useInternalNode(target);
+  const edgeParams =
+    sourceNode && targetNode
+      ? getEdgeParams(
+          toPositionByInternalNode(sourceNode),
+          toPositionByInternalNode(targetNode)
+        )
+      : null;
 
   const [edgePath] = getSmoothStepPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
+    sourceX: edgeParams?.sx ?? sourceX,
+    sourceY: edgeParams?.sy ?? sourceY,
+    sourcePosition: edgeParams?.sourcePos ?? sourcePosition,
+    targetX: edgeParams?.tx ?? targetX,
+    targetY: edgeParams?.ty ?? targetY,
+    targetPosition: edgeParams?.targetPos ?? targetPosition,
   });
 
-  // Branch color logic (same as BranchEdge for compatibility)
   const branchType = (data as any)?.branchType;
-  const color =
-    branchType === 'success'
-      ? '#22c55e' // green
-      : branchType === 'failure'
-      ? '#ef4444' // red
-      : '#94a3b8'; // gray
+  const color = branchType === 'failure' ? '#e7a7b3' : '#cbd5e1';
+  const strokeDasharray = branchType === 'failure' ? '6 6' : undefined;
 
-  // Auto-remove animations after their duration (memory leak prevention)
   useEffect(() => {
     if (edgeAnimations.length === 0) return;
 
     const timers = edgeAnimations.map((anim) =>
       setTimeout(() => {
-        executionActions.removeEdgeAnimation(anim.id);
+        removeEdgeAnimation(anim.id);
       }, anim.duration)
     );
 
     return () => {
       timers.forEach((timer) => clearTimeout(timer));
     };
-  }, [edgeAnimations, executionActions]);
+  }, [edgeAnimations, removeEdgeAnimation]);
 
   return (
     <>
@@ -58,11 +69,13 @@ export function AnimatedMessageEdge({
         path={edgePath}
         style={{
           stroke: color,
-          strokeWidth: 2,
+          strokeWidth: 1.5,
+          strokeDasharray,
+          strokeLinecap: 'round',
         }}
       />
       {edgeAnimations.map((anim) => (
-        <circle key={anim.id} r="5" fill="#3b82f6" opacity="0.9">
+        <circle key={anim.id} r="4" fill="#94a3b8" opacity="0.95">
           <animateMotion
             dur={`${anim.duration / 1000}s`}
             path={edgePath}

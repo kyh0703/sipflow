@@ -42,6 +42,7 @@ type GraphNode struct {
 	IntervalMs     float64                // SendDTMF digit 간 전송 간격 ms (command 노드 전용)
 	Event          string                 // INCOMING|DISCONNECTED|RINGING|TIMEOUT|DTMFReceived|HELD|RETRIEVED|TRANSFERRED (event 노드 전용)
 	ExpectedDigit  string                 // DTMFReceived 대기할 특정 digit (event 노드 전용)
+	IncomingNumber string                 // INCOMING 대기 번호 (event 노드 전용)
 	Timeout        time.Duration          // 타임아웃 (기본 10초)
 	TransferTarget string                 // 레거시 (Phase 10 대비)
 	TargetUser     string                 // BlindTransfer 대상 user 부분 (Phase 11)
@@ -92,6 +93,7 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 
 	// 1. sipInstance 노드를 SipInstanceConfig로 변환
 	nodeTypeMap := make(map[string]string) // nodeID -> type (sipInstance|command|event)
+	dnToInstanceID := make(map[string]string)
 	for _, node := range flow.Nodes {
 		nodeTypeMap[node.ID] = node.Type
 
@@ -109,6 +111,9 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 				Config:     config,
 				StartNodes: []*GraphNode{},
 			}
+			if config.DN != "" {
+				dnToInstanceID[config.DN] = node.ID
+			}
 		}
 	}
 
@@ -116,6 +121,17 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 	for _, node := range flow.Nodes {
 		if node.Type == "command" || node.Type == "event" {
 			sipInstanceID := getStringField(node.Data, "sipInstanceId", "")
+			incomingNumber := ""
+			if node.Type == "event" && getStringField(node.Data, "event", "") == "INCOMING" {
+				incomingNumber = getStringField(node.Data, "number", "")
+				if sipInstanceID == "" && incomingNumber != "" {
+					resolvedInstanceID, exists := dnToInstanceID[incomingNumber]
+					if !exists {
+						return nil, fmt.Errorf("node %s references unknown number %s", node.ID, incomingNumber)
+					}
+					sipInstanceID = resolvedInstanceID
+				}
+			}
 			if sipInstanceID != "" {
 				if _, exists := graph.Instances[sipInstanceID]; !exists {
 					return nil, fmt.Errorf("node %s references unknown instance %s", node.ID, sipInstanceID)
@@ -152,6 +168,7 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 					return nil, fmt.Errorf("node %s uses unsupported event %s", node.ID, gnode.Event)
 				}
 				gnode.ExpectedDigit = getStringField(node.Data, "expectedDigit", "")
+				gnode.IncomingNumber = incomingNumber
 				timeoutMs := getFloatField(node.Data, "timeout", 10000)
 				gnode.Timeout = time.Duration(timeoutMs) * time.Millisecond
 			}
