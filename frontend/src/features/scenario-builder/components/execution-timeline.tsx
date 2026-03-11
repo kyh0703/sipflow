@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
-import { useExecutionStore } from '../store/execution-store';
+import { useExecutionSipMessages } from '../hooks/use-execution';
 
 function formatTime(timestamp: number): string {
   try {
@@ -17,8 +16,7 @@ const HEADER_HEIGHT = 30;
 const PADDING = 20;
 
 export function ExecutionTimeline() {
-  const sipMessages = useExecutionStore(useShallow((state) => state.sipMessages));
-  const status = useExecutionStore((state) => state.status);
+  const sipMessages = useExecutionSipMessages();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
 

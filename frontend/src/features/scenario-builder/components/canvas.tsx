@@ -14,8 +14,13 @@ import {
   type Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useScenarioStore } from '../store/scenario-store';
-import { useExecutionStore } from '../store/execution-store';
+import {
+  useExecutionActions,
+  useExecutionActionLogs,
+  useExecutionReadOnly,
+  useExecutionStatus,
+} from '../hooks/use-execution';
+import { useScenarioFlow } from '../context/scenario-flow-context';
 import { useUndoRedo } from '../hooks/use-undo-redo';
 import { useValidation } from '../hooks/use-validation';
 import { wouldCreateCycle } from '../lib/validation';
@@ -44,16 +49,18 @@ export function Canvas() {
   const { validateAndNotify } = useValidation();
   const { resolvedTheme } = useTheme();
 
-  const nodes = useScenarioStore((state) => state.nodes);
-  const edges = useScenarioStore((state) => state.edges);
-  const onNodesChange = useScenarioStore((state) => state.onNodesChange);
-  const onEdgesChange = useScenarioStore((state) => state.onEdgesChange);
-  const onConnect = useScenarioStore((state) => state.onConnect);
-  const addNode = useScenarioStore((state) => state.addNode);
-  const setSelectedNode = useScenarioStore((state) => state.setSelectedNode);
-  const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
-  const setDirty = useScenarioStore((state) => state.setDirty);
-  const saveNow = useScenarioStore((state) => state.saveNow);
+  const {
+    currentScenarioId,
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    addNode,
+    saveNow,
+    setSelectedNode,
+    setDirty,
+  } = useScenarioFlow();
   const {
     canUndo,
     canRedo,
@@ -64,15 +71,16 @@ export function Canvas() {
     handleSelectionChange,
   } = useUndoRedo();
 
-  const status = useExecutionStore((state) => state.status);
-  const actionLogs = useExecutionStore((state) => state.actionLogs);
-  const addEdgeAnimation = useExecutionStore((state) => state.addEdgeAnimation);
+  const status = useExecutionStatus();
+  const isReadOnly = useExecutionReadOnly();
+  const actionLogs = useExecutionActionLogs();
+  const executionActions = useExecutionActions();
   const lastLogCountRef = useRef(0);
 
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
 
-    if (!dragType) {
+    if (isReadOnly || !dragType) {
       return;
     }
 
@@ -130,7 +138,7 @@ export function Canvas() {
 
   const onDragOver = (event: React.DragEvent) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
+    event.dataTransfer.dropEffect = isReadOnly ? 'none' : 'move';
   };
 
   const onNodeClick = (_event: React.MouseEvent, node: Node) => {
@@ -142,6 +150,9 @@ export function Canvas() {
   };
 
   const onNodeDragStop = () => {
+    if (isReadOnly) {
+      return;
+    }
     // Mark as dirty when node drag completes (position changes)
     setDirty(true);
   };
@@ -177,9 +188,9 @@ export function Canvas() {
         duration: 1000,
       };
 
-      addEdgeAnimation(animation);
+      executionActions.addEdgeAnimation(animation);
     });
-  }, [status, actionLogs, edges, addEdgeAnimation]);
+  }, [status, actionLogs, edges, executionActions]);
 
   // Keyboard shortcut: Ctrl+S / Cmd+S to save
   useEffect(() => {
@@ -288,7 +299,11 @@ export function Canvas() {
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
-      onConnect={onConnect}
+      onConnect={(connection) => {
+        if (!isReadOnly) {
+          onConnect(connection);
+        }
+      }}
       onDrop={onDrop}
       onDragOver={onDragOver}
       onNodeClick={onNodeClick}
@@ -299,6 +314,10 @@ export function Canvas() {
       edgeTypes={edgeTypes}
       isValidConnection={isValidConnection}
       connectionLineStyle={connectionLineStyle}
+      nodesDraggable={!isReadOnly}
+      nodesConnectable={!isReadOnly}
+      elementsSelectable
+      connectOnClick={!isReadOnly}
       defaultEdgeOptions={defaultEdgeOptions}
       fitView
     >

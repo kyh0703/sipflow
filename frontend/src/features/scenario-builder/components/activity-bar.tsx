@@ -32,8 +32,8 @@ function ActivityIcon({ icon: Icon, isActive, onClick, title, disabled }: Activi
 }
 
 interface ActivityBarProps {
-  activePanel: 'scenario' | 'palette' | null
-  onPanelToggle: (panel: 'scenario' | 'palette') => void
+  activePanel: 'scenario' | 'palette' | 'settings' | null
+  onPanelToggle: (panel: 'scenario' | 'palette' | 'settings') => void
 }
 
 export function ActivityBar({ activePanel, onPanelToggle }: ActivityBarProps) {
@@ -62,10 +62,9 @@ export function ActivityBar({ activePanel, onPanelToggle }: ActivityBarProps) {
       <div className="flex flex-col items-center gap-1">
         <ActivityIcon
           icon={Settings}
-          isActive={false}
-          onClick={() => {}}
+          isActive={activePanel === 'settings'}
+          onClick={() => onPanelToggle('settings')}
           title="Settings"
-          disabled
         />
         <ThemeToggle />
       </div>

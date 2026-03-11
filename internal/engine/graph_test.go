@@ -308,7 +308,7 @@ func TestParseScenario_EmptyFlowData(t *testing.T) {
 	}
 }
 
-// TestParseScenario_MissingInstanceId tests missing sipInstanceId
+// TestParseScenario_MissingInstanceId infers sipInstanceId from direct SIP Instance parent
 func TestParseScenario_MissingInstanceId(t *testing.T) {
 	flowJSON := `{
   "nodes": [
@@ -343,15 +343,18 @@ func TestParseScenario_MissingInstanceId(t *testing.T) {
   ]
 }`
 
-	_, err := ParseScenario(flowJSON)
-	if err == nil {
-		t.Fatal("expected error for missing sipInstanceId, got nil")
+	graph, err := ParseScenario(flowJSON)
+	if err != nil {
+		t.Fatalf("expected sipInstanceId inference, got error: %v", err)
 	}
 
-	// 검증: 에러 메시지에 "missing sipInstanceId" 포함
-	expectedMsg := "missing sipInstanceId"
-	if len(err.Error()) < len(expectedMsg) || err.Error()[len(err.Error())-len(expectedMsg):] != expectedMsg {
-		t.Errorf("expected error message containing '%s', got '%s'", expectedMsg, err.Error())
+	cmd, exists := graph.Nodes["cmd-1"]
+	if !exists {
+		t.Fatal("expected command node cmd-1 to exist")
+	}
+
+	if cmd.InstanceID != "inst-a" {
+		t.Fatalf("expected inferred instanceID inst-a, got %q", cmd.InstanceID)
 	}
 }
 

@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
 import { Play, Square, ToggleLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { useExecutionStore } from '../store/execution-store';
-import { useScenarioStore } from '../store/scenario-store';
+import {
+  useExecutionActions,
+  useExecutionStatus,
+} from '../hooks/use-execution';
 import { useEngineApi } from '../hooks/use-engine-api';
+import { useScenarioFlow } from '../context/scenario-flow-context';
 
 const statusStyles: Record<string, string> = {
   idle: 'bg-muted text-muted-foreground',
@@ -14,17 +17,15 @@ const statusStyles: Record<string, string> = {
 };
 
 export function ExecutionToolbar() {
-  const status = useExecutionStore((state) => state.status);
-  const startListening = useExecutionStore((state) => state.startListening);
-  const stopListening = useExecutionStore((state) => state.stopListening);
-  const reset = useExecutionStore((state) => state.reset);
-  const currentScenarioId = useScenarioStore((state) => state.currentScenarioId);
+  const status = useExecutionStatus();
+  const actions = useExecutionActions();
+  const { currentScenarioId } = useScenarioFlow();
   const { startScenario, stopScenario } = useEngineApi();
 
   useEffect(() => {
-    startListening();
-    return () => stopListening();
-  }, [startListening, stopListening]);
+    actions.startListening();
+    return () => actions.stopListening();
+  }, [actions]);
 
   const handleStart = async () => {
     if (!currentScenarioId) {
@@ -35,7 +36,7 @@ export function ExecutionToolbar() {
     }
 
     try {
-      reset();
+      actions.reset();
       await startScenario(currentScenarioId);
     } catch (error) {
       toast.error('Failed to start scenario', {

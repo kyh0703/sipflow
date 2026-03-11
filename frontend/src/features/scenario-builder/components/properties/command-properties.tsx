@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { useScenarioStore } from '../../store/scenario-store';
+import type { Node } from '@xyflow/react';
 import type { CommandNode } from '../../types/scenario';
 import { DEFAULT_CALL_ID } from '../../types/scenario';
 import { getInstanceDisplayName } from '../../lib/instance-key';
@@ -14,16 +14,13 @@ import { SelectWAVFile } from '../../../../../wailsjs/go/binding/MediaBinding';
 
 interface CommandPropertiesProps {
   node: CommandNode;
+  sipInstanceNodes: Node[];
   onUpdate: (data: Partial<CommandNode['data']>) => void;
 }
 
-export function CommandProperties({ node, onUpdate }: CommandPropertiesProps) {
+export function CommandProperties({ node, sipInstanceNodes, onUpdate }: CommandPropertiesProps) {
   const { data } = node;
-  const nodes = useScenarioStore((state) => state.nodes);
   const [isSelecting, setIsSelecting] = useState(false);
-
-  // Filter SIP Instance nodes for instance assignment
-  const sipInstanceNodes = nodes.filter((n) => n.type === 'sipInstance');
 
   const handleSelectAudioFile = async () => {
     setIsSelecting(true);

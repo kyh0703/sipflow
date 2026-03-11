@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
-import { useShallow } from 'zustand/react/shallow';
-import { useExecutionStore } from '../store/execution-store';
+import {
+  useExecutionActions,
+  useExecutionEdgeAnimations,
+} from '../hooks/use-execution';
 
 export function AnimatedMessageEdge({
   id,
@@ -13,11 +15,8 @@ export function AnimatedMessageEdge({
   targetPosition,
   data,
 }: EdgeProps) {
-  // Filter animations for this specific edge using useShallow for performance
-  const edgeAnimations = useExecutionStore(
-    useShallow((state) => state.edgeAnimations.filter((a) => a.edgeId === id))
-  );
-  const removeEdgeAnimation = useExecutionStore((state) => state.removeEdgeAnimation);
+  const edgeAnimations = useExecutionEdgeAnimations(id);
+  const executionActions = useExecutionActions();
 
   const [edgePath] = getSmoothStepPath({
     sourceX,
@@ -43,14 +42,14 @@ export function AnimatedMessageEdge({
 
     const timers = edgeAnimations.map((anim) =>
       setTimeout(() => {
-        removeEdgeAnimation(anim.id);
+        executionActions.removeEdgeAnimation(anim.id);
       }, anim.duration)
     );
 
     return () => {
       timers.forEach((timer) => clearTimeout(timer));
     };
-  }, [edgeAnimations, removeEdgeAnimation]);
+  }, [edgeAnimations, executionActions]);
 
   return (
     <>
