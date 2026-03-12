@@ -69,7 +69,7 @@ function SettingsWorkspace({
     <div className="flex h-full flex-col bg-background">
       <div className="flex h-10 items-center justify-between border-b border-border px-5">
         <span className="text-sm font-medium">Settings</span>
-        <ThemeToggle className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground" />
+        <ThemeToggle />
       </div>
 
       <div className="flex min-h-0 flex-1">

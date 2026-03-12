@@ -113,6 +113,9 @@ export function ExecutionLog() {
         onScroll={checkIfAtBottom}
         className="max-h-[200px] overflow-y-auto p-2 font-mono text-xs"
       >
+        {filteredLogs.length === 0 ? (
+          <div className="py-3 text-muted-foreground">No execution logs yet.</div>
+        ) : null}
         {filteredLogs.map((log) => (
           <div key={log.id} className={`py-0.5 ${logLevelStyles[log.level] || logLevelStyles.info}`}>
             <span className="text-muted-foreground">{formatTimestamp(log.timestamp)}</span>

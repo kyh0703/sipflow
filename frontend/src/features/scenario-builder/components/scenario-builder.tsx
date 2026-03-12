@@ -24,6 +24,7 @@ import {
   useFlowEditorSelectedNodeId,
 } from '../store/flow-editor-context';
 import { useExecutionStatus } from '../store/execution-store';
+import { useWorkspaceConsoleOpen } from '../store/workspace-panel-store';
 
 interface ScenarioBuilderProps {
   activePanel: 'scenario' | 'palette';
@@ -34,6 +35,7 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
   const currentScenarioName = useScenarioCurrentScenarioName();
   const saveStatus = useScenarioSaveStatus();
   const executionStatus = useExecutionStatus();
+  const isConsoleOpen = useWorkspaceConsoleOpen();
   const [bottomTab, setBottomTab] = useState<'log' | 'timeline'>('log');
   const propertiesRef = useRef<PanelImperativeHandle>(null);
   const selectedNodeId = useFlowEditorSelectedNodeId();
@@ -121,7 +123,7 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
               )}
             </div>
             <div className="flex items-center gap-3">
-              <ThemeToggle className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground" />
+              <ThemeToggle />
               <ExecutionToolbar />
               <button
                 onClick={handleSave}
@@ -167,8 +169,8 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
                   <div className="flex-1">
                     <Canvas />
                   </div>
-                  {/* Bottom panel: only show when not idle */}
-                  {executionStatus !== 'idle' && (
+                  {/* Bottom panel: show when console is toggled open */}
+                  {isConsoleOpen && (
                     <div className="border-t border-border bg-background">
                       {/* Tab headers */}
                       <div className="flex items-center gap-1 px-3 py-1 border-b border-border bg-muted/50">
@@ -196,6 +198,11 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
                       {/* Tab content */}
                       {bottomTab === 'log' && <ExecutionLog />}
                       {bottomTab === 'timeline' && <ExecutionTimeline />}
+                    </div>
+                  )}
+                  {!isConsoleOpen && executionStatus !== 'idle' && (
+                    <div className="border-t border-border bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
+                      실행 중 로그는 왼쪽 하단 Console 버튼으로 확인할 수 있습니다.
                     </div>
                   )}
                 </div>
