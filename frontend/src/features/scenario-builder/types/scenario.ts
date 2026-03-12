@@ -47,6 +47,10 @@ export interface SipInstanceNodeData extends Record<string, unknown> {
   register: boolean;
   pbxInstanceId?: string;
   serverId?: string;
+  pbxHost?: string;
+  pbxPort?: string;
+  pbxTransport?: string;
+  registerIntervalSeconds?: number;
   color: string;
   codecs?: string[]; // ["PCMU", "PCMA"] — codec priority order
 }

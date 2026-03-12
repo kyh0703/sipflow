@@ -30,6 +30,7 @@ import {
   useScenarioCurrentScenarioId,
   useScenarioIsDirty,
 } from './scenario-store';
+import { usePbxInstances } from './app-settings-store';
 
 interface FlowSnapshot {
   nodes: Node[];
@@ -118,6 +119,7 @@ function parseFlowJSON(json: string): FlowSnapshot {
 function useFlowEditorContextValue(): FlowEditorContextValue {
   const currentScenarioId = useScenarioCurrentScenarioId();
   const isDirty = useScenarioIsDirty();
+  const pbxInstances = usePbxInstances();
   const { setDirty, setSaveStatus } = useScenarioActions();
 
   const [nodes, setNodes, onNodesStateChange] = useNodesState<Node>([]);
@@ -178,11 +180,47 @@ function useFlowEditorContextValue(): FlowEditorContextValue {
   );
 
   const toFlowJSON = useCallback(() => {
+    const nodesWithPbxSnapshot = nodesRef.current.map((node) => {
+      if (node.type !== 'sipInstance') {
+        return node;
+      }
+
+      const nodeData = { ...node.data } as Record<string, unknown>;
+      const pbxInstanceId = (nodeData.pbxInstanceId || nodeData.serverId) as string | undefined;
+      const pbxInstance = pbxInstanceId
+        ? pbxInstances.find((instance) => instance.id === pbxInstanceId)
+        : null;
+
+      if (!pbxInstance) {
+        delete nodeData.pbxHost;
+        delete nodeData.pbxPort;
+        delete nodeData.pbxTransport;
+        delete nodeData.pbxOutboundProxy;
+        delete nodeData.registerIntervalSeconds;
+
+        return {
+          ...node,
+          data: nodeData,
+        };
+      }
+
+      return {
+        ...node,
+        data: {
+          ...nodeData,
+          pbxHost: pbxInstance.host.trim(),
+          pbxPort: pbxInstance.port.trim(),
+          pbxTransport: pbxInstance.transport,
+          registerIntervalSeconds: Number.parseInt(pbxInstance.registerInterval || '300', 10) || 300,
+        },
+      };
+    });
+
     return JSON.stringify({
-      nodes: nodesRef.current,
+      nodes: nodesWithPbxSnapshot,
       edges: edgesRef.current,
     });
-  }, []);
+  }, [pbxInstances]);
 
   const loadFromJSON = useCallback(
     (json: string) => {

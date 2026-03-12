@@ -56,13 +56,17 @@ type GraphNode struct {
 
 // SipInstanceConfig는 SIP Instance 설정
 type SipInstanceConfig struct {
-	ID       string
-	Label    string
-	Mode     string // DN|Endpoint
-	DN       string
-	Register bool
-	Color    string
-	Codecs   []string // ["PCMU", "PCMA"] — 사용자 선택 코덱 (우선순위 순서)
+	ID                      string
+	Label                   string
+	Mode                    string // DN|Endpoint
+	DN                      string
+	Register                bool
+	Color                   string
+	Codecs                  []string // ["PCMU", "PCMA"] — 사용자 선택 코덱 (우선순위 순서)
+	PBXHost                 string
+	PBXPort                 string
+	PBXTransport            string
+	RegisterIntervalSeconds int
 }
 
 // InstanceChain은 인스턴스별 실행 체인
@@ -99,13 +103,17 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 
 		if node.Type == "sipInstance" {
 			config := SipInstanceConfig{
-				ID:       node.ID,
-				Label:    getStringField(node.Data, "label", ""),
-				Mode:     getStringField(node.Data, "mode", "DN"),
-				DN:       getStringField(node.Data, "dn", ""),
-				Register: getBoolField(node.Data, "register", true),
-				Color:    getStringField(node.Data, "color", ""),
-				Codecs:   getStringArrayField(node.Data, "codecs", []string{"PCMU", "PCMA"}),
+				ID:                      node.ID,
+				Label:                   getStringField(node.Data, "label", ""),
+				Mode:                    getStringField(node.Data, "mode", "DN"),
+				DN:                      getStringField(node.Data, "dn", ""),
+				Register:                getBoolField(node.Data, "register", true),
+				Color:                   getStringField(node.Data, "color", ""),
+				Codecs:                  getStringArrayField(node.Data, "codecs", []string{"PCMU", "PCMA"}),
+				PBXHost:                 getStringField(node.Data, "pbxHost", ""),
+				PBXPort:                 getStringField(node.Data, "pbxPort", ""),
+				PBXTransport:            getStringField(node.Data, "pbxTransport", "UDP"),
+				RegisterIntervalSeconds: int(getFloatField(node.Data, "registerIntervalSeconds", 300)),
 			}
 			graph.Instances[node.ID] = &InstanceChain{
 				Config:     config,

@@ -15,7 +15,7 @@ func TestAllocatePort_Sequential(t *testing.T) {
 	im.nextPort = 15060
 
 	// 첫 번째 포트 할당
-	port1, err := im.allocatePort()
+	port1, err := im.allocatePort("udp")
 	if err != nil {
 		t.Fatalf("Failed to allocate first port: %v", err)
 	}
@@ -24,7 +24,7 @@ func TestAllocatePort_Sequential(t *testing.T) {
 	}
 
 	// 두 번째 포트 할당 (15062 예상)
-	port2, err := im.allocatePort()
+	port2, err := im.allocatePort("udp")
 	if err != nil {
 		t.Fatalf("Failed to allocate second port: %v", err)
 	}
@@ -33,7 +33,7 @@ func TestAllocatePort_Sequential(t *testing.T) {
 	}
 
 	// 세 번째 포트 할당 (15064 예상)
-	port3, err := im.allocatePort()
+	port3, err := im.allocatePort("udp")
 	if err != nil {
 		t.Fatalf("Failed to allocate third port: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestAllocatePort_PermissionDeniedFallback(t *testing.T) {
 	im.basePort = 15060
 	im.nextPort = 15060
 
-	port1, err := im.allocatePort()
+	port1, err := im.allocatePort("udp")
 	if err != nil {
 		t.Fatalf("permission fallback should still allocate a port: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestAllocatePort_PermissionDeniedFallback(t *testing.T) {
 		t.Fatalf("expected fallback port 15060, got %d", port1)
 	}
 
-	port2, err := im.allocatePort()
+	port2, err := im.allocatePort("udp")
 	if err != nil {
 		t.Fatalf("second permission fallback allocation failed: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestAllocatePort_RetriesOnPortConflict(t *testing.T) {
 	im.basePort = 15110
 	im.nextPort = 15110
 
-	port, err := im.allocatePort()
+	port, err := im.allocatePort("udp")
 	if err != nil {
 		t.Fatalf("expected allocation after retry, got %v", err)
 	}
@@ -325,6 +325,29 @@ func TestResolveTarget_ByDN(t *testing.T) {
 	}
 	if resolved != "sip:100@127.0.0.1:15100" {
 		t.Fatalf("expected resolved target sip:100@127.0.0.1:15100, got %s", resolved)
+	}
+}
+
+func TestResolveTarget_ByDN_TCP(t *testing.T) {
+	im := NewInstanceManager()
+	im.instances["instance-a"] = &ManagedInstance{
+		Config: SipInstanceConfig{
+			ID:           "instance-a",
+			Label:        "Instance A",
+			Mode:         "DN",
+			DN:           "100",
+			PBXTransport: "TCP",
+		},
+		Port: 15100,
+	}
+	im.dnToID["100"] = "instance-a"
+
+	resolved, err := im.ResolveTarget("100")
+	if err != nil {
+		t.Fatalf("ResolveTarget failed: %v", err)
+	}
+	if resolved != "sip:100@127.0.0.1:15100;transport=tcp" {
+		t.Fatalf("expected resolved target sip:100@127.0.0.1:15100;transport=tcp, got %s", resolved)
 	}
 }
 

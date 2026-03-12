@@ -1,15 +1,14 @@
 import { createPersistStore } from '@/lib/store';
 
-export type SIPTransport = 'UDP' | 'TCP' | 'TLS';
+export type SIPTransport = 'UDP' | 'TCP';
 
 export interface PbxInstanceSettings {
   id: string;
   name: string;
   host: string;
   port: string;
-  domain: string;
   transport: SIPTransport;
-  outboundProxy: string;
+  registerInterval: string;
 }
 
 interface AppSettingsStoreState {
@@ -35,9 +34,22 @@ function createEmptyPbxInstance(index: number): PbxInstanceSettings {
     name: `PBX ${index + 1}`,
     host: '',
     port: '5060',
-    domain: '',
     transport: 'UDP',
-    outboundProxy: '',
+    registerInterval: '300',
+  };
+}
+
+function normalizePbxInstance(
+  instance: Partial<PbxInstanceSettings> | undefined,
+  index: number
+): PbxInstanceSettings {
+  return {
+    id: instance?.id || createId(),
+    name: instance?.name || `PBX ${index + 1}`,
+    host: instance?.host || '',
+    port: instance?.port || '5060',
+    transport: instance?.transport === 'TCP' ? 'TCP' : 'UDP',
+    registerInterval: instance?.registerInterval || '300',
   };
 }
 
@@ -78,41 +90,44 @@ export const useAppSettingsStore = createPersistStore<AppSettingsStoreState>(
   }),
   {
     name: 'sipflow-app-settings',
-    version: 1,
+    version: 2,
     migrate: (persistedState, version) => {
       const state = (persistedState ?? {}) as {
         pbxInstances?: PbxInstanceSettings[];
         pbxHost?: string;
         pbxPort?: string;
-        pbxDomain?: string;
         transport?: SIPTransport;
-        outboundProxy?: string;
+        registerInterval?: string;
+        name?: string;
       };
 
       if (version === 0 && !Array.isArray(state.pbxInstances)) {
         const hasLegacyValues = Boolean(
-          state.pbxHost || state.pbxDomain || state.outboundProxy || state.transport || state.pbxPort
+          state.pbxHost || state.transport || state.pbxPort || state.name
         );
 
         return {
           pbxInstances: hasLegacyValues
             ? [
-                {
-                  id: createId(),
-                  name: 'PBX 1',
-                  host: state.pbxHost ?? '',
-                  port: state.pbxPort ?? '5060',
-                  domain: state.pbxDomain ?? '',
-                  transport: state.transport ?? 'UDP',
-                  outboundProxy: state.outboundProxy ?? '',
-                },
+                normalizePbxInstance(
+                  {
+                    name: state.name ?? 'PBX 1',
+                    host: state.pbxHost ?? '',
+                    port: state.pbxPort ?? '5060',
+                    transport: state.transport ?? 'UDP',
+                    registerInterval: state.registerInterval ?? '300',
+                  },
+                  0
+                ),
               ]
             : [],
         } satisfies Partial<AppSettingsStoreState>;
       }
 
       return {
-        pbxInstances: Array.isArray(state.pbxInstances) ? state.pbxInstances : [],
+        pbxInstances: Array.isArray(state.pbxInstances)
+          ? state.pbxInstances.map((instance, index) => normalizePbxInstance(instance, index))
+          : [],
       } satisfies Partial<AppSettingsStoreState>;
     },
     partialize: (state) => ({

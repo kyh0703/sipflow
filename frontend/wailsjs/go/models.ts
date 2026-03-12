@@ -1,5 +1,5 @@
 export namespace binding {
-
+	
 	export class ScenarioDTO {
 	    id: string;
 	    project_id: string;
@@ -46,11 +46,11 @@ export namespace binding {
 	    valid: boolean;
 	    error?: string;
 	    details?: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new WAVValidationResult(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.valid = source["valid"];
@@ -60,3 +60,4 @@ export namespace binding {
 	}
 
 }
+

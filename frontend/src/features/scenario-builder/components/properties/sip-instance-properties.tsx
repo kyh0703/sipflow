@@ -2,6 +2,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import type { SipInstanceNode } from '../../types/scenario';
 import { DEFAULT_CODECS } from '../../types/scenario';
 import { CodecListItem } from './codec-list-item';
@@ -83,6 +84,20 @@ export function SipInstanceProperties({ node, onUpdate }: SipInstancePropertiesP
               <SelectItem value="Endpoint">Endpoint</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-border px-3 py-2">
+          <div className="space-y-1">
+            <Label htmlFor="register-enabled">Register</Label>
+            <p className="text-xs text-muted-foreground">
+              Enable SIP REGISTER for this instance when the scenario starts.
+            </p>
+          </div>
+          <Switch
+            id="register-enabled"
+            checked={Boolean(data.register)}
+            onCheckedChange={(checked) => onUpdate({ register: checked })}
+          />
         </div>
       </section>
 

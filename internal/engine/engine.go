@@ -92,6 +92,38 @@ func (e *Engine) StartScenario(scenarioID string) error {
 		return err
 	}
 
+	registerLoops := make([]struct {
+		instanceID string
+		errCh      <-chan error
+	}, 0, len(graph.Instances))
+	hasRegistrations := false
+	for instanceID, chain := range graph.Instances {
+		if !chain.Config.Register {
+			continue
+		}
+
+		hasRegistrations = true
+		e.emitActionLog("", instanceID, fmt.Sprintf("Registering DN %s", chain.Config.DN), "info")
+
+		regErrCh, err := e.im.StartRegistration(execCtx, instanceID)
+		if err != nil {
+			cancel()
+			e.cleanupOnError()
+			return fmt.Errorf("instance %s register failed: %w", instanceID, err)
+		}
+
+		e.emitActionLog("", instanceID, fmt.Sprintf("Registered DN %s", chain.Config.DN), "info")
+		if regErrCh != nil {
+			registerLoops = append(registerLoops, struct {
+				instanceID string
+				errCh      <-chan error
+			}{
+				instanceID: instanceID,
+				errCh:      regErrCh,
+			})
+		}
+	}
+
 	// 7. 시나리오 시작 이벤트 발행
 	e.emitScenarioStarted(scenarioID)
 
@@ -101,7 +133,13 @@ func (e *Engine) StartScenario(scenarioID string) error {
 	// 9. 각 인스턴스마다 goroutine 실행
 	errCh := make(chan error, len(graph.Instances))
 
+	hasStartNodes := false
 	for instanceID, chain := range graph.Instances {
+		if len(chain.StartNodes) == 0 {
+			continue
+		}
+
+		hasStartNodes = true
 		e.wg.Add(1)
 		go func(id string, ch *InstanceChain) {
 			defer e.wg.Done()
@@ -115,9 +153,29 @@ func (e *Engine) StartScenario(scenarioID string) error {
 		}(instanceID, chain)
 	}
 
+	for _, regLoop := range registerLoops {
+		go func(instanceID string, regErrCh <-chan error) {
+			for err := range regErrCh {
+				if err == nil {
+					continue
+				}
+				errCh <- fmt.Errorf("instance %s register loop: %w", instanceID, err)
+				cancel()
+				return
+			}
+		}(regLoop.instanceID, regLoop.errCh)
+	}
+
 	// 10. 별도 goroutine에서 완료 대기 및 최종 처리
 	go func() {
-		e.wg.Wait()
+		switch {
+		case hasStartNodes:
+			e.wg.Wait()
+		case hasRegistrations:
+			<-execCtx.Done()
+		}
+
+		cancel()
 		// cleanup
 		e.cleanup()
 

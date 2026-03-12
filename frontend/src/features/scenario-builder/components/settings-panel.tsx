@@ -70,11 +70,10 @@ export function SettingsPanel() {
           <TableHeader className="bg-muted/40">
             <TableRow className="hover:bg-transparent">
               <TableHead>Name</TableHead>
-              <TableHead>Host</TableHead>
+              <TableHead>Address</TableHead>
               <TableHead>Port</TableHead>
-              <TableHead>Domain</TableHead>
               <TableHead>Transport</TableHead>
-              <TableHead>Outbound Proxy</TableHead>
+              <TableHead>Expires</TableHead>
               <TableHead className="w-[56px]" />
             </TableRow>
           </TableHeader>
@@ -113,15 +112,6 @@ export function SettingsPanel() {
                     />
                   </TableCell>
                   <TableCell>
-                    <Input
-                      value={instance.domain}
-                      onChange={(event) =>
-                        updatePbxInstance(instance.id, { domain: event.target.value })
-                      }
-                      placeholder="pbx.local"
-                    />
-                  </TableCell>
-                  <TableCell>
                     <Select
                       value={instance.transport}
                       onValueChange={(value) => handleTransportChange(instance.id, value)}
@@ -132,19 +122,19 @@ export function SettingsPanel() {
                       <SelectContent>
                         <SelectItem value="UDP">UDP</SelectItem>
                         <SelectItem value="TCP">TCP</SelectItem>
-                        <SelectItem value="TLS">TLS</SelectItem>
                       </SelectContent>
                     </Select>
                   </TableCell>
                   <TableCell>
                     <Input
-                      value={instance.outboundProxy}
+                      value={instance.registerInterval}
                       onChange={(event) =>
                         updatePbxInstance(instance.id, {
-                          outboundProxy: event.target.value,
+                          registerInterval: event.target.value.replace(/[^\d]/g, ''),
                         })
                       }
-                      placeholder="sip:proxy.example.com:5060"
+                      placeholder="300"
+                      inputMode="numeric"
                     />
                   </TableCell>
                   <TableCell>
@@ -164,7 +154,7 @@ export function SettingsPanel() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-28 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={6} className="h-28 text-center text-sm text-muted-foreground">
                   아직 등록된 PBX 인스턴스가 없습니다. 우측 상단의 "행 추가" 버튼으로 시작하세요.
                 </TableCell>
               </TableRow>

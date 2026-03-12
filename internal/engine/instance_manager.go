@@ -9,13 +9,26 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/emiago/diago"
 	"github.com/emiago/diago/media"
 	"github.com/emiago/sipgo"
+	"github.com/emiago/sipgo/sip"
 )
 
 var listenPacket = net.ListenPacket
+var listenStream = net.Listen
+
+type registerTransaction interface {
+	Register(ctx context.Context) error
+	QualifyLoop(ctx context.Context) error
+	Unregister(ctx context.Context) error
+}
+
+var newRegisterTransaction = func(ctx context.Context, dg *diago.Diago, recipient sip.Uri, opts diago.RegisterOptions) (registerTransaction, error) {
+	return dg.RegisterTransaction(ctx, recipient, opts)
+}
 
 // ManagedInstance는 관리되는 diago SIP UA 인스턴스
 type ManagedInstance struct {
@@ -24,6 +37,7 @@ type ManagedInstance struct {
 	Port       int
 	incomingCh chan *diago.DialogServerSession
 	cancel     context.CancelFunc
+	registerTx registerTransaction
 }
 
 // InstanceManager는 diago SIP UA 인스턴스를 생성하고 관리한다
@@ -85,7 +99,17 @@ func (im *InstanceManager) CreateInstances(graph *ExecutionGraph) error {
 		}
 
 		// 포트 할당
-		port, err := im.allocatePort()
+		transport := normalizeTransport(chain.Config.PBXTransport)
+		if transport != "udp" && transport != "tcp" {
+			for _, inst := range createdInstances {
+				if inst.cancel != nil {
+					inst.cancel()
+				}
+			}
+			return fmt.Errorf("unsupported transport %q for instance %s", chain.Config.PBXTransport, instanceID)
+		}
+
+		port, err := im.allocatePort(transport)
 		if err != nil {
 			// 실패 시 이미 생성된 인스턴스 정리
 			for _, inst := range createdInstances {
@@ -114,7 +138,7 @@ func (im *InstanceManager) CreateInstances(graph *ExecutionGraph) error {
 		// diago 인스턴스 생성 (127.0.0.1에 바인딩)
 		dg := diago.NewDiago(ua,
 			diago.WithTransport(diago.Transport{
-				Transport: "udp",
+				Transport: transport,
 				BindHost:  "127.0.0.1",
 				BindPort:  port,
 			}),
@@ -143,31 +167,51 @@ func (im *InstanceManager) CreateInstances(graph *ExecutionGraph) error {
 }
 
 // allocatePort는 사용 가능한 포트를 찾아 반환한다
-func (im *InstanceManager) allocatePort() (int, error) {
+func normalizeTransport(transport string) string {
+	transport = strings.ToLower(strings.TrimSpace(transport))
+	if transport == "" {
+		return "udp"
+	}
+	return transport
+}
+
+func (im *InstanceManager) allocatePort(transport string) (int, error) {
+	transport = normalizeTransport(transport)
+
 	for i := 0; i < im.maxRetries; i++ {
 		port := im.nextPort + (i * 2)
 
 		// 포트 가용성 테스트
 		addr := fmt.Sprintf("127.0.0.1:%d", port)
-		conn, err := listenPacket("udp", addr)
-		if err != nil {
-			if errors.Is(err, syscall.EPERM) || errors.Is(err, syscall.EACCES) || os.IsPermission(err) {
-				// Sandbox/CI 환경에서는 소켓 생성 자체가 차단될 수 있다.
-				// 이 경우 실제 바인딩 검사는 건너뛰고 순차 포트만 예약하여
-				// 네트워크가 필요 없는 단위/시뮬레이션 테스트가 계속 진행되도록 한다.
-				im.nextPort = port + 2
-				return port, nil
+
+		var closeFn func() error
+		switch transport {
+		case "tcp":
+			ln, err := listenStream("tcp", addr)
+			if err != nil {
+				if errors.Is(err, syscall.EPERM) || errors.Is(err, syscall.EACCES) || os.IsPermission(err) {
+					im.nextPort = port + 2
+					return port, nil
+				}
+				continue
 			}
-			// 포트 사용 중, 다음 포트 시도
-			continue
+			closeFn = ln.Close
+		case "udp":
+			conn, err := listenPacket("udp", addr)
+			if err != nil {
+				if errors.Is(err, syscall.EPERM) || errors.Is(err, syscall.EACCES) || os.IsPermission(err) {
+					im.nextPort = port + 2
+					return port, nil
+				}
+				continue
+			}
+			closeFn = conn.Close
+		default:
+			return 0, fmt.Errorf("unsupported transport: %s", transport)
 		}
 
-		// 즉시 닫기 (실제로는 diago가 사용)
-		_ = conn.Close()
-
-		// nextPort 업데이트
+		_ = closeFn()
 		im.nextPort = port + 2
-
 		return port, nil
 	}
 
@@ -194,6 +238,87 @@ func (im *InstanceManager) StartServing(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func buildRegisterRecipient(config SipInstanceConfig) (sip.Uri, diago.RegisterOptions, error) {
+	if strings.TrimSpace(config.DN) == "" {
+		return sip.Uri{}, diago.RegisterOptions{}, fmt.Errorf("register requires DN")
+	}
+
+	transport := normalizeTransport(config.PBXTransport)
+	if transport != "udp" && transport != "tcp" {
+		return sip.Uri{}, diago.RegisterOptions{}, fmt.Errorf("register transport %s is not supported yet", config.PBXTransport)
+	}
+
+	host := strings.TrimSpace(config.PBXHost)
+	if host == "" {
+		return sip.Uri{}, diago.RegisterOptions{}, fmt.Errorf("register requires PBX host")
+	}
+
+	port := strings.TrimSpace(config.PBXPort)
+	targetHost := host
+	if port != "" {
+		targetHost = fmt.Sprintf("%s:%s", host, port)
+	}
+
+	recipientURI := fmt.Sprintf("sip:%s@%s", config.DN, targetHost)
+	if transport == "tcp" {
+		recipientURI += ";transport=tcp"
+	}
+	var recipient sip.Uri
+	if err := sip.ParseUri(recipientURI, &recipient); err != nil {
+		return sip.Uri{}, diago.RegisterOptions{}, fmt.Errorf("failed to parse register recipient: %w", err)
+	}
+
+	interval := time.Duration(config.RegisterIntervalSeconds) * time.Second
+	if interval <= 0 {
+		interval = 300 * time.Second
+	}
+
+	opts := diago.RegisterOptions{
+		Username:      config.DN,
+		Expiry:        interval,
+		RetryInterval: interval,
+	}
+
+	return recipient, opts, nil
+}
+
+func (im *InstanceManager) StartRegistration(ctx context.Context, instanceID string) (<-chan error, error) {
+	inst, err := im.GetInstance(instanceID)
+	if err != nil {
+		return nil, err
+	}
+	if !inst.Config.Register {
+		return nil, nil
+	}
+
+	recipient, opts, err := buildRegisterRecipient(inst.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := newRegisterTransaction(ctx, inst.UA, recipient, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create register transaction: %w", err)
+	}
+	if err := tx.Register(ctx); err != nil {
+		return nil, fmt.Errorf("initial register failed: %w", err)
+	}
+
+	im.mu.Lock()
+	inst.registerTx = tx
+	im.mu.Unlock()
+
+	errCh := make(chan error, 1)
+	go func() {
+		defer close(errCh)
+		if err := tx.QualifyLoop(ctx); err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+			errCh <- err
+		}
+	}()
+
+	return errCh, nil
 }
 
 // GetInstance는 instanceID로 ManagedInstance를 조회한다
@@ -232,13 +357,26 @@ func (im *InstanceManager) ResolveTarget(target string) (string, error) {
 		return "", fmt.Errorf("instance not found for target DN: %s", resolved)
 	}
 
-	return fmt.Sprintf("sip:%s@127.0.0.1:%d", inst.Config.DN, inst.Port), nil
+	resolved = fmt.Sprintf("sip:%s@127.0.0.1:%d", inst.Config.DN, inst.Port)
+	if normalizeTransport(inst.Config.PBXTransport) == "tcp" {
+		resolved += ";transport=tcp"
+	}
+	return resolved, nil
 }
 
 // Cleanup은 모든 UA를 정리하고 리소스를 해제한다
 func (im *InstanceManager) Cleanup() error {
 	im.mu.Lock()
 	defer im.mu.Unlock()
+
+	for _, inst := range im.instances {
+		if inst.registerTx != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			_ = inst.registerTx.Unregister(ctx)
+			cancel()
+			inst.registerTx = nil
+		}
+	}
 
 	// 모든 Serve 중지 (context 취소로 정리)
 	for _, inst := range im.instances {
