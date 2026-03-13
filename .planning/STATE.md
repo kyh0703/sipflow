@@ -1,10 +1,10 @@
 # SIPFLOW Project State
 
 ## 현재 상태
-- **마일스톤**: v1.4 — 통화 녹음 + 미디어 확장
-- **페이즈**: Phase 17 — Recording Backend Foundation (계획 완료, 착수 대기)
+- **마일스톤**: v1.4 — 기본 콜 기능 안정화
+- **페이즈**: Phase 17 — Core Call Regression Matrix (계획 완료, 착수 대기)
 - **상태**: `phase17_ready`
-- **최근 활동**: 2026-03-09 — v1.4 요구사항/로드맵 초안 작성 완료
+- **최근 활동**: 2026-03-13 — v1.4 요구사항을 기본 콜 회귀 검증 중심으로 구체화
 
 ## 프로젝트 참조
 
@@ -15,12 +15,12 @@
 - **이중 모드**: 로컬 시뮬레이션 모드 + 실제 SIP 트래픽 생성 모드
 
 ### 현재 초점 (v1.4)
-StartRecording/StopRecording 백엔드 구조와 recorder 생명주기 설계를 코드에 반영할 준비를 한다.
+신규 기능 추가 없이 기존 콜 플로우를 시나리오 단위 회귀 검증으로 고정하고, 추후 성능 측정에 재사용할 baseline을 만든다.
 
 ## 현재 위치
 
-### 마일스톤: v1.4 — 통화 녹음 + 미디어 확장
-**목표:** 녹음 제어, 미디어 상태 추적, 후속 QA 분석 기능 기반 마련
+### 마일스톤: v1.4 — 기본 콜 기능 안정화
+**목표:** 기존 MakeCall, Answer, Release, Hold, Retrieve, Transfer 흐름과 callID 기반 동작을 안정화한다
 **상태:** Phase 17 착수 대기
 
 ### 페이즈 진행
@@ -29,12 +29,12 @@ StartRecording/StopRecording 백엔드 구조와 recorder 생명주기 설계를
 v1.3: SessionStore 멀티 다이얼로그      [ 완료 ]
 v1.3: MuteTransfer 백엔드               [ 완료 ]
 v1.3: callID UI + MuteTransfer UI       [ 완료 ]
-v1.4: Phase 17 Recording Foundation     [ 다음 ]
-v1.4: Phase 18 Playback 확장            [ 대기 ]
-v1.4: Phase 19 UI/Validation            [ 대기 ]
+v1.4: Phase 17 회귀 시나리오 정의      [ 다음 ]
+v1.4: Phase 18 자동 검증 보강          [ 대기 ]
+v1.4: Phase 19 성능 전환 기준 정리     [ 대기 ]
 ```
 
-**진행률:** v1.0~v1.3 마일스톤 완료, v1.4 계획 완료
+**진행률:** v1.0~v1.3 마일스톤 완료, v1.4 계획 갱신 완료
 
 ## 성능 지표
 
@@ -75,10 +75,10 @@ v1.4: Phase 19 UI/Validation            [ 대기 ]
 - [x] Phase 14 계획 수립 + 실행 완료
 - [x] Phase 15 계획 수립 + 실행 완료
 - [x] Phase 16 계획 수립 + 실행 완료
-- [x] v1.4 요구사항 정의
-- [x] v1.4 Phase 분해 및 검증 기준 작성
-- [ ] Phase 17 recorder 저장소/정리 경로 구현
-- [ ] Phase 17 StartRecording/StopRecording executor 구현
+- [x] v1.4 기본 콜 범위 재정의
+- [ ] Phase 17 기본 콜 회귀 시나리오 매트릭스 정리
+- [ ] Phase 18 자동 검증 및 계약 체크 기준 정리
+- [ ] Phase 19 성능 전환용 baseline 기준 정리
 - [x] Phase 10 계획 수립 + 실행 완료
 - [x] Phase 11 계획 수립 + 실행 완료
 - [x] Phase 12 계획 수립 + 실행 완료
@@ -99,9 +99,9 @@ v1.4: Phase 19 UI/Validation            [ 대기 ]
 ## 세션 연속성
 - **Last session:** 2026-03-08
 - **Stopped at:** v1.3 검증 완료 후 문서 정리
-- **Stopped at:** v1.4 계획 완료
+- **Stopped at:** v1.4 회귀 검증 계획 갱신
 - **Resume file:** None
-- **다음 단계:** Phase 17 recorder 백엔드 구현
+- **다음 단계:** Phase 17 기본 콜 must-have 시나리오와 실패 케이스 정리
 
 ## 프로젝트 메모리
 
@@ -114,7 +114,7 @@ v1.4: Phase 19 UI/Validation            [ 대기 ]
 ### 도메인 지식
 - diago의 Diago 타입이 SIP UA 인스턴스의 엔트리포인트
 - DialogSession 인터페이스가 통화 세션의 추상화
-- diago DialogMedia API가 재생/녹음/DTMF를 모두 지원 (v0.27.0)
+- diago DialogMedia API가 재생/DTMF 제어를 지원하며 미디어 작업은 dialog.Media() 경유로 수행됨
 - Bridge 타입은 2자 통화만 지원, 코덱 transcoding 미지원
 - SDP 협상 완료 후에만 dialog.Media() 호출 가능 (RTP 세션 초기화 순서)
 - SIP/RTP는 표준적으로 8kHz mono G.711 사용 (PCMU=0, PCMA=8)
@@ -195,7 +195,7 @@ v1.4: Phase 19 UI/Validation            [ 대기 ]
 - [2026-02-11] saveStatus와 isDirty 분리 관리 (05-02)
 - [2026-02-11] Zustand subscribe 외부 모듈 스코프 호출 패턴 (05-02)
 - [2026-02-11] onNodeDragStop에서 드래그 완료 후 저장 (05-02)
-- [2026-02-11] v1.1 범위 확정: 미디어 재생 + DTMF (녹음 연기)
+- [2026-02-11] v1.1 범위 확정: 미디어 재생 + DTMF
 - [2026-02-11] Opus 코덱 제외 (CGO 의존성 회피, v1.2+로 연기)
 - [2026-02-11] PCMU를 기본 fallback 코덱으로 채택 (협상 실패 방지)
 - [2026-02-11] 8kHz mono PCM WAV 포맷 검증 필수 (재생 속도 왜곡 방지)

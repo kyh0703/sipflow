@@ -1,30 +1,39 @@
-# SIPFLOW v1.4 Requirements — 통화 녹음 + 미디어 확장
+# SIPFLOW v1.4 Requirements — 기본 콜 기능 안정화
 
-**Milestone:** v1.4 — 통화 녹음 + 미디어 확장
+**Milestone:** v1.4 — 기본 콜 기능 안정화
 **Created:** 2026-03-09
-**Status:** Draft / Active
+**Updated:** 2026-03-13
+**Status:** Active
 
 ---
 
-## 통화 녹음 (REC)
+## 기본 콜 회귀 (CORE)
 
-- [ ] **REC-01**: 사용자가 StartRecording 노드를 배치하여 지정한 `callId` dialog의 RTP를 파일로 녹음할 수 있음
-- [ ] **REC-02**: 사용자가 StopRecording 노드를 배치하여 활성 녹음을 종료하고 파일을 안전하게 flush/close 할 수 있음
-- [ ] **REC-03**: 녹음 파일명이 인스턴스, logical callId, timestamp를 포함해 충돌 없이 자동 생성됨
-- [ ] **REC-04**: 녹음 결과가 Stereo WAV(Local/Remote 채널 분리)로 저장됨
-- [ ] **REC-05**: 통화 종료/시나리오 중단 시 열린 recorder가 자동 정리되어 손상 파일이나 핸들 누수가 남지 않음
+- [ ] **CORE-01**: `MakeCall -> Answer -> Release` 2자 통화 시나리오가 실제 실행 모드와 시뮬레이션 모드에서 모두 정상 완료됨
+- [ ] **CORE-02**: `INCOMING -> Answer -> Release` 수신 통화 시나리오가 정상 완료되고, 통화 종료 시 `DISCONNECTED` 흐름이 유지됨
+- [ ] **CORE-03**: `Hold`와 `Retrieve`가 지정한 `callId` dialog에만 적용되고, HELD/RETRIEVED 이벤트 흐름이 유지됨
+- [ ] **CORE-04**: `BlindTransfer`가 활성 dialog 기준으로 정상 수행되고, `TRANSFERRED` 이벤트 대기 흐름이 유지됨
+- [ ] **CORE-05**: `MuteTransfer`가 `primaryCallId`와 `consultCallId`를 사용해 정상 수행되고, final NOTIFY 이후 정리 흐름이 유지됨
 
-## 미디어 재생 확장 (MED)
+## 멀티 다이얼로그 / 하위 호환성 (DIALOG)
 
-- [ ] **MED-01**: PlayAudio 노드에서 `stopOnDTMF` 옵션을 설정하면 DTMF 수신 시 재생이 즉시 중단됨
-- [ ] **MED-02**: 재생 중 시작/진행/완료/중단 상태가 이벤트 또는 로그로 발행되어 실행 모니터에서 구분됨
-- [ ] **MED-03**: 재생 진행률이 추정 기반 퍼센트 또는 바이트 기준으로 주기적으로 표시됨
+- [ ] **DIALOG-01**: 하나의 SIP 인스턴스에서 복수 dialog가 `instanceId + callId` 기준으로 동시에 공존할 수 있음
+- [ ] **DIALOG-02**: `Hold`, `Retrieve`, `Release`, `BlindTransfer`, `MuteTransfer`, Event 노드가 잘못된 dialog를 건드리지 않고 지정 `callId`만 참조함
+- [ ] **DIALOG-03**: `callId`가 비어 있는 기존 v1.2/v1.3 시나리오가 기본값 적용으로 계속 정상 파싱/실행됨
+- [ ] **DIALOG-04**: 동일 인스턴스에 연속 또는 동시 수신 INVITE가 들어와도 `INCOMING` 이벤트가 FIFO로 처리됨
 
-## UI / 검증 (UI)
+## UI / Validation / 계약 일치성 (UX)
 
-- [ ] **UI-01**: StartRecording / StopRecording 노드가 팔레트에 등록되고 Properties 패널에서 `callId` 기반 설정이 가능함
-- [ ] **UI-02**: PlayAudio Properties 패널에 `stopOnDTMF` 옵션과 진행 상태 안내가 추가됨
-- [ ] **UI-03**: Validation이 녹음/재생 확장 필수값 누락을 사전에 차단함
+- [ ] **UX-01**: 백엔드 `SupportedCommands` / `SupportedEvents`와 프론트엔드 팔레트/Properties 패널 표시가 어긋나지 않음
+- [ ] **UX-02**: 기본 콜 시나리오에서 필수 입력 누락이 validation으로 사전에 드러남
+- [ ] **UX-03**: `callId`, transfer 대상, timeout 등 핵심 필드가 시나리오 저장/로드 후에도 유지됨
+
+## 자동 검증 / 성능 전환 준비 (READY)
+
+- [ ] **READY-01**: 기본 콜 검증 시나리오가 고정된 명령으로 반복 실행 가능하여 회귀 체크에 재사용될 수 있음
+- [ ] **READY-02**: 성공/실패/중단/cleanup 여부가 테스트 또는 이벤트 로그 기준으로 기계적으로 판정 가능함
+- [ ] **READY-03**: ActionLog / SIP 로그에 `nodeId`, `instanceId`, `timestamp`, `callId` 등 후속 성능 분석에 필요한 식별 정보가 일관되게 남음
+- [ ] **READY-04**: `StartScenario`, `StopScenario`, cleanup, 재실행 방지 동작이 안정적으로 유지되어 후속 반복 실행 기반이 됨
 
 ---
 
@@ -32,23 +41,19 @@
 
 | 제외 기능 | 이유 |
 |-----------|------|
-| NOTIFY Event 노드 | 현재는 Transfer 로그로 충분, 녹음/미디어 확장에 집중 |
-| loop 재생 | 활용도 대비 우선순위 낮음 |
-| 마이크 입력 녹음 | 크로스 플랫폼 오디오 캡처 복잡도 높음 |
-| 실시간 파형 시각화 | UI 비용이 크고 핵심 시나리오와 거리 있음 |
+| 신규 미디어 확장 | 현재 우선순위는 기본 콜 기능 안정화 |
+| 고급 분석/시각화 | 기본 시나리오 품질 확보 후 검토 |
+| 성능 최적화 구현 | 지금은 측정 대상이 될 기본 시나리오와 판정 기준부터 고정 |
 
-## 추적성
+## 검증 기준
 
-| REQ-ID | Planned Phase | Status |
-|--------|---------------|--------|
-| REC-01 | Phase 17 | Pending |
-| REC-02 | Phase 17 | Pending |
-| REC-03 | Phase 17 | Pending |
-| REC-04 | Phase 17 | Pending |
-| REC-05 | Phase 17 | Pending |
-| MED-01 | Phase 18 | Pending |
-| MED-02 | Phase 18 | Pending |
-| MED-03 | Phase 18 | Pending |
-| UI-01 | Phase 19 | Pending |
-| UI-02 | Phase 19 | Pending |
-| UI-03 | Phase 19 | Pending |
+1. `go test ./internal/engine/...` 기준으로 기본 콜 회귀 테스트가 통과한다
+2. `go test ./internal/binding/... ./internal/pkg/eventhandler/...` 기준으로 계약/이벤트 계층 검증이 통과한다
+3. `npm --prefix frontend run build` 기준으로 UI 계약 변경이 빌드 수준에서 깨지지 않는다
+4. 기존 하위 호환 테스트와 통합 테스트가 유지되어 새 범위 정의가 실제 실행 가능성을 해치지 않는다
+
+## 다음 작업
+
+1. must-have 기본 콜 시나리오를 시퀀스 단위로 쓴다
+2. 회귀 시나리오와 실패 케이스를 우선순위화한다
+3. 기존 테스트/빌드 경로를 각 시나리오에 매핑한다

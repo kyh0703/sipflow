@@ -136,21 +136,21 @@ v1.3에서 달성한 것:
 - MuteTransfer 노드 팔레트/Properties UI 완성
 - 백엔드/프론트엔드 검증 및 기존 시나리오 하위 호환성 유지
 
-## Current Milestone: v1.4 — 통화 녹음 + 미디어 확장 (준비 중)
+## Current Milestone: v1.4 — 기본 콜 기능 안정화 (계획 갱신 완료)
 
-**목표:** 녹음 제어와 미디어 확장을 추가해 실제 QA 시나리오에서 통화 내용을 수집·분석할 수 있게 한다.
+**목표:** 신규 기능 확장보다 기존 기본 콜 기능의 안정성과 하위 호환성을 먼저 강화한다. 이 결과는 추후 성능 측정 시 재사용할 baseline이 되어야 한다.
 
 **타겟 기능:**
-- StartRecording / StopRecording Command 노드
-- Stereo WAV 녹음 (Local/Remote 채널 분리)
-- stopOnDTMF 옵션
-- 미디어 재생 진행률 이벤트
-- NOTIFY Event 노드 재검토
+- MakeCall / Answer / Release / INCOMING 기본 흐름 회귀 점검
+- Hold / Retrieve / BlindTransfer / MuteTransfer 회귀 점검
+- `callId` 기반 멀티 다이얼로그 하위 호환성 유지
+- 실행 로그 / Validation / UI 연결 정리
+- 반복 실행 가능한 검증 명령과 판정 기준 고정
 
 ### Next Milestone Goals
 
 향후 마일스톤 후보:
-- **v1.4**: 통화 녹음 + 미디어 확장 (StartRecording/StopRecording, stopOnDTMF, NOTIFY Event)
+- **v1.4**: 기본 콜 기능 안정화
 - **v2.0**: 고급 시나리오 (조건 분기, 반복, 템플릿) + SIP 래더 다이어그램 시각화
 - **v3.0**: 멀티플랫폼 빌드 + 자동 업데이트 + 시나리오 공유
 

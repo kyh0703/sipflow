@@ -181,7 +181,7 @@ None
 
 ## Memory-Influenced Decisions
 
-- **Domain Knowledge:** "diago DialogMedia API가 재생/녹음/DTMF를 모두 지원 (v0.27.0)" → dialog.Media().PlaybackCreate() 사용
+- **Domain Knowledge:** "diago DialogMedia API를 통해 재생 관련 제어가 가능하다" → dialog.Media().PlaybackCreate() 사용
 - **Domain Knowledge:** "SDP 협상 완료 후에만 dialog.Media() 호출 가능" → executePlayAudio에서 dialog 세션 존재 확인 필수
 - **Domain Knowledge:** "SIP/RTP는 표준적으로 8kHz mono G.711 사용" → WAV 검증 기준을 8kHz mono로 설정
 - **Technical Constraint:** "WAV 파일 포맷 불일치 시 재생 속도 왜곡" → ValidateWAVFile에서 엄격한 8kHz mono PCM 검증

@@ -68,10 +68,8 @@ The existing codebase architecture supports this phase well. The executor patter
 
 ### Deferred Ideas (OUT OF SCOPE)
 
-- stopOnDTMF flag → v1.2
 - loop flag → v1.2
 - Detailed progress percentage events → v1.2
-- Recording functionality → v1.2
 - Multiple file formats (MP3, OGG) → v1.2
 
 </user_constraints>
@@ -819,7 +817,7 @@ export function CommandProperties({ node, onUpdate }: CommandPropertiesProps) {
 
 **Recommendation:**
 - Implement real playback only in Phase 07
-- Defer simulation mode to v1.2 (matches DTMF/recording deferral pattern)
+- Defer simulation mode to v1.2 (matches other deferred media ideas)
 - If simulation needed, calculate duration: `samples / sampleRate = seconds`
 
 ### Question 2: Playback Progress Events

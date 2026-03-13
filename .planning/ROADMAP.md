@@ -104,86 +104,86 @@
 
 ---
 
-## v1.4: 통화 녹음 + 미디어 확장
+## v1.4: 기본 콜 기능 안정화
 
-**목표:** 통화 녹음 제어와 재생 상태 추적을 추가해 실제 QA 시나리오에서 통화 내용을 수집·분석할 수 있게 한다.
+**목표:** 신규 미디어 기능을 추가하지 않고 기존 기본 콜 기능의 안정성, 하위 호환성, 검증 품질을 우선 강화한다. 이 결과는 추후 성능 측정의 기준 시나리오로 재사용할 수 있어야 한다.
 
-**요구사항:** 11개 (REC: 5, MED: 3, UI: 3)
+**요구사항:** 16개 (CORE: 5, DIALOG: 4, UX: 3, READY: 4)
 **페이즈:** 3 (Phase 17 → 18 → 19)
 
 ---
 
-### Phase 17: Recording Backend Foundation
+### Phase 17: Core Call Regression Matrix
 
-**목표:** StartRecording/StopRecording 노드와 recorder 생명주기 관리 기반을 구현한다.
+**목표:** 지금까지 만든 기본 콜 기능을 기능 단위가 아니라 시나리오 단위로 다시 묶어 must-have 회귀 매트릭스를 확정한다.
 
-**요구사항:** REC-01, REC-02, REC-03, REC-04, REC-05
+**요구사항:** CORE-01, CORE-02, CORE-03, CORE-04, CORE-05, DIALOG-01, DIALOG-02
 
 **성공 기준:**
-1. StartRecording(callID="primary") 실행 시 해당 dialog의 녹음이 시작되고 파일이 생성된다
-2. StopRecording(callID="primary") 실행 시 녹음이 정상 종료되고 파일이 flush/close 된다
-3. 파일명에 인스턴스 ID, logical callId, timestamp가 포함되어 충돌이 발생하지 않는다
-4. Stereo WAV로 Local/Remote 채널이 분리 저장된다
-5. 시나리오 중단/통화 종료 시 열린 recorder가 자동 정리된다
+1. `MakeCall -> Answer -> Release` 기본 2자 통화 시나리오가 must-have로 명시된다
+2. `INCOMING -> Answer -> Release` 수신 통화 시나리오가 must-have로 명시된다
+3. `Hold -> Retrieve`, `BlindTransfer`, `MuteTransfer`가 각각 독립 회귀 시나리오로 정리된다
+4. 각 시나리오에 대해 대상 dialog, 기대 이벤트, 성공/실패 판정 기준이 문서로 고정된다
+5. 멀티 다이얼로그와 `callId` 오지정 케이스가 실패 케이스로 분리 정리된다
 
 **진행 추적:**
 
 | Plan | 제목 | 상태 |
 |------|------|------|
-| 17-01 | recorder 저장소 + executor 생명주기 추가 | 대기 |
-| 17-02 | StartRecording/StopRecording 구현 + 정리 경로 보강 | 대기 |
+| 17-01 | 기본 콜 must-have 시나리오 매트릭스 정리 | 다음 |
+| 17-02 | 실패 케이스 / callId 오지정 케이스 정리 | 대기 |
 
 ---
 
-### Phase 18: Playback Progress + stopOnDTMF
+### Phase 18: Regression Verification Hardening
 
-**목표:** PlayAudio에 재생 중단 조건과 진행 상태 추적을 추가한다.
+**목표:** 문서화한 회귀 시나리오를 현재 테스트/빌드/검증 경로에 정확히 매핑하고, 자동 판정 가능한 기준으로 강화한다.
 
-**요구사항:** MED-01, MED-02, MED-03
+**요구사항:** DIALOG-03, DIALOG-04, UX-01, UX-02, UX-03, READY-01, READY-02, READY-04
 
 **성공 기준:**
-1. PlayAudio(stopOnDTMF=true) 실행 중 DTMF가 수신되면 재생이 중단된다
-2. 재생 시작/진행/완료/중단이 실행 로그 또는 이벤트로 구분되어 표시된다
-3. 진행률이 주기적으로 계산되어 모니터링 UI에서 사용할 수 있다
+1. 회귀 시나리오별로 대응되는 Go 테스트 또는 빌드 검증 경로가 명시된다
+2. `StartScenario`, `StopScenario`, cleanup, 재실행 방지 항목이 회귀 체크 목록에 포함된다
+3. v1.0~v1.3 하위 호환 시나리오가 계속 파싱/실행 가능함을 확인하는 기준이 유지된다
+4. 백엔드 지원 명세와 프론트엔드 팔레트/Properties/validation 간 계약 체크 포인트가 고정된다
+5. 검증 명령이 반복 실행 가능한 baseline 명령 셋으로 정리된다
 
 **진행 추적:**
 
 | Plan | 제목 | 상태 |
 |------|------|------|
-| 18-01 | DTMF 연동 재생 중단 처리 | 대기 |
-| 18-02 | 진행률 이벤트/로그 발행 | 대기 |
+| 18-01 | 기존 테스트/빌드 경로를 회귀 시나리오에 매핑 | 대기 |
+| 18-02 | cleanup / restart / contract 검증 기준 보강 | 대기 |
 
 ---
 
-### Phase 19: Recording/Playback UI + Validation
+### Phase 19: Performance-Ready Baseline
 
-**목표:** 새 노드와 옵션을 팔레트/Properties/Validation/UI 모니터에 연결한다.
+**목표:** 아직 성능 테스트를 구현하지 않되, 나중에 성능 측정으로 전환할 수 있도록 반복 실행 기준과 로그 판독 기준을 고정한다.
 
-**요구사항:** UI-01, UI-02, UI-03
+**요구사항:** READY-03
 
 **성공 기준:**
-1. StartRecording/StopRecording 노드가 팔레트에 나타나고 `callId` 기반 설정이 가능하다
-2. PlayAudio Properties 패널에서 `stopOnDTMF`를 설정할 수 있다
-3. 필수 입력 누락 시 Validation이 실행 전에 오류를 보여준다
+1. 기본 콜 기준 시나리오와 검증 명령이 “반복 실행 가능한 baseline”으로 문서화된다
+2. ActionLog / SIP 로그에서 어떤 필드로 성공/실패/지연을 판독할지 기준이 정리된다
+3. 성능 테스트로 확장할 때 재사용할 수 있는 시나리오 목록과 제외 범위가 정리된다
 
 **진행 추적:**
 
 | Plan | 제목 | 상태 |
 |------|------|------|
-| 19-01 | 녹음 노드 팔레트 + Properties UI | 대기 |
-| 19-02 | stopOnDTMF/진행 상태 UI + validation 반영 | 대기 |
-
----
+| 19-01 | baseline 시나리오/명령/판정 기준 정리 | 대기 |
+| 19-02 | 성능 전환용 로그/아티팩트 기준 정리 | 대기 |
 
 ### v1.4 진행 현황
 
 | Phase | 제목 | 요구사항 | 상태 |
 |-------|------|----------|------|
-| 17 | Recording Backend Foundation | REC-01~REC-05 | 대기 |
-| 18 | Playback Progress + stopOnDTMF | MED-01~MED-03 | 대기 |
-| 19 | Recording/Playback UI + Validation | UI-01~UI-03 | 대기 |
+| 17 | Core Call Regression Matrix | CORE-01~05, DIALOG-01~02 | 다음 |
+| 18 | Regression Verification Hardening | DIALOG-03~04, UX-01~03, READY-01~02, READY-04 | 대기 |
+| 19 | Performance-Ready Baseline | READY-03 | 대기 |
 
-**커버리지:** 11/11 요구사항 매핑됨
+**커버리지:** 16/16 요구사항 매핑됨
 
 ---
 

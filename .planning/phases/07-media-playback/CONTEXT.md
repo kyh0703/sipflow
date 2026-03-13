@@ -83,7 +83,6 @@
 | WAV 파일 프로젝트 번들링 (내보내기 시 복사) | Phase 07 논의 | v3.0 시나리오 내보내기/공유에서 고려 |
 | 오디오 미리듣기 기능 | Phase 07 분석 | Properties 패널에서 WAV 재생, UX 개선이나 현재 불필요 |
 | 다중 포맷 자동 변환 (44.1kHz → 8kHz) | Phase 07 분석 | ffmpeg/sox 의존성 필요, 복잡도 대비 가치 낮음 |
-| 녹음 기능 (StartRecording/StopRecording) | v1.1 요구사항 정의 | v1.2로 연기 확정 |
 | 재생 중단(StopPlayback) 명령 | Phase 07 분석 | 현재 PlayAudio는 완료까지 실행, 향후 필요 시 추가 |
 | 재생 진행 프로그레스 바 | ROADMAP 성공기준 5번 | Phase 9 (Integration & Polish)로 연기. diago Play()가 blocking이라 정확한 진행률 추정 복잡 |
 
