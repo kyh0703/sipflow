@@ -66,7 +66,7 @@ export function ExecutionTimeline() {
         <div
           ref={scrollContainerRef}
           onScroll={checkIfAtBottom}
-          className="max-h-[200px] overflow-y-auto p-2 font-mono text-xs"
+          className="h-full overflow-y-auto p-2 font-mono text-xs"
         >
           {sipMessages.map((msg) => (
             <div key={msg.id} className="py-0.5 text-foreground">
@@ -100,7 +100,7 @@ export function ExecutionTimeline() {
       <div
         ref={scrollContainerRef}
         onScroll={checkIfAtBottom}
-        className="max-h-[200px] overflow-auto"
+        className="h-full overflow-auto"
       >
         <svg width={svgWidth} height={svgHeight} className="bg-background">
           {/* Arrow marker definitions */}

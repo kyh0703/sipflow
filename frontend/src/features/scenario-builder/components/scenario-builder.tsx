@@ -44,7 +44,6 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
   const { setConsolePanelSize } = useWorkspacePanelActions();
   const [bottomTab, setBottomTab] = useState<'log' | 'timeline'>('log');
   const propertiesRef = useRef<PanelImperativeHandle>(null);
-  const consolePanelRef = useRef<PanelImperativeHandle>(null);
   const selectedNodeId = useFlowEditorSelectedNodeId();
   const { saveNow } = useFlowEditorActions();
 
@@ -56,27 +55,6 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
       propertiesRef.current?.collapse();
     }
   }, [selectedNodeId]);
-
-  useEffect(() => {
-    const panel = consolePanelRef.current;
-
-    if (!panel) {
-      return;
-    }
-
-    if (isConsoleOpen) {
-      if (panel.isCollapsed()) {
-        panel.expand();
-      }
-
-      panel.resize(consolePanelSize);
-      return;
-    }
-
-    if (!panel.isCollapsed()) {
-      panel.collapse();
-    }
-  }, [consolePanelSize, isConsoleOpen]);
 
   useEffect(() => {
     if (!import.meta.env.DEV) {
@@ -193,72 +171,72 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
 
               {/* Center: Canvas + Execution Panel */}
               <ResizablePanel id="canvas">
-                <ResizablePanelGroup
-                  orientation="vertical"
-                  className="h-full"
-                >
-                  <ResizablePanel id="canvas-main" minSize="35%">
-                    <div className="flex h-full flex-col">
-                      <div className="flex-1">
+                {isConsoleOpen ? (
+                  <ResizablePanelGroup
+                    orientation="vertical"
+                    className="h-full"
+                  >
+                    <ResizablePanel id="canvas-main" defaultSize={100 - consolePanelSize} minSize={35}>
+                      <div className="h-full min-h-0">
                         <Canvas />
                       </div>
-                      {!isConsoleOpen && executionStatus !== 'idle' && (
-                        <div className="border-t border-border bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
-                          실행 중 로그는 왼쪽 하단 Console 버튼으로 확인할 수 있습니다.
+                    </ResizablePanel>
+
+                    <ResizableHandle withHandle />
+
+                    <ResizablePanel
+                      id="console"
+                      defaultSize={consolePanelSize}
+                      minSize={18}
+                      maxSize={60}
+                      onResize={(size) => {
+                        if (size.asPercentage > 0) {
+                          setConsolePanelSize(size.asPercentage);
+                        }
+                      }}
+                    >
+                      <div className="flex h-full min-h-0 flex-col border-t border-border bg-background">
+                        <div className="flex items-center gap-1 px-3 py-1 border-b border-border bg-muted/50">
+                          <button
+                            onClick={() => setBottomTab('log')}
+                            className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
+                              bottomTab === 'log'
+                                ? 'bg-background text-foreground'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            Log
+                          </button>
+                          <button
+                            onClick={() => setBottomTab('timeline')}
+                            className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
+                              bottomTab === 'timeline'
+                                ? 'bg-background text-foreground'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            Timeline
+                          </button>
                         </div>
-                      )}
-                    </div>
-                  </ResizablePanel>
-
-                  <ResizableHandle
-                    withHandle
-                    className={!isConsoleOpen ? 'pointer-events-none opacity-0' : ''}
-                  />
-
-                  <ResizablePanel
-                    id="console"
-                    panelRef={consolePanelRef}
-                    collapsible
-                    collapsedSize={0}
-                    defaultSize={`${consolePanelSize}%`}
-                    minSize="18%"
-                    maxSize="60%"
-                    onResize={(size) => {
-                      if (size.asPercentage > 0) {
-                        setConsolePanelSize(size.asPercentage);
-                      }
-                    }}
-                  >
-                    <div className="flex h-full flex-col border-t border-border bg-background">
-                      <div className="flex items-center gap-1 px-3 py-1 border-b border-border bg-muted/50">
-                        <button
-                          onClick={() => setBottomTab('log')}
-                          className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
-                            bottomTab === 'log'
-                              ? 'bg-background text-foreground'
-                              : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          Log
-                        </button>
-                        <button
-                          onClick={() => setBottomTab('timeline')}
-                          className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
-                            bottomTab === 'timeline'
-                              ? 'bg-background text-foreground'
-                              : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          Timeline
-                        </button>
+                        <div className="min-h-0 flex-1 overflow-hidden">
+                          {bottomTab === 'log' && <ExecutionLog />}
+                          {bottomTab === 'timeline' && <ExecutionTimeline />}
+                        </div>
                       </div>
-                      <div className="min-h-0 flex-1 overflow-hidden">
-                        {bottomTab === 'log' && <ExecutionLog />}
-                        {bottomTab === 'timeline' && <ExecutionTimeline />}
-                      </div>
+                    </ResizablePanel>
+                  </ResizablePanelGroup>
+                ) : (
+                  <div className="flex h-full min-h-0 flex-col">
+                    <div className="flex-1">
+                      <Canvas />
                     </div>
-                  </ResizablePanel>
-                </ResizablePanelGroup>
+                    {executionStatus !== 'idle' && (
+                      <div className="border-t border-border bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
+                        실행 중 로그는 왼쪽 하단 Console 버튼으로 확인할 수 있습니다.
+                      </div>
+                    )}
+                  </div>
+                )}
               </ResizablePanel>
 
               <ResizableHandle withHandle />

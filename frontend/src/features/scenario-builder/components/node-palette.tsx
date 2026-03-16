@@ -3,6 +3,7 @@ import {
   Phone,
   PhoneIncoming,
   PhoneOff,
+  Smartphone,
   Volume2,
   Hash,
   Ear,
@@ -92,7 +93,7 @@ export function NodePalette() {
         <PaletteItem
           type="sipInstance"
           label="SIP Instance"
-          icon={Play}
+          icon={Smartphone}
           colorClass={SIP_ITEM_CLASS}
         />
       </Section>

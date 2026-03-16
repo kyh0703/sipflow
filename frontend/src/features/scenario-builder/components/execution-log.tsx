@@ -111,7 +111,7 @@ export function ExecutionLog() {
       <div
         ref={scrollContainerRef}
         onScroll={checkIfAtBottom}
-        className="max-h-[200px] overflow-y-auto p-2 font-mono text-xs"
+        className="h-full overflow-y-auto p-2 font-mono text-xs"
       >
         {filteredLogs.length === 0 ? (
           <div className="py-3 text-muted-foreground">No execution logs yet.</div>
