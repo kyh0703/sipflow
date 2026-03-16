@@ -2,11 +2,13 @@ import { createStore } from '@/lib/store';
 
 interface WorkspacePanelStoreState {
   isConsoleOpen: boolean;
+  consolePanelSize: number;
 }
 
 interface WorkspacePanelStoreActions {
   toggleConsole: () => void;
   setConsoleOpen: (open: boolean) => void;
+  setConsolePanelSize: (size: number) => void;
 }
 
 type WorkspacePanelStore = WorkspacePanelStoreState & {
@@ -16,6 +18,7 @@ type WorkspacePanelStore = WorkspacePanelStoreState & {
 export const useWorkspacePanelStore = createStore<WorkspacePanelStore>(
   (set) => ({
     isConsoleOpen: false,
+    consolePanelSize: 28,
     actions: {
       toggleConsole: () => {
         set((state) => {
@@ -27,6 +30,11 @@ export const useWorkspacePanelStore = createStore<WorkspacePanelStore>(
           state.isConsoleOpen = open;
         });
       },
+      setConsolePanelSize: (size) => {
+        set((state) => {
+          state.consolePanelSize = size;
+        });
+      },
     },
   }),
   {
@@ -36,6 +44,9 @@ export const useWorkspacePanelStore = createStore<WorkspacePanelStore>(
 
 export const useWorkspaceConsoleOpen = () =>
   useWorkspacePanelStore((state) => state.isConsoleOpen);
+
+export const useWorkspaceConsolePanelSize = () =>
+  useWorkspacePanelStore((state) => state.consolePanelSize);
 
 export const useWorkspacePanelActions = () =>
   useWorkspacePanelStore((state) => state.actions);

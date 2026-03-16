@@ -22,6 +22,7 @@ import {
 } from '@xyflow/react';
 import { toast } from 'sonner';
 import { LoadScenario, SaveScenario } from '../../../../wailsjs/go/binding/ScenarioBinding';
+import { useUndoRedo, type FlowSnapshot } from '../hooks/use-undo-redo';
 import type { ValidationError } from '../lib/validation';
 import { getHelperLines } from '../lib/helper-line';
 import type { BranchEdgeData } from '../types/scenario';
@@ -32,16 +33,12 @@ import {
 } from './scenario-store';
 import { usePbxInstances } from './app-settings-store';
 
-interface FlowSnapshot {
-  nodes: Node[];
-  edges: Edge[];
-}
-
 interface FlowEditorActions {
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
   addNode: (node: Node) => void;
+  addElements: (nodes: Node[], edges: Edge[]) => void;
   removeSelectedElements: () => void;
   updateNodeData: (nodeId: string, data: Partial<any>) => void;
   setSelectedNode: (nodeId: string | null) => void;
@@ -76,28 +73,6 @@ function buildEdgeID(source: string, target: string): string {
   return `${source}-${target}`;
 }
 
-function cloneNodes(nodes: Node[]): Node[] {
-  return nodes.map((node) => ({
-    ...node,
-    data: { ...node.data },
-    position: { ...node.position },
-  }));
-}
-
-function cloneEdges(edges: Edge[]): Edge[] {
-  return edges.map((edge) => ({
-    ...edge,
-    data: edge.data ? { ...edge.data } : edge.data,
-  }));
-}
-
-function createSnapshot(nodes: Node[], edges: Edge[]): FlowSnapshot {
-  return {
-    nodes: cloneNodes(nodes),
-    edges: cloneEdges(edges),
-  };
-}
-
 function parseFlowJSON(json: string): FlowSnapshot {
   if (!json || json === '{}') {
     return { nodes: [], edges: [] };
@@ -128,12 +103,25 @@ function useFlowEditorContextValue(): FlowEditorContextValue {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [horizontalLine, setHorizontalLine] = useState<number | undefined>(undefined);
   const [verticalLine, setVerticalLine] = useState<number | undefined>(undefined);
-  const [historyPast, setHistoryPast] = useState<FlowSnapshot[]>([]);
-  const [historyFuture, setHistoryFuture] = useState<FlowSnapshot[]>([]);
 
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   const selectedNodeIdRef = useRef(selectedNodeId);
+  const {
+    canUndo,
+    canRedo,
+    pushHistory,
+    resetHistory,
+    undo,
+    redo,
+  } = useUndoRedo({
+    nodesRef,
+    edgesRef,
+    setNodes,
+    setEdges,
+    setSelectedNodeId,
+    setDirty,
+  });
 
   useEffect(() => {
     nodesRef.current = nodes;
@@ -150,23 +138,16 @@ function useFlowEditorContextValue(): FlowEditorContextValue {
   const resetTransientState = useCallback(() => {
     setSelectedNodeId(null);
     setValidationErrors([]);
-    setHistoryPast([]);
-    setHistoryFuture([]);
+    resetHistory();
     setHorizontalLine(undefined);
     setVerticalLine(undefined);
-  }, []);
+  }, [resetHistory]);
 
   const clearCanvas = useCallback(() => {
     setNodes([]);
     setEdges([]);
     resetTransientState();
   }, [resetTransientState]);
-
-  const pushHistory = useCallback(() => {
-    const snapshot = createSnapshot(nodesRef.current, edgesRef.current);
-    setHistoryPast((prev) => [...prev, snapshot].slice(-50));
-    setHistoryFuture([]);
-  }, []);
 
   const loadFlowSnapshot = useCallback(
     (snapshot: FlowSnapshot) => {
@@ -411,6 +392,24 @@ function useFlowEditorContextValue(): FlowEditorContextValue {
         setNodes((currentNodes) => [...currentNodes, node]);
         setDirty(true);
       },
+      addElements: (nextNodes, nextEdges) => {
+        if (nextNodes.length === 0 && nextEdges.length === 0) {
+          return;
+        }
+
+        pushHistory();
+
+        setNodes((currentNodes) => [
+          ...currentNodes.map((node) => ({ ...node, selected: false })),
+          ...nextNodes,
+        ]);
+        setEdges((currentEdges) => [
+          ...currentEdges.map((edge) => ({ ...edge, selected: false })),
+          ...nextEdges,
+        ]);
+        setSelectedNodeId(nextNodes.length === 1 ? nextNodes[0].id : null);
+        setDirty(true);
+      },
       removeSelectedElements: () => {
         const selectedNodeIds = new Set(
           nodesRef.current.filter((node) => node.selected).map((node) => node.id)
@@ -469,48 +468,20 @@ function useFlowEditorContextValue(): FlowEditorContextValue {
       toFlowJSON,
       loadFromJSON,
       clearCanvas,
-      undo: () => {
-        if (historyPast.length === 0) {
-          return;
-        }
-
-        const previous = historyPast[historyPast.length - 1];
-        const currentSnapshot = createSnapshot(nodesRef.current, edgesRef.current);
-
-        setHistoryPast((prev) => prev.slice(0, -1));
-        setHistoryFuture((prev) => [...prev, currentSnapshot].slice(-50));
-        setNodes(cloneNodes(previous.nodes));
-        setEdges(cloneEdges(previous.edges));
-        setSelectedNodeId(null);
-        setDirty(true);
-      },
-      redo: () => {
-        if (historyFuture.length === 0) {
-          return;
-        }
-
-        const next = historyFuture[historyFuture.length - 1];
-        const currentSnapshot = createSnapshot(nodesRef.current, edgesRef.current);
-
-        setHistoryPast((prev) => [...prev, currentSnapshot].slice(-50));
-        setHistoryFuture((prev) => prev.slice(0, -1));
-        setNodes(cloneNodes(next.nodes));
-        setEdges(cloneEdges(next.edges));
-        setSelectedNodeId(null);
-        setDirty(true);
-      },
+      undo,
+      redo,
     }),
     [
       clearCanvas,
-      historyFuture,
-      historyPast,
       loadFromJSON,
       onEdgesStateChange,
       onNodesStateChange,
       pushHistory,
+      redo,
       saveNow,
       setDirty,
       toFlowJSON,
+      undo,
     ]
   );
 
@@ -522,15 +493,15 @@ function useFlowEditorContextValue(): FlowEditorContextValue {
       validationErrors,
       horizontalLine,
       verticalLine,
-      canUndo: historyPast.length > 0,
-      canRedo: historyFuture.length > 0,
+      canUndo,
+      canRedo,
       actions,
     }),
     [
       actions,
+      canRedo,
+      canUndo,
       edges,
-      historyFuture.length,
-      historyPast.length,
       horizontalLine,
       nodes,
       selectedNodeId,

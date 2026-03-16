@@ -55,7 +55,7 @@ function getEventSummary(data: EventNodeType['data']): string | null {
   }
 }
 
-export function EventNode({ data, id }: NodeProps<EventNodeType>) {
+export function EventNode({ data, id, selected }: NodeProps<EventNodeType>) {
   const Icon = EVENT_ICONS[data.event as keyof typeof EVENT_ICONS] ?? Bell;
   const validationErrors = useFlowEditorValidationErrors();
   const nodes = useFlowEditorNodes();
@@ -86,6 +86,7 @@ export function EventNode({ data, id }: NodeProps<EventNodeType>) {
       source={instanceLabel}
       title={formatEventLabel(data.event)}
       icon={<Icon className="h-4 w-4" />}
+      selected={selected}
       status={nodeExecState?.status ? getExecutionState(nodeExecState.status) : hasError ? 'error' : null}
       summary={getEventSummary(data)}
     >

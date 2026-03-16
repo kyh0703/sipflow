@@ -24,7 +24,11 @@ import {
   useFlowEditorSelectedNodeId,
 } from '../store/flow-editor-context';
 import { useExecutionStatus } from '../store/execution-store';
-import { useWorkspaceConsoleOpen } from '../store/workspace-panel-store';
+import {
+  useWorkspaceConsoleOpen,
+  useWorkspaceConsolePanelSize,
+  useWorkspacePanelActions,
+} from '../store/workspace-panel-store';
 
 interface ScenarioBuilderProps {
   activePanel: 'scenario' | 'palette';
@@ -36,8 +40,11 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
   const saveStatus = useScenarioSaveStatus();
   const executionStatus = useExecutionStatus();
   const isConsoleOpen = useWorkspaceConsoleOpen();
+  const consolePanelSize = useWorkspaceConsolePanelSize();
+  const { setConsolePanelSize } = useWorkspacePanelActions();
   const [bottomTab, setBottomTab] = useState<'log' | 'timeline'>('log');
   const propertiesRef = useRef<PanelImperativeHandle>(null);
+  const consolePanelRef = useRef<PanelImperativeHandle>(null);
   const selectedNodeId = useFlowEditorSelectedNodeId();
   const { saveNow } = useFlowEditorActions();
 
@@ -49,6 +56,27 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
       propertiesRef.current?.collapse();
     }
   }, [selectedNodeId]);
+
+  useEffect(() => {
+    const panel = consolePanelRef.current;
+
+    if (!panel) {
+      return;
+    }
+
+    if (isConsoleOpen) {
+      if (panel.isCollapsed()) {
+        panel.expand();
+      }
+
+      panel.resize(consolePanelSize);
+      return;
+    }
+
+    if (!panel.isCollapsed()) {
+      panel.collapse();
+    }
+  }, [consolePanelSize, isConsoleOpen]);
 
   useEffect(() => {
     if (!import.meta.env.DEV) {
@@ -165,14 +193,43 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
 
               {/* Center: Canvas + Execution Panel */}
               <ResizablePanel id="canvas">
-                <div className="flex flex-col h-full">
-                  <div className="flex-1">
-                    <Canvas />
-                  </div>
-                  {/* Bottom panel: show when console is toggled open */}
-                  {isConsoleOpen && (
-                    <div className="border-t border-border bg-background">
-                      {/* Tab headers */}
+                <ResizablePanelGroup
+                  orientation="vertical"
+                  className="h-full"
+                >
+                  <ResizablePanel id="canvas-main" minSize="35%">
+                    <div className="flex h-full flex-col">
+                      <div className="flex-1">
+                        <Canvas />
+                      </div>
+                      {!isConsoleOpen && executionStatus !== 'idle' && (
+                        <div className="border-t border-border bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
+                          실행 중 로그는 왼쪽 하단 Console 버튼으로 확인할 수 있습니다.
+                        </div>
+                      )}
+                    </div>
+                  </ResizablePanel>
+
+                  <ResizableHandle
+                    withHandle
+                    className={!isConsoleOpen ? 'pointer-events-none opacity-0' : ''}
+                  />
+
+                  <ResizablePanel
+                    id="console"
+                    panelRef={consolePanelRef}
+                    collapsible
+                    collapsedSize={0}
+                    defaultSize={`${consolePanelSize}%`}
+                    minSize="18%"
+                    maxSize="60%"
+                    onResize={(size) => {
+                      if (size.asPercentage > 0) {
+                        setConsolePanelSize(size.asPercentage);
+                      }
+                    }}
+                  >
+                    <div className="flex h-full flex-col border-t border-border bg-background">
                       <div className="flex items-center gap-1 px-3 py-1 border-b border-border bg-muted/50">
                         <button
                           onClick={() => setBottomTab('log')}
@@ -195,17 +252,13 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
                           Timeline
                         </button>
                       </div>
-                      {/* Tab content */}
-                      {bottomTab === 'log' && <ExecutionLog />}
-                      {bottomTab === 'timeline' && <ExecutionTimeline />}
+                      <div className="min-h-0 flex-1 overflow-hidden">
+                        {bottomTab === 'log' && <ExecutionLog />}
+                        {bottomTab === 'timeline' && <ExecutionTimeline />}
+                      </div>
                     </div>
-                  )}
-                  {!isConsoleOpen && executionStatus !== 'idle' && (
-                    <div className="border-t border-border bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
-                      실행 중 로그는 왼쪽 하단 Console 버튼으로 확인할 수 있습니다.
-                    </div>
-                  )}
-                </div>
+                  </ResizablePanel>
+                </ResizablePanelGroup>
               </ResizablePanel>
 
               <ResizableHandle withHandle />

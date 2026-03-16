@@ -12,6 +12,7 @@ interface NodeShellProps {
   source?: string;
   title: string;
   icon: ReactNode;
+  selected?: boolean;
   status?: NodeStatus;
   summary?: ReactNode;
   children?: ReactNode;
@@ -64,6 +65,7 @@ export function NodeShell({
   source,
   title,
   icon,
+  selected = false,
   status = null,
   summary,
   children,
@@ -79,6 +81,8 @@ export function NodeShell({
     <div
       className={cn(
         'relative min-w-[220px] rounded-[18px] border border-border bg-card text-left shadow-[0_1px_2px_rgba(15,23,42,0.06),0_10px_28px_rgba(15,23,42,0.06)] transition-[box-shadow,border-color,transform] duration-150',
+        selected &&
+          'border-dashed border-primary/80 bg-primary/[0.04] shadow-[0_0_0_1px_hsl(var(--primary)/0.18),0_12px_32px_rgba(15,23,42,0.12)] ring-2 ring-primary/20',
         getRingClassName(status),
         isTarget && 'border-blue-400 ring-2 ring-blue-200',
         isSourceNode && 'border-slate-400'
@@ -105,14 +109,25 @@ export function NodeShell({
       <div className="px-4 pt-3 pb-3">
         <div className="mb-3 flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
           <div className="flex min-w-0 items-center gap-2">
-            <span className={cn('h-2 w-2 shrink-0 rounded-full bg-slate-400', isTarget && 'bg-blue-500')} />
+            <span
+              className={cn(
+                'h-2 w-2 shrink-0 rounded-full bg-slate-400 transition-colors',
+                selected && 'bg-primary',
+                isTarget && 'bg-blue-500'
+              )}
+            />
             <span className="truncate">{category}</span>
           </div>
           {source ? <span className="truncate">{source}</span> : null}
         </div>
 
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700">
+          <div
+            className={cn(
+              'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 transition-colors',
+              selected && 'border-primary/30 bg-primary/10 text-primary'
+            )}
+          >
             {icon}
           </div>
 

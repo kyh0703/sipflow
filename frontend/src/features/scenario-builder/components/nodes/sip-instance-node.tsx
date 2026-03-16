@@ -20,7 +20,7 @@ function getPbxInstanceLabel(instance: PbxInstanceSettings) {
   return 'Unnamed PBX';
 }
 
-export function SipInstanceNode({ data, id }: NodeProps<SipInstanceNode>) {
+export function SipInstanceNode({ data, id, selected }: NodeProps<SipInstanceNode>) {
   const validationErrors = useFlowEditorValidationErrors();
   const pbxInstances = usePbxInstances();
   const hasError = validationErrors.some((error) => error.nodeId === id);
@@ -44,6 +44,7 @@ export function SipInstanceNode({ data, id }: NodeProps<SipInstanceNode>) {
       source={data.mode}
       title={displayName}
       icon={<Phone className="h-4 w-4" />}
+      selected={selected}
       status={hasError ? 'error' : isActive ? 'running' : null}
       summary={pbxLabel}
       showTargetHandle={false}

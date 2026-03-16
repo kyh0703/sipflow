@@ -52,7 +52,7 @@ function getCommandSummary(data: CommandNodeType['data']): string | null {
   }
 }
 
-export function CommandNode({ data, id }: NodeProps<CommandNodeType>) {
+export function CommandNode({ data, id, selected }: NodeProps<CommandNodeType>) {
   const Icon = COMMAND_ICONS[data.command as keyof typeof COMMAND_ICONS] ?? Phone;
   const validationErrors = useFlowEditorValidationErrors();
   const nodes = useFlowEditorNodes();
@@ -83,6 +83,7 @@ export function CommandNode({ data, id }: NodeProps<CommandNodeType>) {
       source={instanceLabel}
       title={data.label}
       icon={<Icon className="h-4 w-4" />}
+      selected={selected}
       status={nodeExecState?.status ? getExecutionState(nodeExecState.status) : hasError ? 'error' : null}
       summary={getCommandSummary(data)}
     >

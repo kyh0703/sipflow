@@ -32,7 +32,9 @@ import {
   useExecutionActions,
   useExecutionStatus,
 } from '../store/execution-store';
-import { useValidation } from '../hooks/use-validation';
+import { useDelete } from '../hooks/use-delete';
+import { useKeyBinding } from '../hooks/use-key-binding';
+import { useSelect } from '../hooks/use-select';
 import { wouldCreateCycle } from '../lib/validation';
 import { edgeTypes } from '../edges/branch-edge';
 import { useDnD } from '../hooks/use-dnd';
@@ -48,24 +50,18 @@ function createNodeID(): string {
   return uuidv4();
 }
 
-function isEditableTarget(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable ||
-      ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
-  );
-}
-
 export function Canvas() {
   const { screenToFlowPosition } = useReactFlow();
   const { type: dragType, setType: setDragType } = useDnD();
-  const { validateAndNotify } = useValidation();
   const { resolvedTheme } = useTheme();
+  const shortcutTargetRef = useRef<HTMLDivElement>(null);
+  const { canDelete, deleteSelected } = useDelete();
+  const { selectNode } = useSelect();
+  useKeyBinding();
 
   const nodes = useFlowEditorNodes();
   const edges = useFlowEditorEdges();
   const currentScenarioId = useScenarioCurrentScenarioId();
-  const selectedNodeId = useFlowEditorSelectedNodeId();
   const horizontalLine = useFlowEditorHorizontalLine();
   const verticalLine = useFlowEditorVerticalLine();
   const canUndo = useFlowEditorCanUndo();
@@ -75,17 +71,11 @@ export function Canvas() {
     onEdgesChange,
     onConnect,
     addNode,
-    removeSelectedElements,
     setSelectedNode,
     setDirty,
-    saveNow,
     undo,
     redo,
   } = useFlowEditorActions();
-  const hasSelectedElements =
-    Boolean(selectedNodeId) ||
-    nodes.some((node) => node.selected) ||
-    edges.some((edge) => edge.selected);
 
   const status = useExecutionStatus();
   const actionLogs = useExecutionActionLogs();
@@ -158,7 +148,7 @@ export function Canvas() {
   };
 
   const onNodeClick = (_event: React.MouseEvent, node: Node) => {
-    setSelectedNode(node.id);
+    selectNode(node.id);
   };
 
   const onPaneClick = () => {
@@ -205,71 +195,6 @@ export function Canvas() {
     });
   }, [status, actionLogs, edges, addEdgeAnimation]);
 
-  // Keyboard shortcut: Ctrl+S / Cmd+S to save
-  useEffect(() => {
-    const handleKeyDown = async (event: KeyboardEvent) => {
-      const key = event.key.toLowerCase();
-      const hasModifier = event.ctrlKey || event.metaKey;
-      const isEditable = isEditableTarget(event.target);
-
-      // Check for Ctrl+S (Windows/Linux) or Cmd+S (Mac)
-      if (hasModifier && key === 's') {
-        event.preventDefault();
-
-        if (!currentScenarioId) {
-          toast.error('Create or select a scenario first');
-          return;
-        }
-
-        // Run validation and show warnings
-        validateAndNotify();
-
-        try {
-          await saveNow();
-          toast.success('Scenario saved successfully');
-        } catch (error) {
-          toast.error('Failed to save scenario: ' + error);
-        }
-
-        return;
-      }
-
-      if (isEditable) {
-        return;
-      }
-
-      if (hasModifier && key === 'z' && !event.shiftKey) {
-        event.preventDefault();
-        undo();
-        return;
-      }
-
-      if ((hasModifier && key === 'z' && event.shiftKey) || (event.ctrlKey && key === 'y')) {
-        event.preventDefault();
-        redo();
-        return;
-      }
-
-      if ((key === 'delete' || key === 'backspace') && hasSelectedElements) {
-        event.preventDefault();
-        removeSelectedElements();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [
-    currentScenarioId,
-    hasSelectedElements,
-    redo,
-    removeSelectedElements,
-    saveNow,
-    undo,
-    validateAndNotify,
-  ]);
-
   const isValidConnection = (connection: Edge | { source: string; target: string; sourceHandle?: string | null }) => {
     // Prevent self-connections
     if (connection.source === connection.target) {
@@ -311,11 +236,11 @@ export function Canvas() {
   const backgroundColor = resolvedTheme === 'dark' ? '#334155' : '#e5e7eb';
 
   const handleDeleteSelected = () => {
-    if (!hasSelectedElements) {
+    if (!canDelete) {
       return;
     }
 
-    removeSelectedElements();
+    deleteSelected();
   };
 
   const handleSelectionChange = ({ nodes: selectedNodes }: OnSelectionChangeParams<Node, Edge>) => {
@@ -323,43 +248,51 @@ export function Canvas() {
   };
 
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      onConnect={onConnect}
-      onDrop={onDrop}
-      onDragOver={onDragOver}
-      onNodeClick={onNodeClick}
-      onPaneClick={onPaneClick}
-      onSelectionChange={handleSelectionChange}
-      onNodeDragStop={onNodeDragStop}
-      nodeTypes={nodeTypes}
-      edgeTypes={edgeTypes}
-      isValidConnection={isValidConnection}
-      connectionLineStyle={connectionLineStyle}
-      connectionLineComponent={ConnectionLine}
-      connectOnClick
-      connectionRadius={28}
-      defaultEdgeOptions={defaultEdgeOptions}
-      fitView
+    <div
+      id="xyflow"
+      ref={shortcutTargetRef}
+      tabIndex={0}
+      className="h-full outline-none"
+      onMouseDownCapture={() => shortcutTargetRef.current?.focus()}
     >
-      <Panel position="top-right">
-        <CanvasToolbar
-          canUndo={canUndo}
-          canRedo={canRedo}
-          canDelete={hasSelectedElements}
-          onUndo={undo}
-          onRedo={redo}
-          onDelete={handleDeleteSelected}
-        />
-      </Panel>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        onNodeClick={onNodeClick}
+        onPaneClick={onPaneClick}
+        onSelectionChange={handleSelectionChange}
+        onNodeDragStop={onNodeDragStop}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        isValidConnection={isValidConnection}
+        connectionLineStyle={connectionLineStyle}
+        connectionLineComponent={ConnectionLine}
+        connectOnClick
+        connectionRadius={28}
+        defaultEdgeOptions={defaultEdgeOptions}
+        fitView
+      >
+        <Panel position="top-right">
+          <CanvasToolbar
+            canUndo={canUndo}
+            canRedo={canRedo}
+            canDelete={canDelete}
+            onUndo={undo}
+            onRedo={redo}
+            onDelete={handleDeleteSelected}
+          />
+        </Panel>
 
-      <HelperLines horizontal={horizontalLine} vertical={verticalLine} />
-      <Background variant={BackgroundVariant.Dots} gap={28} size={1} color={backgroundColor} />
-      <Controls />
-      <MiniMap />
-    </ReactFlow>
+        <HelperLines horizontal={horizontalLine} vertical={verticalLine} />
+        <Background variant={BackgroundVariant.Dots} gap={28} size={1} color={backgroundColor} />
+        <Controls />
+        <MiniMap />
+      </ReactFlow>
+    </div>
   );
 }
