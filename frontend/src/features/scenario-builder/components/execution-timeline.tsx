@@ -47,7 +47,7 @@ export function ExecutionTimeline() {
   // Empty state
   if (sipMessages.length === 0) {
     return (
-      <div className="p-4 text-center text-sm text-muted-foreground">
+      <div className="flex h-full min-h-[120px] items-center justify-center p-4 text-center text-sm text-muted-foreground">
         No SIP messages yet. Start the scenario to see the message sequence.
       </div>
     );
@@ -56,7 +56,7 @@ export function ExecutionTimeline() {
   // Single instance case: show simple list instead of ladder diagram
   if (lanes.length === 1) {
     return (
-      <>
+      <div className="flex h-full min-h-0 flex-col">
         <div className="flex items-center justify-between px-3 py-1 border-b border-border bg-muted/50">
           <span className="text-xs font-medium">Timeline</span>
           <span className="text-xs text-muted-foreground">
@@ -66,7 +66,7 @@ export function ExecutionTimeline() {
         <div
           ref={scrollContainerRef}
           onScroll={checkIfAtBottom}
-          className="h-full overflow-y-auto p-2 font-mono text-xs"
+          className="min-h-0 flex-1 overflow-y-auto p-2 font-mono text-xs"
         >
           {sipMessages.map((msg) => (
             <div key={msg.id} className="py-0.5 text-foreground">
@@ -81,7 +81,7 @@ export function ExecutionTimeline() {
             </div>
           ))}
         </div>
-      </>
+      </div>
     );
   }
 
@@ -90,7 +90,7 @@ export function ExecutionTimeline() {
   const svgHeight = HEADER_HEIGHT + sipMessages.length * MESSAGE_HEIGHT + PADDING;
 
   return (
-    <>
+    <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between px-3 py-1 border-b border-border bg-muted/50">
         <span className="text-xs font-medium">Timeline</span>
         <span className="text-xs text-muted-foreground">
@@ -100,7 +100,7 @@ export function ExecutionTimeline() {
       <div
         ref={scrollContainerRef}
         onScroll={checkIfAtBottom}
-        className="h-full overflow-auto"
+        className="min-h-0 flex-1 overflow-auto"
       >
         <svg width={svgWidth} height={svgHeight} className="bg-background">
           {/* Arrow marker definitions */}
@@ -228,6 +228,6 @@ export function ExecutionTimeline() {
           })}
         </svg>
       </div>
-    </>
+    </div>
   );
 }

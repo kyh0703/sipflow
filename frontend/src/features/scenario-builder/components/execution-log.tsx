@@ -65,7 +65,7 @@ export function ExecutionLog() {
   }, [actionLogs, isAtBottom]);
 
   return (
-    <>
+    <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between px-3 py-1 border-b border-border bg-muted/50">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
@@ -111,10 +111,12 @@ export function ExecutionLog() {
       <div
         ref={scrollContainerRef}
         onScroll={checkIfAtBottom}
-        className="h-full overflow-y-auto p-2 font-mono text-xs"
+        className="min-h-0 flex-1 overflow-y-auto p-2 font-mono text-xs"
       >
         {filteredLogs.length === 0 ? (
-          <div className="py-3 text-muted-foreground">No execution logs yet.</div>
+          <div className="flex h-full min-h-[120px] items-center justify-center py-3 text-sm text-muted-foreground">
+            No execution logs yet.
+          </div>
         ) : null}
         {filteredLogs.map((log) => (
           <div key={log.id} className={`py-0.5 ${logLevelStyles[log.level] || logLevelStyles.info}`}>
@@ -136,6 +138,6 @@ export function ExecutionLog() {
         ))}
         <div ref={endRef} />
       </div>
-    </>
+    </div>
   );
 }

@@ -41,6 +41,7 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
   const executionStatus = useExecutionStatus();
   const isConsoleOpen = useWorkspaceConsoleOpen();
   const consolePanelSize = useWorkspaceConsolePanelSize();
+  const effectiveConsolePanelSize = Math.max(consolePanelSize, 38);
   const { setConsolePanelSize } = useWorkspacePanelActions();
   const [bottomTab, setBottomTab] = useState<'log' | 'timeline'>('log');
   const propertiesRef = useRef<PanelImperativeHandle>(null);
@@ -176,7 +177,7 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
                     orientation="vertical"
                     className="h-full"
                   >
-                    <ResizablePanel id="canvas-main" defaultSize={100 - consolePanelSize} minSize={35}>
+                    <ResizablePanel id="canvas-main" defaultSize={100 - effectiveConsolePanelSize} minSize={10}>
                       <div className="h-full min-h-0">
                         <Canvas />
                       </div>
@@ -186,9 +187,9 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
 
                     <ResizablePanel
                       id="console"
-                      defaultSize={consolePanelSize}
-                      minSize={18}
-                      maxSize={60}
+                      defaultSize={effectiveConsolePanelSize}
+                      minSize={20}
+                      maxSize={90}
                       onResize={(size) => {
                         if (size.asPercentage > 0) {
                           setConsolePanelSize(size.asPercentage);
