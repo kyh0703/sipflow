@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { RoutePending } from '@/components/route-pending';
-import { SettingsPanel } from '@/features/scenario-builder/components/settings-panel';
+import { SettingsPanel } from '@/features/settings/components/settings-panel';
 
 export const Route = createFileRoute('/settings/pbx')({
   component: SettingsPanel,

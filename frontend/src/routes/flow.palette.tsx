@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { RoutePending } from '@/components/route-pending';
-import { ScenarioBuilder } from '@/features/scenario-builder/components/scenario-builder';
+import { ScenarioBuilder } from '@/features/scenario/builder/components/scenario-builder';
 
 function FlowPalettePage() {
   return <ScenarioBuilder activePanel="palette" />;

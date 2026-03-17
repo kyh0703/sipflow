@@ -1,24 +1,32 @@
 import { FolderTree, Puzzle, SlidersHorizontal, SquareTerminal } from 'lucide-react';
 import type { ComponentType } from 'react';
-import { Link, useLocation } from '@tanstack/react-router';
+import { Link, useLocation, useNavigate } from '@tanstack/react-router';
+import { showConfirmModal } from '@/components/modal/confirm-modal';
 import { cn } from '@/lib/utils';
-import { useWorkspaceConsoleOpen, useWorkspacePanelActions } from '@/features/scenario-builder/store/workspace-panel-store';
+import { useScenarioIsDirty } from '@/features/scenario/store/scenario-store';
+import { useWorkspaceConsoleOpen, useWorkspacePanelActions } from './store/workspace-panel-store';
 
 function AppNavLink({
   label,
   icon: Icon,
   to,
   exact = false,
+  onNavigate,
 }: {
   label: string;
   icon: ComponentType<{ className?: string }>;
   to: '/flow/scenario' | '/flow/palette' | '/settings/pbx';
   exact?: boolean;
+  onNavigate: (to: '/flow/scenario' | '/flow/palette' | '/settings/pbx') => void;
 }) {
   return (
     <Link
       to={to}
       activeOptions={{ exact }}
+      onClick={(event) => {
+        event.preventDefault();
+        onNavigate(to);
+      }}
       title={label}
       aria-label={label}
       className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl transition-colors"
@@ -71,9 +79,31 @@ function AppActionButton({
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const isDirty = useScenarioIsDirty();
   const isConsoleOpen = useWorkspaceConsoleOpen();
   const { toggleConsole } = useWorkspacePanelActions();
   const isFlowRoute = location.pathname.startsWith('/flow');
+
+  const handleNavigate = async (
+    to: '/flow/scenario' | '/flow/palette' | '/settings/pbx'
+  ) => {
+    if (location.pathname === to) {
+      return;
+    }
+
+    if (isDirty) {
+      const shouldDiscard = await showConfirmModal(
+        '저장되지 않은 변경사항이 있습니다.\n변경사항을 저장하지 않고 이동하면 현재 작업이 사라집니다.'
+      );
+
+      if (!shouldDiscard) {
+        return;
+      }
+    }
+
+    await navigate({ to });
+  };
 
   return (
     <aside className="flex w-14 shrink-0 flex-col border-r border-border bg-muted/30 px-2 py-3">
@@ -83,12 +113,18 @@ export function AppSidebar() {
           icon={FolderTree}
           to="/flow/scenario"
           exact
+          onNavigate={(to) => {
+            void handleNavigate(to);
+          }}
         />
         <AppNavLink
           label="Components"
           icon={Puzzle}
           to="/flow/palette"
           exact
+          onNavigate={(to) => {
+            void handleNavigate(to);
+          }}
         />
       </nav>
 
@@ -105,6 +141,9 @@ export function AppSidebar() {
           label="Settings"
           icon={SlidersHorizontal}
           to="/settings/pbx"
+          onNavigate={(to) => {
+            void handleNavigate(to);
+          }}
         />
       </div>
     </aside>
