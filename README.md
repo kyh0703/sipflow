@@ -232,8 +232,12 @@ sipflow/
 │   └── scenario/           # 시나리오 저장소 (SQLite)
 └── frontend/
     └── src/
-        └── features/
-            └── scenario-builder/  # 시나리오 빌더 UI
+        ├── features/
+        │   ├── scenario/          # 시나리오 API + 트리 + builder UI
+        │   ├── execution/         # 실행 로그/타임라인/툴바
+        │   └── settings/          # 설정 화면
+        ├── layouts/               # flow/settings 레이아웃
+        └── routes/                # TanStack Router 파일 라우트
 ```
 
 ## 라이선스
