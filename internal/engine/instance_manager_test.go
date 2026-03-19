@@ -5,6 +5,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/emiago/diago"
 	"github.com/emiago/diago/media"
 )
 
@@ -199,6 +200,28 @@ func TestCreateInstances_Basic(t *testing.T) {
 	err = im.Cleanup()
 	if err != nil {
 		t.Errorf("Cleanup failed: %v", err)
+	}
+}
+
+func TestManagedInstance_IncomingQueueFIFO(t *testing.T) {
+	inst := &ManagedInstance{
+		incomingCh: make(chan *diago.DialogServerSession, 4),
+	}
+
+	first := &diago.DialogServerSession{}
+	second := &diago.DialogServerSession{}
+
+	inst.incomingCh <- first
+	inst.incomingCh <- second
+
+	gotFirst := <-inst.incomingCh
+	gotSecond := <-inst.incomingCh
+
+	if gotFirst != first {
+		t.Fatal("expected first queued dialog to be received first")
+	}
+	if gotSecond != second {
+		t.Fatal("expected second queued dialog to be received second")
 	}
 }
 

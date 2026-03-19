@@ -3,6 +3,7 @@ import {
   useExecutionActionLogs,
   useExecutionStatus,
 } from '../store/execution-store';
+import type { ActionLog } from '../types/execution';
 
 const logLevelStyles: Record<string, string> = {
   info: 'text-foreground',
@@ -21,6 +22,22 @@ function formatTimestamp(timestamp: number): string {
   } catch {
     return String(timestamp);
   }
+}
+
+function formatSIPDetails(log: ActionLog): string {
+  if (!log.sipMessage) {
+    return '';
+  }
+
+  const parts = [
+    log.sipMessage.direction === 'sent' ? '->' : '<-',
+    log.sipMessage.method,
+    log.sipMessage.responseCode ? String(log.sipMessage.responseCode) : '',
+    log.sipMessage.callId ? `call=${log.sipMessage.callId}` : '',
+    log.sipMessage.note ? `note=${log.sipMessage.note}` : '',
+  ].filter(Boolean);
+
+  return parts.join(' ');
 }
 
 export function ExecutionLog() {
@@ -124,14 +141,19 @@ export function ExecutionLog() {
             {' '}
             <span className="text-blue-600">[{log.instanceId || 'system'}]</span>
             {' '}
+            <span className="text-emerald-600">[{log.nodeId || 'system'}]</span>
+            {log.callId ? (
+              <>
+                {' '}
+                <span className="text-fuchsia-600">[call:{log.callId}]</span>
+              </>
+            ) : null}
+            {' '}
             {log.message}
             {log.sipMessage && (
               <span className="text-purple-600">
                 {' '}
-                {log.sipMessage.direction === 'sent' ? '->' : '<-'}
-                {' '}
-                {log.sipMessage.method}
-                {log.sipMessage.responseCode ? ` ${log.sipMessage.responseCode}` : ''}
+                {formatSIPDetails(log)}
               </span>
             )}
           </div>

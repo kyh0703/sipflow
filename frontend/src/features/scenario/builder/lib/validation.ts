@@ -282,6 +282,13 @@ export function validateRequiredFields(nodes: Node[]): ValidationError[] {
       }
 
       if (data.command === 'MuteTransfer') {
+        if (!data.primaryCallId || data.primaryCallId.trim() === '') {
+          errors.push({
+            type: 'required-field',
+            nodeId: node.id,
+            message: 'MuteTransfer command requires primaryCallId',
+          });
+        }
         if (!data.consultCallId || data.consultCallId.trim() === '') {
           errors.push({
             type: 'required-field',

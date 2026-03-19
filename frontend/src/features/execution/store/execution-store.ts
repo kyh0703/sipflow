@@ -114,14 +114,22 @@ export const useExecutionStore = createStore<ExecutionStore>(
       },
       addActionLog: (event) => {
         set((state) => {
+          const sipMessage = event.sipMessage
+            ? {
+                ...event.sipMessage,
+                callId: event.sipMessage.callId || event.callId,
+              }
+            : undefined;
+
           const newLog: ActionLog = {
             id: `${event.timestamp}-${state.actionLogs.length}`,
             timestamp: event.timestamp,
             nodeId: event.nodeId,
             instanceId: event.instanceId,
+            callId: event.callId,
             message: event.message,
             level: event.level,
-            sipMessage: event.sipMessage,
+            sipMessage,
           };
 
           state.actionLogs.push(newLog);

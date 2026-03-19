@@ -57,6 +57,24 @@ func (e *Engine) emitNodeState(nodeID, prevState, newState string) {
 // ActionLogOption은 emitActionLog의 functional option이다
 type ActionLogOption func(data map[string]interface{})
 
+// WithCallID는 logical call ID를 액션 로그 최상위 필드와 SIP 메시지 상세 정보에 기록한다.
+func WithCallID(callID string) ActionLogOption {
+	return func(data map[string]interface{}) {
+		if callID == "" {
+			return
+		}
+
+		data["callId"] = callID
+
+		if sipMessage, ok := data["sipMessage"].(map[string]interface{}); ok {
+			existing, _ := sipMessage["callId"].(string)
+			if existing == "" {
+				sipMessage["callId"] = callID
+			}
+		}
+	}
+}
+
 // WithSIPMessage는 SIP 메시지 상세 정보를 포함하는 옵션이다.
 // note는 선택적 파라미터로, SDP 방향(sendonly/recvonly/sendrecv 등) 등 추가 메모를 전달한다.
 func WithSIPMessage(direction, method string, responseCode int, callID, from, to string, note ...string) ActionLogOption {

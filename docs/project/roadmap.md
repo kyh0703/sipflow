@@ -119,6 +119,8 @@
 
 **요구사항:** CORE-01, CORE-02, CORE-03, CORE-04, CORE-05, DIALOG-01, DIALOG-02
 
+**산출물:** [Phase 17 regression matrix](../design-docs/research/v1.4-core-call-stability/regression-matrix.md)
+
 **성공 기준:**
 1. `MakeCall -> Answer -> Release` 기본 2자 통화 시나리오가 must-have로 명시된다
 2. `INCOMING -> Answer -> Release` 수신 통화 시나리오가 must-have로 명시된다
@@ -130,8 +132,8 @@
 
 | Plan | 제목 | 상태 |
 |------|------|------|
-| 17-01 | 기본 콜 must-have 시나리오 매트릭스 정리 | 다음 |
-| 17-02 | 실패 케이스 / callId 오지정 케이스 정리 | 대기 |
+| 17-01 | 기본 콜 must-have 시나리오 매트릭스 정리 | 완료 |
+| 17-02 | 실패 케이스 / callId 오지정 케이스 정리 | 완료 |
 
 ---
 
@@ -140,6 +142,8 @@
 **목표:** 문서화한 회귀 시나리오를 현재 테스트/빌드/검증 경로에 정확히 매핑하고, 자동 판정 가능한 기준으로 강화한다.
 
 **요구사항:** DIALOG-03, DIALOG-04, UX-01, UX-02, UX-03, READY-01, READY-02, READY-04
+
+**산출물:** [Phase 18 verification hardening](../design-docs/research/v1.4-core-call-stability/verification-hardening.md)
 
 **성공 기준:**
 1. 회귀 시나리오별로 대응되는 Go 테스트 또는 빌드 검증 경로가 명시된다
@@ -152,8 +156,8 @@
 
 | Plan | 제목 | 상태 |
 |------|------|------|
-| 18-01 | 기존 테스트/빌드 경로를 회귀 시나리오에 매핑 | 대기 |
-| 18-02 | cleanup / restart / contract 검증 기준 보강 | 대기 |
+| 18-01 | 기존 테스트/빌드 경로를 회귀 시나리오에 매핑 | 완료 |
+| 18-02 | cleanup / restart / contract 검증 기준 보강 | 완료 |
 
 ---
 
@@ -162,6 +166,8 @@
 **목표:** 아직 성능 테스트를 구현하지 않되, 나중에 성능 측정으로 전환할 수 있도록 반복 실행 기준과 로그 판독 기준을 고정한다.
 
 **요구사항:** READY-03
+
+**산출물:** [Phase 19 performance-ready baseline](../design-docs/research/v1.4-core-call-stability/performance-ready-baseline.md)
 
 **성공 기준:**
 1. 기본 콜 기준 시나리오와 검증 명령이 “반복 실행 가능한 baseline”으로 문서화된다
@@ -172,18 +178,20 @@
 
 | Plan | 제목 | 상태 |
 |------|------|------|
-| 19-01 | baseline 시나리오/명령/판정 기준 정리 | 대기 |
-| 19-02 | 성능 전환용 로그/아티팩트 기준 정리 | 대기 |
+| 19-01 | baseline 시나리오/명령/판정 기준 정리 | 완료 |
+| 19-02 | 성능 전환용 로그/아티팩트 기준 정리 | 완료 |
 
 ### v1.4 진행 현황
 
 | Phase | 제목 | 요구사항 | 상태 |
 |-------|------|----------|------|
-| 17 | Core Call Regression Matrix | CORE-01~05, DIALOG-01~02 | 다음 |
-| 18 | Regression Verification Hardening | DIALOG-03~04, UX-01~03, READY-01~02, READY-04 | 대기 |
-| 19 | Performance-Ready Baseline | READY-03 | 대기 |
+| 17 | Core Call Regression Matrix | CORE-01~05, DIALOG-01~02 | 완료 |
+| 18 | Regression Verification Hardening | DIALOG-03~04, UX-01~03, READY-01~02, READY-04 | 완료 |
+| 19 | Performance-Ready Baseline | READY-03 | 완료 |
 
 **커버리지:** 16/16 요구사항 매핑됨
+
+**마일스톤 상태:** v1.4 close-ready
 
 ---
 

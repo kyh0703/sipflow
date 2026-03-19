@@ -123,6 +123,17 @@ func callIDOrDefault(node *GraphNode) string {
 	return node.CallID
 }
 
+func (ex *Executor) emitNodeActionLog(node *GraphNode, instanceID, message, level string, opts ...ActionLogOption) {
+	if node == nil {
+		ex.engine.emitActionLog("", instanceID, message, level, opts...)
+		return
+	}
+
+	mergedOpts := append([]ActionLogOption{}, opts...)
+	mergedOpts = append(mergedOpts, WithCallID(callIDOrDefault(node)))
+	ex.engine.emitActionLog(node.ID, instanceID, message, level, mergedOpts...)
+}
+
 // CloseAll은 모든 dialog의 Close를 호출한다
 func (ss *SessionStore) CloseAll() {
 	ss.mu.Lock()
@@ -332,7 +343,7 @@ func (ex *Executor) executeCommand(ctx context.Context, instanceID string, node 
 // executeMakeCall은 MakeCall 커맨드를 실행한다
 func (ex *Executor) executeMakeCall(ctx context.Context, instanceID string, node *GraphNode) error {
 	// 액션 로그 발행
-	ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("MakeCall to %s", node.TargetURI), "info")
+	ex.emitNodeActionLog(node, instanceID, fmt.Sprintf("MakeCall to %s", node.TargetURI), "info")
 
 	// TargetURI / DN 검증
 	if node.TargetURI == "" {
@@ -384,7 +395,7 @@ func (ex *Executor) executeMakeCall(ctx context.Context, instanceID string, node
 	if node.TargetURI != resolvedTargetURI {
 		successMessage = fmt.Sprintf("MakeCall succeeded (%s -> %s)", node.TargetURI, resolvedTargetURI)
 	}
-	ex.engine.emitActionLog(node.ID, instanceID, successMessage, "info",
+	ex.emitNodeActionLog(node, instanceID, successMessage, "info",
 		WithSIPMessage("sent", "INVITE", 200, "", fromURI, toURI))
 	return nil
 }
@@ -392,7 +403,7 @@ func (ex *Executor) executeMakeCall(ctx context.Context, instanceID string, node
 // executeAnswer는 Answer 커맨드를 실행한다 (AnswerOptions 기반)
 func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *GraphNode) error {
 	// 액션 로그 발행
-	ex.engine.emitActionLog(node.ID, instanceID, "Answer incoming call", "info")
+	ex.emitNodeActionLog(node, instanceID, "Answer incoming call", "info")
 
 	// Incoming server session 조회
 	callID := callIDOrDefault(node)
@@ -415,7 +426,7 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 			go func() {
 				defer func() {
 					if r := recover(); r != nil {
-						ex.engine.emitActionLog(node.ID, instanceID,
+						ex.emitNodeActionLog(node, instanceID,
 							fmt.Sprintf("OnMediaUpdate panic recovered: %v", r), "error")
 					}
 				}()
@@ -429,12 +440,12 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 				if strings.Contains(localSDP, "a=recvonly") {
 					// 상대방이 Hold 요청 (sendonly) → 우리는 recvonly → HELD 이벤트
 					ex.engine.emitSIPEvent(instanceID, eventhandler.SIPEventHeld, callID)
-					ex.engine.emitActionLog(node.ID, instanceID, "Call HELD by remote party", "info",
+					ex.emitNodeActionLog(node, instanceID, "Call HELD by remote party", "info",
 						WithSIPMessage("received", "INVITE", 200, "", "", "", "recvonly"))
 				} else if strings.Contains(localSDP, "a=sendrecv") {
 					// 상대방이 Retrieve 요청 (sendrecv) → RETRIEVED 이벤트
 					ex.engine.emitSIPEvent(instanceID, eventhandler.SIPEventRetrieved, callID)
-					ex.engine.emitActionLog(node.ID, instanceID, "Call RETRIEVED by remote party", "info",
+					ex.emitNodeActionLog(node, instanceID, "Call RETRIEVED by remote party", "info",
 						WithSIPMessage("received", "INVITE", 200, "", "", "", "sendrecv"))
 				}
 			}()
@@ -455,10 +466,10 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 			// 인스턴스 코덱 정보 조회 (디버깅용)
 			instance, instErr := ex.im.GetInstance(instanceID)
 			if instErr == nil {
-				ex.engine.emitActionLog(node.ID, instanceID,
+				ex.emitNodeActionLog(node, instanceID,
 					fmt.Sprintf("Instance codecs: %v", instance.Config.Codecs), "debug")
 			}
-			ex.engine.emitActionLog(node.ID, instanceID,
+			ex.emitNodeActionLog(node, instanceID,
 				fmt.Sprintf("Codec negotiation failed (488 Not Acceptable): %v", err), "error")
 			return fmt.Errorf("codec negotiation failed (488 Not Acceptable): %w", err)
 		}
@@ -471,7 +482,7 @@ func (ex *Executor) executeAnswer(ctx context.Context, instanceID string, node *
 	// 성공 로그 (SIP 메시지 상세 정보 포함)
 	fromUser := serverSession.FromUser()
 	toUser := serverSession.ToUser()
-	ex.engine.emitActionLog(node.ID, instanceID, "Answer succeeded", "info",
+	ex.emitNodeActionLog(node, instanceID, "Answer succeeded", "info",
 		WithSIPMessage("received", "INVITE", 200, "", fromUser, toUser))
 	return nil
 }
@@ -507,18 +518,18 @@ func (ex *Executor) handleAnswerRefer(instanceID, callID string, node *GraphNode
 		receivedMessage = fmt.Sprintf("REFER received with Replaces: Refer-To=%s", referToURIStr)
 	}
 
-	ex.engine.emitActionLog(node.ID, instanceID,
+	ex.emitNodeActionLog(node, instanceID,
 		receivedMessage, "info",
 		WithSIPMessage("received", "REFER", 202, "", "", referToURIStr))
 
 	inviteCtx := referDialog.Context()
 	if err := referDialog.Invite(inviteCtx, diago.InviteClientOptions{}); err != nil {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("TransferEvent: Invite to Refer-To failed: %v", err), "error")
 		return fmt.Errorf("TransferEvent: referDialog Invite failed: %w", err)
 	}
 	if err := referDialog.Ack(inviteCtx); err != nil {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("TransferEvent: Ack failed: %v", err), "error")
 		return fmt.Errorf("TransferEvent: referDialog Ack failed: %w", err)
 	}
@@ -530,7 +541,7 @@ func (ex *Executor) handleAnswerRefer(instanceID, callID string, node *GraphNode
 	if hasReplaces {
 		successMessage = fmt.Sprintf("TransferEvent: session replaced with Replaces dialog (Refer-To: %s)", referToURIStr)
 	}
-	ex.engine.emitActionLog(node.ID, instanceID,
+	ex.emitNodeActionLog(node, instanceID,
 		successMessage, "info")
 	return nil
 }
@@ -538,13 +549,13 @@ func (ex *Executor) handleAnswerRefer(instanceID, callID string, node *GraphNode
 // executeRelease는 Release 커맨드를 실행한다
 func (ex *Executor) executeRelease(ctx context.Context, instanceID string, node *GraphNode) error {
 	// 액션 로그 발행
-	ex.engine.emitActionLog(node.ID, instanceID, "Release call", "info")
+	ex.emitNodeActionLog(node, instanceID, "Release call", "info")
 
 	// Dialog 조회
 	dialog, exists := ex.sessions.GetDialog(instanceID, callIDOrDefault(node))
 	if !exists {
 		// 이미 종료된 경우 경고 후 성공 처리
-		ex.engine.emitActionLog(node.ID, instanceID, "No active dialog to release (already terminated)", "warn")
+		ex.emitNodeActionLog(node, instanceID, "No active dialog to release (already terminated)", "warn")
 		return nil
 	}
 
@@ -554,11 +565,11 @@ func (ex *Executor) executeRelease(ctx context.Context, instanceID string, node 
 
 	if err := dialog.Hangup(hangupCtx); err != nil {
 		// Hangup 실패는 경고만 (이미 종료된 경우 등)
-		ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("Hangup warning: %v", err), "warn")
+		ex.emitNodeActionLog(node, instanceID, fmt.Sprintf("Hangup warning: %v", err), "warn")
 	}
 
 	// 성공 로그 (SIP 메시지 상세 정보 포함)
-	ex.engine.emitActionLog(node.ID, instanceID, "Release succeeded", "info",
+	ex.emitNodeActionLog(node, instanceID, "Release succeeded", "info",
 		WithSIPMessage("sent", "BYE", 200, "", "", ""))
 	return nil
 }
@@ -574,7 +585,7 @@ func (ex *Executor) executeEvent(ctx context.Context, instanceID string, node *G
 	defer cancel()
 
 	// 액션 로그 발행
-	ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("Waiting for %s (timeout: %v)", node.Event, timeout), "info")
+	ex.emitNodeActionLog(node, instanceID, fmt.Sprintf("Waiting for %s (timeout: %v)", node.Event, timeout), "info")
 
 	switch node.Event {
 	case string(eventhandler.SIPEventIncoming):
@@ -615,7 +626,7 @@ func (ex *Executor) executeIncoming(ctx context.Context, instanceID string, node
 		// 성공 로그 (SIP 메시지 상세 정보 포함)
 		fromUser := inDialog.FromUser()
 		toUser := inDialog.ToUser()
-		ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("INCOMING event received from %s (callID: %s)", fromUser, callID), "info",
+		ex.emitNodeActionLog(node, instanceID, fmt.Sprintf("INCOMING event received from %s (callID: %s)", fromUser, callID), "info",
 			WithSIPMessage("received", "INVITE", 0, "", fromUser, toUser))
 		return nil
 	case <-ctx.Done():
@@ -636,7 +647,7 @@ func (ex *Executor) executeDisconnected(ctx context.Context, instanceID string, 
 	select {
 	case <-dialog.Context().Done():
 		// 성공 로그
-		ex.engine.emitActionLog(node.ID, instanceID, "DISCONNECTED event received", "info")
+		ex.emitNodeActionLog(node, instanceID, "DISCONNECTED event received", "info")
 		return nil
 	case <-ctx.Done():
 		// 타임아웃
@@ -647,7 +658,7 @@ func (ex *Executor) executeDisconnected(ctx context.Context, instanceID string, 
 // executeRinging은 RINGING 이벤트를 처리한다 (로컬 모드에서는 즉시 완료)
 func (ex *Executor) executeRinging(ctx context.Context, instanceID string, node *GraphNode) error {
 	// Phase 03에서는 MakeCall 성공 시 이미 180 Ringing을 거쳤으므로 즉시 완료
-	ex.engine.emitActionLog(node.ID, instanceID, "RINGING event (auto-completed in local mode)", "info",
+	ex.emitNodeActionLog(node, instanceID, "RINGING event (auto-completed in local mode)", "info",
 		WithSIPMessage("received", string(eventhandler.SIPEventRinging), 180, "", "", ""))
 	return nil
 }
@@ -658,7 +669,7 @@ func (ex *Executor) executeTimeout(ctx context.Context, instanceID string, node 
 	select {
 	case <-time.After(timeout):
 		// 성공 로그
-		ex.engine.emitActionLog(node.ID, instanceID, fmt.Sprintf("TIMEOUT event completed after %v", timeout), "info")
+		ex.emitNodeActionLog(node, instanceID, fmt.Sprintf("TIMEOUT event completed after %v", timeout), "info")
 		return nil
 	case <-ctx.Done():
 		// Context 취소
@@ -670,14 +681,14 @@ func (ex *Executor) executeTimeout(ctx context.Context, instanceID string, node 
 func (ex *Executor) executePlayAudio(ctx context.Context, instanceID string, node *GraphNode) error {
 	// FilePath 검증
 	if node.FilePath == "" {
-		ex.engine.emitActionLog(node.ID, instanceID, "PlayAudio requires filePath", "error")
+		ex.emitNodeActionLog(node, instanceID, "PlayAudio requires filePath", "error")
 		return fmt.Errorf("PlayAudio requires filePath")
 	}
 
 	// 파일 존재 확인
 	if _, err := os.Stat(node.FilePath); err != nil {
 		if os.IsNotExist(err) {
-			ex.engine.emitActionLog(node.ID, instanceID,
+			ex.emitNodeActionLog(node, instanceID,
 				fmt.Sprintf("Audio file not found: %s", node.FilePath), "error")
 			return fmt.Errorf("audio file not found: %s", node.FilePath)
 		}
@@ -687,7 +698,7 @@ func (ex *Executor) executePlayAudio(ctx context.Context, instanceID string, nod
 	// Dialog 조회
 	dialog, exists := ex.sessions.GetDialog(instanceID, callIDOrDefault(node))
 	if !exists {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			"No active dialog for PlayAudio (call must be answered first)", "error")
 		return fmt.Errorf("no active dialog for PlayAudio")
 	}
@@ -695,7 +706,7 @@ func (ex *Executor) executePlayAudio(ctx context.Context, instanceID string, nod
 	// WAV 파일 열기
 	file, err := os.Open(node.FilePath)
 	if err != nil {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("Failed to open audio file: %v", err), "error")
 		return fmt.Errorf("failed to open audio file: %w", err)
 	}
@@ -704,14 +715,14 @@ func (ex *Executor) executePlayAudio(ctx context.Context, instanceID string, nod
 	// Playback 인스턴스 생성
 	pb, err := dialog.Media().PlaybackCreate()
 	if err != nil {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("PlaybackCreate failed: %v", err), "error")
 		return fmt.Errorf("PlaybackCreate failed: %w", err)
 	}
 
 	// 파일명 추출
 	fileName := filepath.Base(node.FilePath)
-	ex.engine.emitActionLog(node.ID, instanceID,
+	ex.emitNodeActionLog(node, instanceID,
 		fmt.Sprintf("Playing audio file: %s", fileName), "info")
 
 	// Context 취소 확인
@@ -724,13 +735,13 @@ func (ex *Executor) executePlayAudio(ctx context.Context, instanceID string, nod
 	// WAV 파일 재생 (blocking until playback completes)
 	bytesPlayed, err := pb.Play(file, "audio/wav")
 	if err != nil {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("Playback failed: %v", err), "error")
 		return fmt.Errorf("Play failed: %w", err)
 	}
 
 	// 재생 완료 로그
-	ex.engine.emitActionLog(node.ID, instanceID,
+	ex.emitNodeActionLog(node, instanceID,
 		fmt.Sprintf("Playback completed (%d bytes)", bytesPlayed), "info")
 
 	return nil
@@ -740,7 +751,7 @@ func (ex *Executor) executePlayAudio(ctx context.Context, instanceID string, nod
 func (ex *Executor) executeSendDTMF(ctx context.Context, instanceID string, node *GraphNode) error {
 	// Digits 검증
 	if node.Digits == "" {
-		ex.engine.emitActionLog(node.ID, instanceID, "SendDTMF requires digits", "error")
+		ex.emitNodeActionLog(node, instanceID, "SendDTMF requires digits", "error")
 		return fmt.Errorf("SendDTMF requires digits")
 	}
 
@@ -750,7 +761,7 @@ func (ex *Executor) executeSendDTMF(ctx context.Context, instanceID string, node
 	// Dialog 조회
 	dialog, exists := ex.sessions.GetDialog(instanceID, callIDOrDefault(node))
 	if !exists {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			"No active dialog for SendDTMF (call must be answered first)", "error")
 		return fmt.Errorf("no active dialog for SendDTMF")
 	}
@@ -759,7 +770,7 @@ func (ex *Executor) executeSendDTMF(ctx context.Context, instanceID string, node
 	dtmfWriter := dialog.Media().AudioWriterDTMF()
 
 	// 전송 시작 로그
-	ex.engine.emitActionLog(node.ID, instanceID,
+	ex.emitNodeActionLog(node, instanceID,
 		fmt.Sprintf("Sending DTMF digits: %s (interval: %dms)", node.Digits, int(node.IntervalMs)), "info")
 
 	// 각 digit 전송
@@ -774,19 +785,19 @@ func (ex *Executor) executeSendDTMF(ctx context.Context, instanceID string, node
 
 		// Digit 검증
 		if !isValidDTMF(digit) {
-			ex.engine.emitActionLog(node.ID, instanceID,
+			ex.emitNodeActionLog(node, instanceID,
 				fmt.Sprintf("Invalid DTMF digit: %c", digit), "error")
 			return fmt.Errorf("invalid DTMF digit: %c (allowed: 0-9, *, #, A-D)", digit)
 		}
 
 		// DTMF 전송
 		if err := dtmfWriter.WriteDTMF(digit); err != nil {
-			ex.engine.emitActionLog(node.ID, instanceID,
+			ex.emitNodeActionLog(node, instanceID,
 				fmt.Sprintf("Failed to send DTMF %c: %v", digit, err), "error")
 			return fmt.Errorf("WriteDTMF failed for %c: %w", digit, err)
 		}
 
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("Sent DTMF: %c", digit), "info")
 
 		// 마지막 digit이 아니면 interval 대기
@@ -799,7 +810,7 @@ func (ex *Executor) executeSendDTMF(ctx context.Context, instanceID string, node
 		}
 	}
 
-	ex.engine.emitActionLog(node.ID, instanceID,
+	ex.emitNodeActionLog(node, instanceID,
 		fmt.Sprintf("DTMF transmission completed (%d digits)", len(digits)), "info")
 	return nil
 }
@@ -812,7 +823,7 @@ func (ex *Executor) executeDTMFReceived(ctx context.Context, instanceID string, 
 	// Dialog 조회
 	dialog, exists := ex.sessions.GetDialog(instanceID, callIDOrDefault(node))
 	if !exists {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			"No active dialog for DTMFReceived (call must be answered first)", "error")
 		return fmt.Errorf("no active dialog for DTMFReceived")
 	}
@@ -822,10 +833,10 @@ func (ex *Executor) executeDTMFReceived(ctx context.Context, instanceID string, 
 
 	// 대기 상태 로그
 	if expectedDigit != "" {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("Waiting for DTMF digit: %s (timeout: %dms)", expectedDigit, node.Timeout.Milliseconds()), "info")
 	} else {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("Waiting for any DTMF digit (timeout: %dms)", node.Timeout.Milliseconds()), "info")
 	}
 
@@ -840,7 +851,7 @@ func (ex *Executor) executeDTMFReceived(ctx context.Context, instanceID string, 
 			// ExpectedDigit 필터링
 			if expectedDigit != "" {
 				if string(digit) != expectedDigit {
-					ex.engine.emitActionLog(node.ID, instanceID,
+					ex.emitNodeActionLog(node, instanceID,
 						fmt.Sprintf("Received DTMF: %c (waiting for %s, continuing)", digit, expectedDigit), "info")
 					return nil // 계속 대기
 				}
@@ -876,15 +887,15 @@ func (ex *Executor) executeDTMFReceived(ctx context.Context, instanceID string, 
 	case <-ctx.Done():
 		return ctx.Err()
 	case digit := <-receivedCh:
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("Received DTMF: %c", digit), "info")
 		return nil
 	case err := <-errCh:
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("DTMF receive error: %v", err), "error")
 		return fmt.Errorf("DTMF receive failed: %w", err)
 	case <-time.After(node.Timeout):
-		ex.engine.emitActionLog(node.ID, instanceID, "DTMF receive timeout", "warning")
+		ex.emitNodeActionLog(node, instanceID, "DTMF receive timeout", "warning")
 		return fmt.Errorf("timeout waiting for DTMF")
 	}
 }
@@ -892,7 +903,7 @@ func (ex *Executor) executeDTMFReceived(ctx context.Context, instanceID string, 
 // executeHold는 Hold 커맨드를 실행한다 — MediaSession.Mode를 sendonly로 설정하고 Re-INVITE를 전송한다
 func (ex *Executor) executeHold(ctx context.Context, instanceID string, node *GraphNode) error {
 	// 액션 로그 발행
-	ex.engine.emitActionLog(node.ID, instanceID, "Hold: sending Re-INVITE (sendonly)", "info")
+	ex.emitNodeActionLog(node, instanceID, "Hold: sending Re-INVITE (sendonly)", "info")
 
 	// Dialog 조회
 	dialog, exists := ex.sessions.GetDialog(instanceID, callIDOrDefault(node))
@@ -926,7 +937,7 @@ func (ex *Executor) executeHold(ctx context.Context, instanceID string, node *Gr
 	}
 
 	// 성공 로그
-	ex.engine.emitActionLog(node.ID, instanceID, "Hold succeeded", "info",
+	ex.emitNodeActionLog(node, instanceID, "Hold succeeded", "info",
 		WithSIPMessage("sent", "INVITE", 200, "", "", "", "sendonly"))
 	return nil
 }
@@ -934,7 +945,7 @@ func (ex *Executor) executeHold(ctx context.Context, instanceID string, node *Gr
 // executeRetrieve는 Retrieve 커맨드를 실행한다 — MediaSession.Mode를 sendrecv로 복원하고 Re-INVITE를 전송한다
 func (ex *Executor) executeRetrieve(ctx context.Context, instanceID string, node *GraphNode) error {
 	// 액션 로그 발행
-	ex.engine.emitActionLog(node.ID, instanceID, "Retrieve: sending Re-INVITE (sendrecv)", "info")
+	ex.emitNodeActionLog(node, instanceID, "Retrieve: sending Re-INVITE (sendrecv)", "info")
 
 	// Dialog 조회
 	dialog, exists := ex.sessions.GetDialog(instanceID, callIDOrDefault(node))
@@ -966,7 +977,7 @@ func (ex *Executor) executeRetrieve(ctx context.Context, instanceID string, node
 	}
 
 	// 성공 로그
-	ex.engine.emitActionLog(node.ID, instanceID, "Retrieve succeeded", "info",
+	ex.emitNodeActionLog(node, instanceID, "Retrieve succeeded", "info",
 		WithSIPMessage("sent", "INVITE", 200, "", "", "", "sendrecv"))
 	return nil
 }
@@ -1006,7 +1017,7 @@ func (ex *Executor) executeBlindTransfer(ctx context.Context, instanceID string,
 	}
 
 	// 6. 액션 로그 (Refer 호출 전에 발행하여 실패 시에도 시도 기록이 남음)
-	ex.engine.emitActionLog(node.ID, instanceID,
+	ex.emitNodeActionLog(node, instanceID,
 		fmt.Sprintf("BlindTransfer: sending REFER to %s", rawURI), "info")
 
 	// 7. Refer 호출
@@ -1015,7 +1026,7 @@ func (ex *Executor) executeBlindTransfer(ctx context.Context, instanceID string,
 	}
 
 	// 8. 성공 로그
-	ex.engine.emitActionLog(node.ID, instanceID,
+	ex.emitNodeActionLog(node, instanceID,
 		fmt.Sprintf("BlindTransfer succeeded (Refer-To: %s)", rawURI), "info",
 		WithSIPMessage("sent", "REFER", 202, "", "", rawURI))
 
@@ -1025,10 +1036,10 @@ func (ex *Executor) executeBlindTransfer(ctx context.Context, instanceID string,
 
 	if err := dialog.Hangup(hangupCtx); err != nil {
 		// BYE 실패는 경고만 (이미 종료된 경우 등)
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("BlindTransfer: BYE warning: %v", err), "warn")
 	} else {
-		ex.engine.emitActionLog(node.ID, instanceID, "BlindTransfer: BYE sent", "info",
+		ex.emitNodeActionLog(node, instanceID, "BlindTransfer: BYE sent", "info",
 			WithSIPMessage("sent", "BYE", 200, "", "", ""))
 	}
 
@@ -1164,7 +1175,7 @@ func (ex *Executor) createMuteTransferNotifyContext(ctx context.Context, node *G
 }
 
 func (ex *Executor) executeMuteTransferRefer(ctx context.Context, instanceID string, node *GraphNode, transfer *muteTransferContext, onNotify func(statusCode int)) error {
-	ex.engine.emitActionLog(node.ID, instanceID,
+	ex.emitNodeActionLog(node, instanceID,
 		fmt.Sprintf("MuteTransfer: sending REFER to %s (primary: %s, consult: %s)", transfer.referToStr, transfer.primaryCallID, transfer.consultCallID), "info")
 
 	var err error
@@ -1180,14 +1191,14 @@ func (ex *Executor) executeMuteTransferRefer(ctx context.Context, instanceID str
 		return fmt.Errorf("MuteTransfer: REFER failed: %w", err)
 	}
 
-	ex.engine.emitActionLog(node.ID, instanceID,
+	ex.emitNodeActionLog(node, instanceID,
 		fmt.Sprintf("MuteTransfer: REFER accepted (Refer-To: %s)", transfer.referToStr), "info",
 		WithSIPMessage("sent", "REFER", 202, "", "", transfer.referToStr))
 	return nil
 }
 
 func (ex *Executor) handleMuteTransferNotifyProgress(instanceID string, node *GraphNode, statusCode int) {
-	ex.engine.emitActionLog(node.ID, instanceID,
+	ex.emitNodeActionLog(node, instanceID,
 		fmt.Sprintf("MuteTransfer: NOTIFY progress %d", statusCode), "info",
 		WithSIPMessage("received", "NOTIFY", statusCode, "", "", ""))
 }
@@ -1197,19 +1208,19 @@ func (ex *Executor) cleanupMuteTransferDialogs(ctx context.Context, instanceID s
 	defer hangupCancel()
 
 	if err := transfer.primaryDialog.Hangup(hangupCtx); err != nil {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("MuteTransfer: primary BYE warning: %v", err), "warn")
 	} else {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("MuteTransfer: primary BYE sent (callID: %s)", transfer.primaryCallID), "info",
 			WithSIPMessage("sent", "BYE", 200, "", "", ""))
 	}
 
 	if err := transfer.consultDialog.Hangup(hangupCtx); err != nil {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("MuteTransfer: consult BYE warning: %v", err), "warn")
 	} else {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("MuteTransfer: consult BYE sent (callID: %s)", transfer.consultCallID), "info",
 			WithSIPMessage("sent", "BYE", 200, "", "", ""))
 	}
@@ -1223,7 +1234,7 @@ func (ex *Executor) handleMuteTransferNotifyFinal(ctx context.Context, instanceI
 		return fmt.Errorf("MuteTransfer: final NOTIFY failed with status %d", statusCode)
 	}
 
-	ex.engine.emitActionLog(node.ID, instanceID,
+	ex.emitNodeActionLog(node, instanceID,
 		fmt.Sprintf("MuteTransfer succeeded (primary: %s, consult: %s)", transfer.primaryCallID, transfer.consultCallID), "info",
 		WithSIPMessage("received", "NOTIFY", statusCode, "", "", ""))
 
@@ -1288,7 +1299,7 @@ func (ex *Executor) executeWaitSIPEvent(ctx context.Context, instanceID string, 
 	handler := eventhandler.NewHandler(4)
 	handler.SetTimer(timeout)
 	handler.SetHandler(eventType, func(handlerCtx context.Context, event eventhandler.Event, done eventhandler.DoneFn) error {
-		ex.engine.emitActionLog(node.ID, instanceID,
+		ex.emitNodeActionLog(node, instanceID,
 			fmt.Sprintf("%s event received (callID: %s, sipCallID: %s)", eventType, callID, event.SIPCallID), "info")
 		done()
 		return nil

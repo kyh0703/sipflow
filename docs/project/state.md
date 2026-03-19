@@ -2,9 +2,9 @@
 
 ## 현재 상태
 - **마일스톤**: v1.4 — 기본 콜 기능 안정화
-- **페이즈**: Phase 17 — Core Call Regression Matrix (계획 완료, 착수 대기)
-- **상태**: `phase17_ready`
-- **최근 활동**: 2026-03-13 — v1.4 요구사항을 기본 콜 회귀 검증 중심으로 구체화
+- **페이즈**: v1.4 Close-Ready — Performance-Ready Baseline 완료
+- **상태**: `v1_4_close_ready`
+- **최근 활동**: 2026-03-19 — Phase 19 baseline 시나리오/로그 판독 기준 문서화 완료
 
 ## 프로젝트 참조
 
@@ -15,13 +15,13 @@
 - **이중 모드**: 로컬 시뮬레이션 모드 + 실제 SIP 트래픽 생성 모드
 
 ### 현재 초점 (v1.4)
-신규 기능 추가 없이 기존 콜 플로우를 시나리오 단위 회귀 검증으로 고정하고, 추후 성능 측정에 재사용할 baseline을 만든다.
+신규 기능 추가 없이 기존 콜 플로우를 시나리오 단위 회귀 검증으로 고정하고, 추후 성능 측정에 재사용할 baseline을 만든다. 현재 기준 문서는 `docs/design-docs/research/v1.4-core-call-stability/regression-matrix.md`, `docs/design-docs/research/v1.4-core-call-stability/verification-hardening.md`, `docs/design-docs/research/v1.4-core-call-stability/performance-ready-baseline.md`다.
 
 ## 현재 위치
 
 ### 마일스톤: v1.4 — 기본 콜 기능 안정화
 **목표:** 기존 MakeCall, Answer, Release, Hold, Retrieve, Transfer 흐름과 callID 기반 동작을 안정화한다
-**상태:** Phase 17 착수 대기
+**상태:** Phase 19 완료, v1.4 마일스톤 close-ready
 
 ### 페이즈 진행
 
@@ -29,12 +29,12 @@
 v1.3: SessionStore 멀티 다이얼로그      [ 완료 ]
 v1.3: MuteTransfer 백엔드               [ 완료 ]
 v1.3: callID UI + MuteTransfer UI       [ 완료 ]
-v1.4: Phase 17 회귀 시나리오 정의      [ 다음 ]
-v1.4: Phase 18 자동 검증 보강          [ 대기 ]
-v1.4: Phase 19 성능 전환 기준 정리     [ 대기 ]
+v1.4: Phase 17 회귀 시나리오 정의      [ 완료 ]
+v1.4: Phase 18 자동 검증 보강          [ 완료 ]
+v1.4: Phase 19 성능 전환 기준 정리     [ 완료 ]
 ```
 
-**진행률:** v1.0~v1.3 마일스톤 완료, v1.4 계획 갱신 완료
+**진행률:** v1.0~v1.3 마일스톤 완료, v1.4 close-ready
 
 ## 성능 지표
 
@@ -76,9 +76,9 @@ v1.4: Phase 19 성능 전환 기준 정리     [ 대기 ]
 - [x] Phase 15 계획 수립 + 실행 완료
 - [x] Phase 16 계획 수립 + 실행 완료
 - [x] v1.4 기본 콜 범위 재정의
-- [ ] Phase 17 기본 콜 회귀 시나리오 매트릭스 정리
-- [ ] Phase 18 자동 검증 및 계약 체크 기준 정리
-- [ ] Phase 19 성능 전환용 baseline 기준 정리
+- [x] Phase 17 기본 콜 회귀 시나리오 매트릭스 정리
+- [x] Phase 18 자동 검증 및 계약 체크 기준 정리
+- [x] Phase 19 성능 전환용 baseline 기준 정리
 - [x] Phase 10 계획 수립 + 실행 완료
 - [x] Phase 11 계획 수립 + 실행 완료
 - [x] Phase 12 계획 수립 + 실행 완료
@@ -97,11 +97,11 @@ v1.4: Phase 19 성능 전환 기준 정리     [ 대기 ]
 - **v1.3 — MuteTransfer + callID UI**: 멀티 다이얼로그, Replaces REFER 전환, callID 기반 UI/하위 호환 (2026-03-09 완료)
 
 ## 세션 연속성
-- **Last session:** 2026-03-08
-- **Stopped at:** v1.3 검증 완료 후 문서 정리
-- **Stopped at:** v1.4 회귀 검증 계획 갱신
+- **Last session:** 2026-03-19
+- **Stopped at:** Phase 19 baseline 시나리오/로그 판독 기준 문서화 완료
+- **Stopped at:** v1.4 close gate 준비
 - **Resume file:** None
-- **다음 단계:** Phase 17 기본 콜 must-have 시나리오와 실패 케이스 정리
+- **다음 단계:** v1.4 close summary와 다음 milestone 결정
 
 ## 프로젝트 메모리
 

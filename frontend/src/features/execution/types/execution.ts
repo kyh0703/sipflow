@@ -22,6 +22,7 @@ export interface SIPMessageDetail {
   callId?: string;
   from?: string;
   to?: string;
+  note?: string;
 }
 
 // 엣지 애니메이션 메시지
@@ -45,6 +46,7 @@ export interface ActionLogEvent {
   timestamp: number;
   nodeId: string;
   instanceId: string;
+  callId?: string;
   message: string;
   level: 'info' | 'warning' | 'error';
   sipMessage?: SIPMessageDetail;
@@ -82,6 +84,7 @@ export interface ActionLog {
   timestamp: number;
   nodeId: string;
   instanceId: string;
+  callId?: string;
   message: string;
   level: 'info' | 'warning' | 'error';
   sipMessage?: SIPMessageDetail;

@@ -55,7 +55,24 @@ func (te *TestEventEmitter) GetEventsByName(name string) []TestEvent {
 // buildTestFlowData builds a FlowData JSON string from nodes and edges
 func buildTestFlowData(t *testing.T, nodes []FlowNode, edges []FlowEdge) string {
 	t.Helper()
-	fd := FlowData{Nodes: nodes, Edges: edges}
+
+	normalizedNodes := make([]FlowNode, 0, len(nodes))
+	for _, node := range nodes {
+		if node.Type == "sipInstance" {
+			if _, exists := node.Data["register"]; !exists {
+				dataCopy := make(map[string]interface{}, len(node.Data)+1)
+				for k, v := range node.Data {
+					dataCopy[k] = v
+				}
+				// Integration fixtures model local, non-PBX scenarios unless a test opts into registration explicitly.
+				dataCopy["register"] = false
+				node.Data = dataCopy
+			}
+		}
+		normalizedNodes = append(normalizedNodes, node)
+	}
+
+	fd := FlowData{Nodes: normalizedNodes, Edges: edges}
 	b, err := json.Marshal(fd)
 	if err != nil {
 		t.Fatal(err)
@@ -889,6 +906,17 @@ func TestIntegration_EventStreamVerification(t *testing.T) {
 		if e.Data["nodeId"] == "evt-timeout" {
 			if _, ok := e.Data["message"].(string); !ok {
 				t.Errorf("action:log event missing message, got: %+v", e.Data)
+			}
+			if _, ok := e.Data["timestamp"].(int64); !ok {
+				if _, okFloat := e.Data["timestamp"].(float64); !okFloat {
+					t.Errorf("action:log event missing timestamp, got: %+v", e.Data)
+				}
+			}
+			if gotInstance, ok := e.Data["instanceId"].(string); !ok || gotInstance != "inst-a" {
+				t.Errorf("action:log event missing instanceId inst-a, got: %+v", e.Data)
+			}
+			if gotCallID, ok := e.Data["callId"].(string); !ok || gotCallID != defaultCallID {
+				t.Errorf("action:log event missing logical callId %q, got: %+v", defaultCallID, e.Data)
 			}
 			foundActionLog = true
 		}

@@ -13,6 +13,11 @@ function formatTime(timestamp: number): string {
   }
 }
 
+function formatMessageMeta(callId?: string, note?: string): string {
+  const parts = [callId ? `call=${callId}` : '', note ? `note=${note}` : ''].filter(Boolean);
+  return parts.join(' | ');
+}
+
 const LANE_WIDTH = 150;
 const MESSAGE_HEIGHT = 40;
 const HEADER_HEIGHT = 30;
@@ -78,6 +83,14 @@ export function ExecutionTimeline() {
                 {msg.sipMessage?.method}
                 {msg.sipMessage?.responseCode ? ` ${msg.sipMessage.responseCode}` : ''}
               </span>
+              {msg.sipMessage?.callId || msg.sipMessage?.note ? (
+                <>
+                  {' '}
+                  <span className="text-muted-foreground">
+                    {formatMessageMeta(msg.sipMessage?.callId, msg.sipMessage?.note)}
+                  </span>
+                </>
+              ) : null}
             </div>
           ))}
         </div>
@@ -186,6 +199,7 @@ export function ExecutionTimeline() {
             const label = msg.sipMessage.method || String(msg.sipMessage.responseCode || '');
             const labelX = (x1 + x2) / 2;
             const labelY = y - 5;
+            const meta = formatMessageMeta(msg.sipMessage.callId, msg.sipMessage.note);
 
             // Timestamp on the left
             const timeLabel = formatTime(msg.timestamp);
@@ -223,6 +237,16 @@ export function ExecutionTimeline() {
                 >
                   {label}
                 </text>
+                {meta ? (
+                  <text
+                    x={labelX}
+                    y={y + 10}
+                    textAnchor="middle"
+                    className="fill-muted-foreground text-[9px]"
+                  >
+                    {meta}
+                  </text>
+                ) : null}
               </g>
             );
           })}

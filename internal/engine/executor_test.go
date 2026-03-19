@@ -611,6 +611,20 @@ func TestWithSIPMessage_EmptyNote(t *testing.T) {
 	}
 }
 
+func TestWithCallID(t *testing.T) {
+	opt := WithCallID("primary")
+	data := map[string]interface{}{}
+	opt(data)
+
+	callID, ok := data["callId"].(string)
+	if !ok {
+		t.Fatal("callId not found in data")
+	}
+	if callID != "primary" {
+		t.Fatalf("expected callId primary, got %q", callID)
+	}
+}
+
 // TestExecuteHold_NoDialog는 dialog가 없을 때 executeHold가 에러를 반환하는지 테스트한다
 func TestExecuteHold_NoDialog(t *testing.T) {
 	ex, _ := newTestExecutor(t)
