@@ -1,4 +1,4 @@
-import { FolderTree, Puzzle, SlidersHorizontal, SquareTerminal } from 'lucide-react';
+import { FolderTree, Puzzle, Settings, SquareTerminal } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { Link, useLocation, useNavigate } from '@tanstack/react-router';
 import { showConfirmModal } from '@/components/modal/confirm-modal';
@@ -15,9 +15,9 @@ function AppNavLink({
 }: {
   label: string;
   icon: ComponentType<{ className?: string }>;
-  to: '/flow/scenario' | '/flow/palette' | '/settings/pbx';
+  to: '/flow/scenario' | '/flow/palette' | '/settings/general';
   exact?: boolean;
-  onNavigate: (to: '/flow/scenario' | '/flow/palette' | '/settings/pbx') => void;
+  onNavigate: (to: '/flow/scenario' | '/flow/palette' | '/settings/general') => void;
 }) {
   return (
     <Link
@@ -29,21 +29,21 @@ function AppNavLink({
       }}
       title={label}
       aria-label={label}
-      className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl transition-colors"
+      className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
       activeProps={{
         className: cn(
-          'mx-auto flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
+          'mx-auto flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
           'bg-primary text-primary-foreground shadow-sm'
         ),
       }}
       inactiveProps={{
         className: cn(
-          'mx-auto flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
+          'mx-auto flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
           'text-muted-foreground hover:bg-muted hover:text-foreground'
         ),
       }}
     >
-      <Icon className="h-5 w-5" />
+      <Icon className="h-4 w-4" />
     </Link>
   );
 }
@@ -66,13 +66,13 @@ function AppActionButton({
       title={label}
       aria-label={label}
       className={cn(
-        'mx-auto flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
+        'mx-auto flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
         isActive
           ? 'bg-primary text-primary-foreground shadow-sm'
           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
       )}
     >
-      <Icon className="h-5 w-5" />
+      <Icon className="h-4 w-4" />
     </button>
   );
 }
@@ -83,10 +83,9 @@ export function AppSidebar() {
   const isDirty = useScenarioIsDirty();
   const isConsoleOpen = useWorkspaceConsoleOpen();
   const { toggleConsole } = useWorkspacePanelActions();
-  const isFlowRoute = location.pathname.startsWith('/flow');
 
   const handleNavigate = async (
-    to: '/flow/scenario' | '/flow/palette' | '/settings/pbx'
+    to: '/flow/scenario' | '/flow/palette' | '/settings/general'
   ) => {
     if (location.pathname === to) {
       return;
@@ -106,8 +105,8 @@ export function AppSidebar() {
   };
 
   return (
-    <aside className="flex w-14 shrink-0 flex-col border-r border-border bg-muted/30 px-2 py-3">
-      <nav className="mt-1 flex flex-col gap-1.5">
+    <aside className="flex w-12 shrink-0 flex-col border-r border-border bg-muted/30 px-1.5 py-2">
+      <nav className="mt-1 flex flex-col gap-1">
         <AppNavLink
           label="Tree"
           icon={FolderTree}
@@ -128,19 +127,17 @@ export function AppSidebar() {
         />
       </nav>
 
-      <div className="mt-auto flex flex-col items-center gap-1.5">
-        {isFlowRoute ? (
-          <AppActionButton
-            label="Console"
-            icon={SquareTerminal}
-            isActive={isConsoleOpen}
-            onClick={toggleConsole}
-          />
-        ) : null}
+      <div className="mt-auto flex flex-col items-center gap-1">
+        <AppActionButton
+          label="Console"
+          icon={SquareTerminal}
+          isActive={isConsoleOpen}
+          onClick={toggleConsole}
+        />
         <AppNavLink
           label="Settings"
-          icon={SlidersHorizontal}
-          to="/settings/pbx"
+          icon={Settings}
+          to="/settings/general"
           onNavigate={(to) => {
             void handleNavigate(to);
           }}

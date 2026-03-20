@@ -64,7 +64,6 @@ SIP 통화의 참여자(UA, User Agent)를 나타냅니다.
 | 속성 | 설명 |
 |------|------|
 | Label | 인스턴스 이름 (예: "Caller", "Callee") |
-| Mode | DN (Directory Number) 또는 Endpoint |
 | DN | 전화번호/내선번호 (예: "100") |
 | Register | SIP Registrar 등록 여부 |
 | Codecs | 사용할 오디오 코덱 목록 (기본: PCMU, PCMA) |

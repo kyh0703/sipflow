@@ -4,7 +4,6 @@ import { useEffect, useRef } from 'react';
 import type { PanelImperativeHandle } from 'react-resizable-panels';
 import { toast } from 'sonner';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { ExecutionToolbar } from '@/features/execution/components/execution-toolbar';
 import { Canvas } from './canvas';
 import { NodePalette } from './node-palette';
@@ -86,11 +85,11 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
 
   return (
     <ReactFlowProvider>
-      <div className="flex h-full w-full flex-col">
+      <div className="flex h-full min-h-0 w-full flex-col">
           {/* Header Bar */}
-          <div className="h-10 border-b border-border bg-background flex items-center justify-between px-4">
+          <div className="flex h-9 items-center justify-between border-b border-border bg-background px-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">
+              <span className="text-[13px] font-medium">
                 {currentScenarioName || 'No scenario selected'}
               </span>
               {/* Save Status Indicator */}
@@ -113,13 +112,12 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-3">
-              <ThemeToggle />
+            <div className="flex items-center gap-2">
               <ExecutionToolbar />
               <button
                 onClick={handleSave}
                 disabled={!currentScenarioId}
-                className="flex items-center gap-2 px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-[13px] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                 title="Save (Ctrl+S)"
               >
                 <Save size={14} />
@@ -129,12 +127,12 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
           </div>
 
           {/* Main content */}
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex min-h-0 flex-1 overflow-hidden">
             {/* Resizable layout */}
             <ResizablePanelGroup
               orientation="horizontal"
               className="flex-1"
-              defaultLayout={{ sidebar: 20, canvas: 58, properties: 22 }}
+              defaultLayout={{ sidebar: 18, canvas: 60, properties: 22 }}
             >
               {/* Left Sidebar */}
               <ResizablePanel
@@ -145,7 +143,7 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
                 <div className="h-full overflow-y-auto">
                   {activePanel === 'scenario' && <ScenarioTree />}
                   {activePanel === 'palette' && (
-                    <div className="p-3">
+                    <div className="p-2">
                       <NodePalette />
                     </div>
                   )}
@@ -172,7 +170,7 @@ export function ScenarioBuilder({ activePanel }: ScenarioBuilderProps) {
                 collapsedSize={0}
                 panelRef={propertiesRef}
               >
-                <div className="h-full overflow-y-auto p-4">
+                <div className="h-full overflow-y-auto p-3">
                   <PropertiesPanel />
                 </div>
               </ResizablePanel>

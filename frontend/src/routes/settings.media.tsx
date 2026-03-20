@@ -4,11 +4,8 @@ import { RoutePending } from '@/components/route-pending';
 function SettingsMediaPage() {
   return (
     <div className="p-6">
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-foreground">Media</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          추후 오디오/미디어 관련 전역 설정을 이 영역에 추가할 예정입니다.
-        </p>
+      <div className="rounded-2xl border border-dashed border-border bg-muted/10 p-6 text-sm text-muted-foreground">
+        추후 미디어 관련 전역 설정을 이 영역에 추가할 예정입니다.
       </div>
     </div>
   );

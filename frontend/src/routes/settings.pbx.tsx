@@ -6,8 +6,8 @@ export const Route = createFileRoute('/settings/pbx')({
   component: SettingsPanel,
   pendingComponent: () => (
     <RoutePending
-      title="Loading PBX settings..."
-      description="PBX 설정 화면을 불러오는 중입니다."
+      title="Loading SIP settings..."
+      description="SIP 설정 화면을 불러오는 중입니다."
     />
   ),
 });

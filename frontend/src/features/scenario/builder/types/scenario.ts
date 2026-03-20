@@ -42,7 +42,6 @@ export const DEFAULT_CALL_ID = 'call-1';
 // SIP Instance Node
 export interface SipInstanceNodeData extends Record<string, unknown> {
   label: string;
-  mode: 'DN' | 'Endpoint';
   dn?: string;
   register: boolean;
   pbxInstanceId?: string;

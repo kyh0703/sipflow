@@ -30,10 +30,34 @@ var newRegisterTransaction = func(ctx context.Context, dg *diago.Diago, recipien
 	return dg.RegisterTransaction(ctx, recipient, opts)
 }
 
+func shouldBindLoopback(config SipInstanceConfig) bool {
+	host := strings.TrimSpace(config.PBXHost)
+	if host == "" {
+		return true
+	}
+
+	normalizedHost := strings.ToLower(host)
+	if normalizedHost == "localhost" {
+		return true
+	}
+
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+func resolveBindHost(config SipInstanceConfig) string {
+	if shouldBindLoopback(config) {
+		return "127.0.0.1"
+	}
+
+	return "0.0.0.0"
+}
+
 // ManagedInstance는 관리되는 diago SIP UA 인스턴스
 type ManagedInstance struct {
 	Config     SipInstanceConfig
 	UA         *diago.Diago
+	SIPUA      *sipgo.UserAgent
 	Port       int
 	incomingCh chan *diago.DialogServerSession
 	cancel     context.CancelFunc
@@ -55,8 +79,8 @@ func NewInstanceManager() *InstanceManager {
 	return &InstanceManager{
 		instances:  make(map[string]*ManagedInstance),
 		dnToID:     make(map[string]string),
-		basePort:   5060,
-		nextPort:   5060,
+		basePort:   15060,
+		nextPort:   15060,
 		maxRetries: 10,
 	}
 }
@@ -109,7 +133,9 @@ func (im *InstanceManager) CreateInstances(graph *ExecutionGraph) error {
 			return fmt.Errorf("unsupported transport %q for instance %s", chain.Config.PBXTransport, instanceID)
 		}
 
-		port, err := im.allocatePort(transport)
+		bindHost := resolveBindHost(chain.Config)
+
+		port, err := im.allocatePort(transport, bindHost)
 		if err != nil {
 			// 실패 시 이미 생성된 인스턴스 정리
 			for _, inst := range createdInstances {
@@ -139,7 +165,7 @@ func (im *InstanceManager) CreateInstances(graph *ExecutionGraph) error {
 		dg := diago.NewDiago(ua,
 			diago.WithTransport(diago.Transport{
 				Transport: transport,
-				BindHost:  "127.0.0.1",
+				BindHost:  bindHost,
 				BindPort:  port,
 			}),
 			diago.WithMediaConfig(diago.MediaConfig{
@@ -151,6 +177,7 @@ func (im *InstanceManager) CreateInstances(graph *ExecutionGraph) error {
 		managedInst := &ManagedInstance{
 			Config:     chain.Config,
 			UA:         dg,
+			SIPUA:      ua,
 			Port:       port,
 			incomingCh: make(chan *diago.DialogServerSession, 4),
 			cancel:     nil, // StartServing에서 설정
@@ -175,14 +202,17 @@ func normalizeTransport(transport string) string {
 	return transport
 }
 
-func (im *InstanceManager) allocatePort(transport string) (int, error) {
+func (im *InstanceManager) allocatePort(transport string, bindHost string) (int, error) {
 	transport = normalizeTransport(transport)
+	if strings.TrimSpace(bindHost) == "" {
+		bindHost = "127.0.0.1"
+	}
 
 	for i := 0; i < im.maxRetries; i++ {
 		port := im.nextPort + (i * 2)
 
 		// 포트 가용성 테스트
-		addr := fmt.Sprintf("127.0.0.1:%d", port)
+		addr := fmt.Sprintf("%s:%d", bindHost, port)
 
 		var closeFn func() error
 		switch transport {
@@ -284,7 +314,7 @@ func buildRegisterRecipient(config SipInstanceConfig) (sip.Uri, diago.RegisterOp
 	return recipient, opts, nil
 }
 
-func (im *InstanceManager) StartRegistration(ctx context.Context, instanceID string) (<-chan error, error) {
+func (im *InstanceManager) StartRegistration(ctx context.Context, instanceID string, keepAlive bool) (<-chan error, error) {
 	inst, err := im.GetInstance(instanceID)
 	if err != nil {
 		return nil, err
@@ -309,6 +339,10 @@ func (im *InstanceManager) StartRegistration(ctx context.Context, instanceID str
 	im.mu.Lock()
 	inst.registerTx = tx
 	im.mu.Unlock()
+
+	if !keepAlive {
+		return nil, nil
+	}
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -386,6 +420,14 @@ func (im *InstanceManager) Cleanup() error {
 	}
 
 	// 맵 초기화
+	im.instances = make(map[string]*ManagedInstance)
+	for _, inst := range im.instances {
+		if inst.SIPUA != nil {
+			_ = inst.SIPUA.Close()
+			inst.SIPUA = nil
+		}
+	}
+
 	im.instances = make(map[string]*ManagedInstance)
 	im.dnToID = make(map[string]string)
 

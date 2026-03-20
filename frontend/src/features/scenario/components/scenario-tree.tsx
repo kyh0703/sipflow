@@ -112,12 +112,12 @@ export function ScenarioTree() {
   return (
     <div className="flex flex-col h-full">
       {/* Header with New button */}
-      <div className="p-3 border-b border-border">
+      <div className="border-b border-border p-2">
         <button
           onClick={handleNewScenario}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+          className="flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-[13px] text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <Plus size={16} />
+          <Plus size={14} />
           New Scenario
         </button>
       </div>
@@ -125,9 +125,9 @@ export function ScenarioTree() {
       {/* Scenario list */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="p-3 text-xs text-muted-foreground">Loading...</div>
+          <div className="p-2 text-xs text-muted-foreground">Loading...</div>
         ) : scenarios.length === 0 ? (
-          <div className="p-3 text-xs text-muted-foreground">No scenarios yet</div>
+          <div className="p-2 text-xs text-muted-foreground">No scenarios yet</div>
         ) : (
           <div className="flex flex-col">
             {scenarios.map((scenario) => {
@@ -137,37 +137,37 @@ export function ScenarioTree() {
                   key={scenario.id}
                   onClick={() => handleLoadScenario(scenario)}
                   className={`
-                    group flex items-center justify-between px-3 py-2 cursor-pointer
+                    group flex cursor-pointer items-center justify-between px-2 py-1.5
                     border-b border-border last:border-b-0
                     hover:bg-accent transition-colors
                     ${isActive ? 'bg-accent' : ''}
                   `}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       {isActive && (
-                        <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
+                        <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" />
                       )}
-                      <span className="text-sm truncate" title={scenario.name}>
+                      <span className="truncate text-[13px]" title={scenario.name}>
                         {scenario.name}
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
                       onClick={(e) => handleRename(scenario, e)}
-                      className="p-1 hover:bg-background rounded"
+                      className="rounded p-1 hover:bg-background"
                       title="Rename"
                     >
-                      <Pencil size={14} className="text-muted-foreground" />
+                      <Pencil size={12} className="text-muted-foreground" />
                     </button>
                     <button
                       onClick={(e) => handleDelete(scenario, e)}
-                      className="p-1 hover:bg-background rounded"
+                      className="rounded p-1 hover:bg-background"
                       title="Delete"
                     >
-                      <Trash2 size={14} className="text-destructive" />
+                      <Trash2 size={12} className="text-destructive" />
                     </button>
                   </div>
                 </div>

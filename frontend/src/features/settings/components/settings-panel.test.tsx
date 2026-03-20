@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   pbxInstances: [
     {
       id: 'pbx-1',
-      name: 'PBX 1',
+      name: 'SIP 1',
       host: '127.0.0.1',
       port: '5060',
       transport: 'UDP',
@@ -63,7 +63,7 @@ describe('SettingsPanel delete confirmation', () => {
     mocks.showConfirmModal.mockResolvedValue(false)
 
     render(<SettingsPanel />)
-    fireEvent.click(screen.getByLabelText('Delete PBX instance'))
+    fireEvent.click(screen.getByLabelText('Delete SIP instance'))
 
     await waitFor(() => {
       expect(mocks.showConfirmModal).toHaveBeenCalled()
@@ -75,7 +75,7 @@ describe('SettingsPanel delete confirmation', () => {
     mocks.showConfirmModal.mockResolvedValue(true)
 
     render(<SettingsPanel />)
-    fireEvent.click(screen.getAllByLabelText('Delete PBX instance')[0])
+    fireEvent.click(screen.getAllByLabelText('Delete SIP instance')[0])
 
     await waitFor(() => {
       expect(mocks.removePbxInstance).toHaveBeenCalledWith('pbx-1')

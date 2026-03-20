@@ -31,12 +31,12 @@ export function SettingsPanel() {
 
   const handleAddInstance = () => {
     addPbxInstance();
-    toast.success('새 PBX 인스턴스를 추가했습니다.');
+    toast.success('새 SIP 인스턴스를 추가했습니다.');
   };
 
   const handleRemoveInstance = async (instance: PbxInstanceSettings) => {
     const confirmed = await showConfirmModal(
-      `"${instance.name || 'Unnamed PBX'}" 인스턴스를 삭제할까요?`
+      `"${instance.name || 'Unnamed SIP'}" 인스턴스를 삭제할까요?`
     );
 
     if (!confirmed) {
@@ -44,7 +44,7 @@ export function SettingsPanel() {
     }
 
     removePbxInstance(instance.id);
-    toast.success('PBX 인스턴스를 삭제했습니다.');
+    toast.success('SIP 인스턴스를 삭제했습니다.');
   };
 
   const handleTransportChange = (instanceId: string, value: string) => {
@@ -53,16 +53,10 @@ export function SettingsPanel() {
 
   return (
     <div className="space-y-6 p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h3 className="text-base font-semibold text-foreground">PBX 인스턴스</h3>
-          <p className="text-sm text-muted-foreground">
-            SIP Instance 노드가 참조할 PBX 연결 정보를 그리드에서 바로 편집하세요.
-          </p>
-        </div>
+      <div className="flex justify-end">
         <Button type="button" variant="outline" onClick={handleAddInstance}>
           <Plus className="h-4 w-4" />
-          행 추가
+          추가
         </Button>
       </div>
 
@@ -88,7 +82,7 @@ export function SettingsPanel() {
                       onChange={(event) =>
                         updatePbxInstance(instance.id, { name: event.target.value })
                       }
-                      placeholder="HQ PBX"
+                      placeholder="SIP 1"
                     />
                   </TableCell>
                   <TableCell>
@@ -97,7 +91,7 @@ export function SettingsPanel() {
                       onChange={(event) =>
                         updatePbxInstance(instance.id, { host: event.target.value })
                       }
-                      placeholder="192.168.0.10"
+                      placeholder="sip.example.com"
                     />
                   </TableCell>
                   <TableCell>
@@ -145,7 +139,7 @@ export function SettingsPanel() {
                       size="icon"
                       className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => handleRemoveInstance(instance)}
-                      aria-label="Delete PBX instance"
+                      aria-label="Delete SIP instance"
                       title="Delete"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -156,7 +150,7 @@ export function SettingsPanel() {
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="h-28 text-center text-sm text-muted-foreground">
-                  아직 등록된 PBX 인스턴스가 없습니다. 우측 상단의 "행 추가" 버튼으로 시작하세요.
+                  아직 등록된 SIP 인스턴스가 없습니다. 우측 상단의 "추가" 버튼으로 시작하세요.
                 </TableCell>
               </TableRow>
             )}

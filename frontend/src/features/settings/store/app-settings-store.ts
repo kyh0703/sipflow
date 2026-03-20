@@ -31,7 +31,7 @@ function createId(): string {
 function createEmptyPbxInstance(index: number): PbxInstanceSettings {
   return {
     id: createId(),
-    name: `PBX ${index + 1}`,
+    name: `SIP ${index + 1}`,
     host: '',
     port: '5060',
     transport: 'UDP',
@@ -45,7 +45,7 @@ function normalizePbxInstance(
 ): PbxInstanceSettings {
   return {
     id: instance?.id || createId(),
-    name: instance?.name || `PBX ${index + 1}`,
+    name: instance?.name || `SIP ${index + 1}`,
     host: instance?.host || '',
     port: instance?.port || '5060',
     transport: instance?.transport === 'TCP' ? 'TCP' : 'UDP',
@@ -109,17 +109,17 @@ export const useAppSettingsStore = createPersistStore<AppSettingsStoreState>(
         return {
           pbxInstances: hasLegacyValues
             ? [
-                normalizePbxInstance(
-                  {
-                    name: state.name ?? 'PBX 1',
-                    host: state.pbxHost ?? '',
-                    port: state.pbxPort ?? '5060',
-                    transport: state.transport ?? 'UDP',
-                    registerInterval: state.registerInterval ?? '300',
-                  },
-                  0
-                ),
-              ]
+              normalizePbxInstance(
+                {
+                  name: state.name ?? 'SIP 1',
+                  host: state.pbxHost ?? '',
+                  port: state.pbxPort ?? '5060',
+                  transport: state.transport ?? 'UDP',
+                  registerInterval: state.registerInterval ?? '300',
+                },
+                0
+              ),
+            ]
             : [],
         } satisfies Partial<AppSettingsStoreState>;
       }

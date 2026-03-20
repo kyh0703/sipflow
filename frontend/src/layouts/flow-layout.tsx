@@ -34,7 +34,7 @@ export function FlowLayout({ children }: FlowLayoutProps) {
     <FlowEditorProvider>
       <div className="flex h-screen w-screen bg-background text-foreground">
         <AppSidebar />
-        <main className="min-w-0 flex-1 overflow-hidden">
+        <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
           {isConsoleOpen ? (
             <FlowConsolePanel>{children}</FlowConsolePanel>
           ) : (

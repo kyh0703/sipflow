@@ -44,4 +44,27 @@ describe('validateRequiredFields', () => {
 
     expect(errors).toEqual([]);
   });
+
+  it('requires Number for SIP Instance', () => {
+    const errors = validateRequiredFields([
+      {
+        id: 'sip-a',
+        type: 'sipInstance',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Caller',
+          register: false,
+        },
+      },
+    ]);
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          nodeId: 'sip-a',
+          message: 'SIP Instance requires Number',
+        }),
+      ])
+    );
+  });
 });

@@ -58,7 +58,6 @@ type GraphNode struct {
 type SipInstanceConfig struct {
 	ID                      string
 	Label                   string
-	Mode                    string // DN|Endpoint
 	DN                      string
 	Register                bool
 	Color                   string
@@ -105,7 +104,6 @@ func ParseScenario(flowData string) (*ExecutionGraph, error) {
 			config := SipInstanceConfig{
 				ID:                      node.ID,
 				Label:                   getStringField(node.Data, "label", ""),
-				Mode:                    getStringField(node.Data, "mode", "DN"),
 				DN:                      getStringField(node.Data, "dn", ""),
 				Register:                getBoolField(node.Data, "register", true),
 				Color:                   getStringField(node.Data, "color", ""),

@@ -104,7 +104,6 @@ export function Canvas() {
       nodeData = {
         label: '',
         dn: '',
-        mode: 'DN',
         register: true,
         color: INSTANCE_COLORS[instanceCount % INSTANCE_COLORS.length],
         codecs: [...DEFAULT_CODECS],

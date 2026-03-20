@@ -22,7 +22,7 @@ type WorkspacePanelStore = WorkspacePanelStoreState & {
 export const useWorkspacePanelStore = createStore<WorkspacePanelStore>(
   (set) => ({
     isConsoleOpen: false,
-    consolePanelSize: 38,
+    consolePanelSize: 33,
     consoleTab: 'log',
     actions: {
       toggleConsole: () => {

@@ -1,19 +1,19 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { usePbxInstances, type PbxInstanceSettings } from '@/features/settings/store/app-settings-store';
 import type { SipInstanceNode } from '../../types/scenario';
 import { DEFAULT_CODECS } from '../../types/scenario';
 import { CodecListItem } from './codec-list-item';
-import { usePbxInstances, type PbxInstanceSettings } from '@/features/settings/store/app-settings-store';
 
 interface SipInstancePropertiesProps {
   node: SipInstanceNode;
   onUpdate: (data: Partial<SipInstanceNode['data']>) => void;
 }
 
-function getPbxInstanceLabel(instance: PbxInstanceSettings) {
+function getSipInstanceLabel(instance: PbxInstanceSettings) {
   if (instance.name.trim()) {
     return instance.name;
   }
@@ -22,27 +22,17 @@ function getPbxInstanceLabel(instance: PbxInstanceSettings) {
     return `${instance.host}:${instance.port || '5060'}`;
   }
 
-  return 'Unnamed PBX';
+  return 'Unnamed SIP';
 }
 
 export function SipInstanceProperties({ node, onUpdate }: SipInstancePropertiesProps) {
   const { data } = node;
-  const pbxInstances = usePbxInstances();
-  const numberValue =
-    data.dn || (data.label && data.label !== 'SIP Instance' ? data.label : '');
+  const sipInstances = usePbxInstances();
+  const numberValue = data.dn || (data.label && data.label !== 'SIP Instance' ? data.label : '');
   const selectedPbxInstanceId = data.pbxInstanceId || data.serverId || 'none';
 
-  const handleModeChange = (mode: 'DN' | 'Endpoint') => {
-    onUpdate({
-      mode,
-      register: mode === 'DN',
-    });
-  };
-
   const moveCodec = (fromIndex: number, toIndex: number) => {
-    const currentCodecs = data.codecs && data.codecs.length > 0
-      ? data.codecs
-      : [...DEFAULT_CODECS];
+    const currentCodecs = data.codecs && data.codecs.length > 0 ? data.codecs : [...DEFAULT_CODECS];
     const newCodecs = [...currentCodecs];
     const [removed] = newCodecs.splice(fromIndex, 1);
     newCodecs.splice(toIndex, 0, removed);
@@ -73,25 +63,9 @@ export function SipInstanceProperties({ node, onUpdate }: SipInstancePropertiesP
 
         <Separator />
 
-        <div className="space-y-2">
-          <Label htmlFor="mode">Mode</Label>
-          <Select value={data.mode} onValueChange={handleModeChange}>
-            <SelectTrigger id="mode">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="DN">DN</SelectItem>
-              <SelectItem value="Endpoint">Endpoint</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
         <div className="flex items-center justify-between gap-4 rounded-lg border border-border px-3 py-2">
-          <div className="space-y-1">
+          <div>
             <Label htmlFor="register-enabled">Register</Label>
-            <p className="text-xs text-muted-foreground">
-              Enable SIP REGISTER for this instance when the scenario starts.
-            </p>
           </div>
           <Switch
             id="register-enabled"
@@ -109,7 +83,7 @@ export function SipInstanceProperties({ node, onUpdate }: SipInstancePropertiesP
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="pbxInstanceId">PBX Instance</Label>
+          <Label htmlFor="pbxInstanceId">SIP Instance</Label>
           <Select
             value={selectedPbxInstanceId}
             onValueChange={(value) =>
@@ -120,22 +94,22 @@ export function SipInstanceProperties({ node, onUpdate }: SipInstancePropertiesP
             }
           >
             <SelectTrigger id="pbxInstanceId">
-              <SelectValue placeholder="Select PBX instance..." />
+              <SelectValue placeholder="Select SIP instance..." />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
-              {pbxInstances.map((instance) => (
+              {sipInstances.map((instance) => (
                 <SelectItem key={instance.id} value={instance.id}>
-                  {getPbxInstanceLabel(instance)}
+                  {getSipInstanceLabel(instance)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {pbxInstances.length === 0 && (
+          {sipInstances.length === 0 ? (
             <p className="text-xs text-muted-foreground">
-              Settings에서 PBX 인스턴스를 먼저 추가해 주세요.
+              Settings에서 SIP 인스턴스를 먼저 추가해 주세요.
             </p>
-          )}
+          ) : null}
         </div>
       </section>
 
@@ -151,12 +125,7 @@ export function SipInstanceProperties({ node, onUpdate }: SipInstancePropertiesP
           <p className="text-xs text-muted-foreground">Drag to reorder priority.</p>
           <div className="space-y-2">
             {displayCodecs.map((codec, index) => (
-              <CodecListItem
-                key={codec}
-                codec={codec}
-                index={index}
-                onMove={moveCodec}
-              />
+              <CodecListItem key={codec} codec={codec} index={index} onMove={moveCodec} />
             ))}
           </div>
         </div>

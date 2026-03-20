@@ -15,7 +15,6 @@ func TestParseScenario_BasicTwoInstance(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100",
         "register": true,
         "color": "#3b82f6"
@@ -27,7 +26,6 @@ func TestParseScenario_BasicTwoInstance(t *testing.T) {
       "position": {"x": 400, "y": 100},
       "data": {
         "label": "Instance B",
-        "mode": "DN",
         "dn": "200",
         "register": true,
         "color": "#ef4444"
@@ -155,7 +153,6 @@ func TestParseScenario_FailureBranch(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100",
         "register": true
       }
@@ -250,7 +247,6 @@ func TestParseScenario_CustomTimeout(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100",
         "register": true
       }
@@ -318,7 +314,6 @@ func TestParseScenario_MissingInstanceId(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100",
         "register": true
       }
@@ -368,7 +363,6 @@ func TestParseScenario_CodecsField(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100",
         "register": true,
         "codecs": ["PCMA", "PCMU"]
@@ -410,7 +404,6 @@ func TestParseScenario_CodecsDefault(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100",
         "register": true
       }
@@ -451,7 +444,6 @@ func TestParseScenario_CodecsEmpty(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100",
         "register": true,
         "codecs": []
@@ -493,7 +485,6 @@ func TestParseScenario_CodecsInvalid(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100",
         "register": true,
         "codecs": ["INVALID", "PCMU"]
@@ -535,7 +526,6 @@ func TestParseScenario_PlayAudioFields(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100"
       }
     },
@@ -591,7 +581,6 @@ func TestParseScenario_SendDTMFFields(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100"
       }
     },
@@ -653,7 +642,6 @@ func TestParseScenario_SendDTMFDefaults(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100"
       }
     },
@@ -697,7 +685,6 @@ func TestParseScenario_DTMFReceivedFields(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100"
       }
     },
@@ -753,7 +740,6 @@ func TestParseScenario_DTMFReceivedNoExpectedDigit(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100"
       }
     },
@@ -796,7 +782,6 @@ func TestParseScenario_BlindTransferFields(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100"
       }
     },
@@ -861,7 +846,6 @@ func TestParseScenario_MuteTransferFields(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100"
       }
     },
@@ -922,7 +906,6 @@ func TestParseScenario_HoldFields(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100"
       }
     },
@@ -982,7 +965,6 @@ func TestParseScenario_RetrieveFields(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100"
       }
     },
@@ -1039,7 +1021,6 @@ func TestParseScenario_V1_1_BackwardCompatibility(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100"
       }
     },
@@ -1049,7 +1030,6 @@ func TestParseScenario_V1_1_BackwardCompatibility(t *testing.T) {
       "position": {"x": 400, "y": 100},
       "data": {
         "label": "Instance B",
-        "mode": "DN",
         "dn": "200"
       }
     },
@@ -1210,7 +1190,6 @@ func TestParseScenario_DefaultCallID(t *testing.T) {
       "type": "sipInstance",
       "data": {
         "label": "A",
-        "mode": "DN",
         "dn": "100"
       }
     },
@@ -1249,7 +1228,6 @@ func TestParseScenario_CustomCallID(t *testing.T) {
       "type": "sipInstance",
       "data": {
         "label": "A",
-        "mode": "DN",
         "dn": "100"
       }
     },
@@ -1288,7 +1266,6 @@ func TestParseScenario_InstanceNodeIDUsesInternalKey(t *testing.T) {
       "type": "sipInstance",
       "data": {
         "label": "A",
-        "mode": "DN",
         "dn": "100"
       }
     },

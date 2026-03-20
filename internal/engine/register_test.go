@@ -28,7 +28,6 @@ func TestParseScenario_SipInstanceRegisterConfig(t *testing.T) {
       "type": "sipInstance",
       "data": {
         "label": "4300",
-        "mode": "DN",
         "dn": "4300",
         "register": true,
         "pbxHost": "pbx.local",
@@ -117,7 +116,6 @@ func TestStartScenario_RegisterOnlyWaitsUntilStopped(t *testing.T) {
 			Type: "sipInstance",
 			Data: map[string]interface{}{
 				"label":                   "4300",
-				"mode":                    "DN",
 				"dn":                      "4300",
 				"register":                true,
 				"pbxHost":                 "pbx.local",

@@ -1,21 +1,20 @@
 import { render } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { FlowLayout } from './flow-layout'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { SettingsLayout } from './settings-layout'
 
 const mocks = vi.hoisted(() => ({
-  isDirty: false,
   isConsoleOpen: false,
   consolePanelSize: 33,
   setConsolePanelSize: vi.fn(),
   setBottomTab: vi.fn(),
 }))
 
-vi.mock('@/features/scenario/builder/store/flow-editor-context', () => ({
-  FlowEditorProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}))
-
-vi.mock('@/features/scenario/store/scenario-store', () => ({
-  useScenarioIsDirty: () => mocks.isDirty,
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({ children, to, className }: any) => (
+    <a href={to} className={className}>
+      {children}
+    </a>
+  ),
 }))
 
 vi.mock('@/components/ui/resizable', () => ({
@@ -31,7 +30,12 @@ vi.mock('./store/workspace-panel-store', () => ({
   useWorkspacePanelActions: () => ({
     setConsolePanelSize: mocks.setConsolePanelSize,
     setBottomTab: mocks.setBottomTab,
+    toggleConsole: vi.fn(),
   }),
+}))
+
+vi.mock('@/features/scenario/store/scenario-store', () => ({
+  useScenarioIsDirty: () => false,
 }))
 
 vi.mock('@/features/execution/components/execution-log', () => ({
@@ -46,41 +50,35 @@ vi.mock('./app-sidebar', () => ({
   AppSidebar: () => <aside>Sidebar</aside>,
 }))
 
-describe('FlowLayout beforeunload guard', () => {
-  afterEach(() => {
-    document.body.innerHTML = ''
-  })
-
+describe('SettingsLayout', () => {
   beforeEach(() => {
-    mocks.isDirty = false
     mocks.isConsoleOpen = false
     mocks.consolePanelSize = 33
     mocks.setConsolePanelSize.mockReset()
     mocks.setBottomTab.mockReset()
   })
 
-  it('prevents browser unload when there are unsaved changes', () => {
-    mocks.isDirty = true
-    render(<FlowLayout><div>Content</div></FlowLayout>)
+  it('renders settings content without the console when closed', () => {
+    const { getByText, queryByText } = render(
+      <SettingsLayout activeTab="general">
+        <div>Settings Content</div>
+      </SettingsLayout>
+    )
 
-    const event = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent
-    Object.defineProperty(event, 'returnValue', {
-      writable: true,
-      value: undefined,
-    })
-
-    window.dispatchEvent(event)
-
-    expect(event.defaultPrevented).toBe(true)
-    expect(event.returnValue).toBe('')
+    expect(getByText('Settings Content')).toBeTruthy()
+    expect(queryByText('Execution Log')).toBeNull()
   })
 
-  it('renders the execution footer from the layout when the console is open', () => {
+  it('renders the shared console panel when open', () => {
     mocks.isConsoleOpen = true
 
-    const { getByText } = render(<FlowLayout><div>Content</div></FlowLayout>)
+    const { getByText } = render(
+      <SettingsLayout activeTab="general">
+        <div>Settings Content</div>
+      </SettingsLayout>
+    )
 
-    expect(getByText('Content')).toBeTruthy()
+    expect(getByText('Settings Content')).toBeTruthy()
     expect(getByText('Execution Log')).toBeTruthy()
     expect(getByText('Log')).toBeTruthy()
     expect(getByText('Timeline')).toBeTruthy()

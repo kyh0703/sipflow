@@ -54,16 +54,17 @@ describe('AppSidebar', () => {
     expect(footerGroup.lastElementChild).toBe(settingsLink)
   })
 
-  it('shows only the settings button in the footer on settings routes', () => {
-    mocks.pathname = '/settings/pbx'
+  it('keeps the console and settings buttons in the footer on settings routes', () => {
+    mocks.pathname = '/settings/general'
 
     const { container } = render(<AppSidebar />)
 
     const aside = container.querySelector('aside')
     const footerGroup = aside?.lastElementChild as HTMLElement
 
-    expect(screen.queryByLabelText('Console')).toBeNull()
-    expect(footerGroup.childElementCount).toBe(1)
+    expect(screen.getByLabelText('Console')).toBeTruthy()
+    expect(footerGroup.childElementCount).toBe(2)
+    expect(footerGroup.firstElementChild).toBe(screen.getByLabelText('Console'))
     expect(footerGroup.lastElementChild).toBe(screen.getByLabelText('Settings'))
   })
 })

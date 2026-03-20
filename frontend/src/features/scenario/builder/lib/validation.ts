@@ -244,7 +244,7 @@ export function validateInstanceAssignments(nodes: Node[], edges: Edge[]): Valid
  * Validate required fields for specific node types.
  * - MakeCall command: requires targetUri
  * - TIMEOUT event: requires timeout
- * - DN mode SIP Instance: requires dn
+ * - SIP Instance: requires dn
  */
 export function validateRequiredFields(nodes: Node[]): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -330,25 +330,23 @@ export function validateRequiredFields(nodes: Node[]): ValidationError[] {
         }
       }
     } else if (node.type === 'sipInstance') {
-      if (data.mode === 'DN') {
-        if (!data.dn || data.dn.trim() === '') {
+      if (!data.dn || data.dn.trim() === '') {
+        errors.push({
+          type: 'required-field',
+          nodeId: node.id,
+          message: 'SIP Instance requires Number',
+        });
+      } else {
+        const dn = data.dn.trim();
+        const existingNodeID = usedDNs.get(dn);
+        if (existingNodeID && existingNodeID !== node.id) {
           errors.push({
             type: 'required-field',
             nodeId: node.id,
-            message: 'DN mode requires dn field',
+            message: `DN ${dn} must be unique`,
           });
         } else {
-          const dn = data.dn.trim();
-          const existingNodeID = usedDNs.get(dn);
-          if (existingNodeID && existingNodeID !== node.id) {
-            errors.push({
-              type: 'required-field',
-              nodeId: node.id,
-              message: `DN ${dn} must be unique`,
-            });
-          } else {
-            usedDNs.set(dn, node.id);
-          }
+          usedDNs.set(dn, node.id);
         }
       }
     }

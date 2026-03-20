@@ -11,7 +11,7 @@ import (
 	"sipflow/internal/scenario"
 )
 
-// Engine은 시나리오 실행 엔진
+// Engine는 시나리오 실행 엔진
 type Engine struct {
 	ctx        context.Context
 	repo       *scenario.Repository
@@ -22,14 +22,24 @@ type Engine struct {
 	running    bool
 	scenarioID string
 	cancelFunc context.CancelFunc
+	runDone    chan struct{}
+	terminal   scenarioTerminalState
 	wg         sync.WaitGroup
 }
 
-// NewEngine은 새로운 Engine을 생성한다
+type scenarioTerminalState string
+
+const (
+	terminalStateRunning scenarioTerminalState = "running"
+	terminalStateStopped scenarioTerminalState = "stopped"
+	terminalStateFailed  scenarioTerminalState = "failed"
+)
+
+// NewEngine는 새로운 Engine을 생성한다
 func NewEngine(repo *scenario.Repository) *Engine {
 	return &Engine{
 		repo:    repo,
-		emitter: nil, // SetContext 시 자동 설정
+		emitter: nil, // SetContext에서 자동 설정
 		im:      NewInstanceManager(),
 	}
 }
@@ -40,14 +50,13 @@ func (e *Engine) SetContext(ctx context.Context) {
 	e.emitter = &WailsEventEmitter{ctx: ctx}
 }
 
-// SetEventEmitter는 테스트 등 외부에서 커스텀 EventEmitter를 주입할 수 있도록 한다
+// SetEventEmitter는 테스트 등에서 커스텀 EventEmitter를 주입할 수 있도록 한다
 func (e *Engine) SetEventEmitter(emitter EventEmitter) {
 	e.emitter = emitter
 }
 
 // StartScenario는 시나리오 실행을 시작한다
 func (e *Engine) StartScenario(scenarioID string) error {
-	// 1. 동시 실행 방지
 	e.mu.Lock()
 	if e.running {
 		e.mu.Unlock()
@@ -56,8 +65,7 @@ func (e *Engine) StartScenario(scenarioID string) error {
 	e.running = true
 	e.mu.Unlock()
 
-	// 2. 시나리오 로드
-	scenario, err := e.repo.LoadScenario(scenarioID)
+	scn, err := e.repo.LoadScenario(scenarioID)
 	if err != nil {
 		e.mu.Lock()
 		e.running = false
@@ -65,27 +73,30 @@ func (e *Engine) StartScenario(scenarioID string) error {
 		return err
 	}
 
-	// 3. 그래프 파싱
-	graph, err := ParseScenario(scenario.FlowData)
+	graph, err := ParseScenario(scn.FlowData)
 	if err != nil {
 		e.cleanupOnError()
 		return err
 	}
 
-	// 4. 인스턴스 생성
 	if err := e.im.CreateInstances(graph); err != nil {
 		e.cleanupOnError()
 		return err
 	}
 
-	// 6. 실행 context 생성
-	execCtx, cancel := context.WithCancel(context.Background())
+	parentCtx := context.Background()
+	if e.ctx != nil {
+		parentCtx = e.ctx
+	}
+	execCtx, cancel := context.WithCancel(parentCtx)
+
 	e.mu.Lock()
 	e.scenarioID = scenarioID
 	e.cancelFunc = cancel
+	e.runDone = make(chan struct{})
+	e.terminal = terminalStateRunning
 	e.mu.Unlock()
 
-	// 5. 인스턴스 Serve 시작
 	if err := e.im.StartServing(execCtx); err != nil {
 		cancel()
 		e.cleanupOnError()
@@ -97,6 +108,7 @@ func (e *Engine) StartScenario(scenarioID string) error {
 		errCh      <-chan error
 	}, 0, len(graph.Instances))
 	hasRegistrations := false
+
 	for instanceID, chain := range graph.Instances {
 		if !chain.Config.Register {
 			continue
@@ -105,7 +117,8 @@ func (e *Engine) StartScenario(scenarioID string) error {
 		hasRegistrations = true
 		e.emitActionLog("", instanceID, fmt.Sprintf("Registering DN %s", chain.Config.DN), "info")
 
-		regErrCh, err := e.im.StartRegistration(execCtx, instanceID)
+		keepAlive := len(chain.StartNodes) > 0
+		regErrCh, err := e.im.StartRegistration(execCtx, instanceID, keepAlive)
 		if err != nil {
 			cancel()
 			e.cleanupOnError()
@@ -124,16 +137,12 @@ func (e *Engine) StartScenario(scenarioID string) error {
 		}
 	}
 
-	// 7. 시나리오 시작 이벤트 발행
 	e.emitScenarioStarted(scenarioID)
-
-	// 8. Executor 생성 (필드로 승격하여 emitSIPEvent에서 접근 가능)
 	e.executor = NewExecutor(e, e.im)
 
-	// 9. 각 인스턴스마다 goroutine 실행
 	errCh := make(chan error, len(graph.Instances))
-
 	hasStartNodes := false
+
 	for instanceID, chain := range graph.Instances {
 		if len(chain.StartNodes) == 0 {
 			continue
@@ -145,8 +154,9 @@ func (e *Engine) StartScenario(scenarioID string) error {
 			defer e.wg.Done()
 			for _, startNode := range ch.StartNodes {
 				if err := e.executor.ExecuteChain(execCtx, id, startNode); err != nil {
+					e.markTerminalState(terminalStateFailed)
 					errCh <- fmt.Errorf("instance %s: %w", id, err)
-					cancel() // 전체 중단
+					cancel()
 					return
 				}
 			}
@@ -159,6 +169,7 @@ func (e *Engine) StartScenario(scenarioID string) error {
 				if err == nil {
 					continue
 				}
+				e.markTerminalState(terminalStateFailed)
 				errCh <- fmt.Errorf("instance %s register loop: %w", instanceID, err)
 				cancel()
 				return
@@ -166,8 +177,9 @@ func (e *Engine) StartScenario(scenarioID string) error {
 		}(regLoop.instanceID, regLoop.errCh)
 	}
 
-	// 10. 별도 goroutine에서 완료 대기 및 최종 처리
 	go func() {
+		var finalErr error
+
 		switch {
 		case hasStartNodes:
 			e.wg.Wait()
@@ -176,29 +188,43 @@ func (e *Engine) StartScenario(scenarioID string) error {
 		}
 
 		cancel()
-		// cleanup
 		e.cleanup()
 
-		// 결과 판단
 		e.mu.Lock()
 		currentScenarioID := e.scenarioID
+		terminalState := e.terminal
+		runDone := e.runDone
+		e.running = false
+		e.scenarioID = ""
+		e.cancelFunc = nil
+		e.runDone = nil
+		e.terminal = ""
 		e.mu.Unlock()
 
 		select {
 		case err := <-errCh:
-			e.emitScenarioFailed(err.Error())
+			finalErr = err
+		default:
+		}
+
+		switch terminalState {
+		case terminalStateFailed:
+			if finalErr != nil {
+				e.emitScenarioFailed(finalErr.Error())
+			} else {
+				e.emitScenarioFailed("scenario failed")
+			}
+		case terminalStateStopped:
+			e.emitScenarioStopped()
 		default:
 			e.emitScenarioCompleted(currentScenarioID)
 		}
 
-		e.mu.Lock()
-		e.running = false
-		e.scenarioID = ""
-		e.cancelFunc = nil
-		e.mu.Unlock()
+		if runDone != nil {
+			close(runDone)
+		}
 	}()
 
-	// 11. StartScenario는 goroutine 시작 후 즉시 nil 반환 (비동기 실행)
 	return nil
 }
 
@@ -210,37 +236,19 @@ func (e *Engine) StopScenario() error {
 		return errors.New("no running scenario")
 	}
 	cancelFunc := e.cancelFunc
+	runDone := e.runDone
+	e.terminal = terminalStateStopped
 	e.mu.Unlock()
 
-	// Context 취소
 	if cancelFunc != nil {
 		cancelFunc()
 	}
 
-	// 타임아웃으로 goroutine 종료 대기 (최대 10초)
-	done := make(chan struct{})
-	go func() {
-		e.wg.Wait()
-		close(done)
-	}()
-
 	select {
-	case <-done:
-		// 정상 종료
+	case <-runDone:
 	case <-time.After(10 * time.Second):
-		// 강제 종료 (로그 경고)
 		e.emitActionLog("", "", "StopScenario timeout - forced shutdown", "warn")
 	}
-
-	// 이벤트 발행
-	e.emitScenarioStopped()
-
-	// 상태 리셋
-	e.mu.Lock()
-	e.running = false
-	e.scenarioID = ""
-	e.cancelFunc = nil
-	e.mu.Unlock()
 
 	return nil
 }
@@ -251,34 +259,44 @@ func (e *Engine) cleanupOnError() {
 	e.mu.Lock()
 	e.running = false
 	e.scenarioID = ""
+	e.cancelFunc = nil
+	e.runDone = nil
+	e.terminal = ""
 	e.mu.Unlock()
 }
 
-// cleanup은 시나리오 실행 종료 시 모든 리소스를 정리한다
+// cleanup은 시나리오 실행 종료 후 모든 리소스를 정리한다
 func (e *Engine) cleanup() {
-	// 액션 로그 발행: "Starting cleanup"
 	e.emitActionLog("", "", "Starting cleanup", "info")
 
-	// HangupAll - 5초 타임아웃으로 모든 활성 세션 Hangup
-	ctx := context.Background()
-	e.executor.sessions.HangupAll(ctx)
+	if e.executor != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		e.executor.sessions.HangupAll(ctx)
+		cancel()
+		e.executor.sessions.CloseAll()
+	}
 
-	// CloseAll - 모든 세션 Close
-	e.executor.sessions.CloseAll()
-
-	// InstanceManager cleanup - 모든 UA 정리
 	e.im.Cleanup()
-
-	// 액션 로그 발행: "Cleanup completed"
 	e.emitActionLog("", "", "Cleanup completed", "info")
 
-	// executor 참조 해제 (GC 허용)
 	e.mu.Lock()
 	e.executor = nil
 	e.mu.Unlock()
 }
 
-// emitSIPEvent는 SessionStore의 SIP 이벤트 버스에 이벤트를 전달한다
+func (e *Engine) markTerminalState(next scenarioTerminalState) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	switch e.terminal {
+	case terminalStateStopped, terminalStateFailed:
+		return
+	case terminalStateRunning:
+		e.terminal = next
+	}
+}
+
+// emitSIPEvent는 SessionStore의 SIP 이벤트 버스를 통해 이벤트를 전달한다
 func (e *Engine) emitSIPEvent(instanceID string, eventType eventhandler.SIPEventType, callID string) {
 	e.mu.Lock()
 	ex := e.executor

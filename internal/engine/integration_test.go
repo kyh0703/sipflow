@@ -167,7 +167,6 @@ func TestIntegration_TwoPartyCall(t *testing.T) {
 			Type: "sipInstance",
 			Data: map[string]interface{}{
 				"label": "Caller",
-				"mode":  "DN",
 				"dn":    "100",
 			},
 		},
@@ -177,7 +176,6 @@ func TestIntegration_TwoPartyCall(t *testing.T) {
 			Type: "sipInstance",
 			Data: map[string]interface{}{
 				"label": "Callee",
-				"mode":  "DN",
 				"dn":    "200",
 			},
 		},
@@ -309,7 +307,6 @@ func TestIntegration_SingleInstance(t *testing.T) {
 			Type: "sipInstance",
 			Data: map[string]interface{}{
 				"label": "Test UA",
-				"mode":  "DN",
 				"dn":    "100",
 			},
 		},
@@ -382,7 +379,6 @@ func TestIntegration_EventTimeout(t *testing.T) {
 			Type: "sipInstance",
 			Data: map[string]interface{}{
 				"label": "Waiting UA",
-				"mode":  "DN",
 				"dn":    "100",
 			},
 		},
@@ -448,7 +444,6 @@ func TestIntegration_FailureBranch(t *testing.T) {
 			Type: "sipInstance",
 			Data: map[string]interface{}{
 				"label": "Test UA",
-				"mode":  "DN",
 				"dn":    "100",
 			},
 		},
@@ -534,7 +529,6 @@ func TestIntegration_StopScenario(t *testing.T) {
 			Type: "sipInstance",
 			Data: map[string]interface{}{
 				"label": "Long Wait UA",
-				"mode":  "DN",
 				"dn":    "100",
 			},
 		},
@@ -612,7 +606,6 @@ func TestIntegration_ConcurrentStartPrevention(t *testing.T) {
 			Type: "sipInstance",
 			Data: map[string]interface{}{
 				"label": "Concurrent Test UA",
-				"mode":  "DN",
 				"dn":    "100",
 			},
 		},
@@ -698,7 +691,6 @@ func TestIntegration_TwoPartyCallSimulation(t *testing.T) {
 			Type: "sipInstance",
 			Data: map[string]interface{}{
 				"label": "Instance A",
-				"mode":  "DN",
 				"dn":    "100",
 			},
 		},
@@ -726,7 +718,6 @@ func TestIntegration_TwoPartyCallSimulation(t *testing.T) {
 			Type: "sipInstance",
 			Data: map[string]interface{}{
 				"label": "Instance B",
-				"mode":  "DN",
 				"dn":    "200",
 			},
 		},
@@ -813,7 +804,6 @@ func TestIntegration_EventStreamVerification(t *testing.T) {
 			Type: "sipInstance",
 			Data: map[string]interface{}{
 				"label": "Test UA",
-				"mode":  "DN",
 				"dn":    "100",
 			},
 		},
@@ -982,7 +972,6 @@ func TestIntegration_CleanupVerification(t *testing.T) {
 			Type: "sipInstance",
 			Data: map[string]interface{}{
 				"label": "Cleanup Test UA",
-				"mode":  "DN",
 				"dn":    "100",
 			},
 		},
@@ -1116,7 +1105,6 @@ func TestIntegration_V1_0_Compatibility(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Instance A",
-        "mode": "DN",
         "dn": "100",
         "register": true
       }
@@ -1165,7 +1153,6 @@ func TestIntegration_V1_0_MakeCallAnswerRelease_Parse(t *testing.T) {
       "position": {"x": 100, "y": 100},
       "data": {
         "label": "Caller",
-        "mode": "DN",
         "dn": "100"
       }
     },
@@ -1175,7 +1162,6 @@ func TestIntegration_V1_0_MakeCallAnswerRelease_Parse(t *testing.T) {
       "position": {"x": 400, "y": 100},
       "data": {
         "label": "Callee",
-        "mode": "DN",
         "dn": "200"
       }
     },

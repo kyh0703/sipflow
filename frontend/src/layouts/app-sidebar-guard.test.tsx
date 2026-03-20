@@ -67,7 +67,7 @@ describe('AppSidebar unsaved changes route guard', () => {
     fireEvent.click(screen.getByLabelText('Settings'))
 
     await waitFor(() => {
-      expect(mocks.navigate).toHaveBeenCalledWith({ to: '/settings/pbx' })
+      expect(mocks.navigate).toHaveBeenCalledWith({ to: '/settings/general' })
     })
   })
 })

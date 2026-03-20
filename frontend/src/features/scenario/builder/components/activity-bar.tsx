@@ -16,16 +16,16 @@ function ActivityIcon({ icon: Icon, isActive, onClick, title, disabled }: Activi
       title={title}
       disabled={disabled}
       className={cn(
-        'relative flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
+        'relative flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
         disabled && 'opacity-40 cursor-not-allowed',
         !disabled && isActive && 'bg-background text-foreground shadow-sm',
         !disabled && !isActive && 'text-muted-foreground hover:bg-background/80 hover:text-foreground',
       )}
     >
       {isActive && (
-        <div className="absolute left-0 top-2 bottom-2 w-0.5 rounded-r bg-primary" />
+        <div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r bg-primary" />
       )}
-      <Icon className="h-4 w-4" />
+      <Icon className="h-3.5 w-3.5" />
     </button>
   )
 }
@@ -37,7 +37,7 @@ interface ActivityBarProps {
 
 export function ActivityBar({ activePanel, onPanelSelect }: ActivityBarProps) {
   return (
-    <div className="flex w-11 shrink-0 flex-col items-center border-r border-border bg-muted py-2">
+    <div className="flex w-9 shrink-0 flex-col items-center border-r border-border bg-muted py-1.5">
       <div className="flex flex-col items-center gap-1">
         <ActivityIcon
           icon={FolderTree}

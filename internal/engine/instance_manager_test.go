@@ -1,9 +1,12 @@
 package engine
 
 import (
+	"context"
 	"net"
+	"strconv"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/emiago/diago"
 	"github.com/emiago/diago/media"
@@ -16,7 +19,7 @@ func TestAllocatePort_Sequential(t *testing.T) {
 	im.nextPort = 15060
 
 	// 첫 번째 포트 할당
-	port1, err := im.allocatePort("udp")
+	port1, err := im.allocatePort("udp", "127.0.0.1")
 	if err != nil {
 		t.Fatalf("Failed to allocate first port: %v", err)
 	}
@@ -25,7 +28,7 @@ func TestAllocatePort_Sequential(t *testing.T) {
 	}
 
 	// 두 번째 포트 할당 (15062 예상)
-	port2, err := im.allocatePort("udp")
+	port2, err := im.allocatePort("udp", "127.0.0.1")
 	if err != nil {
 		t.Fatalf("Failed to allocate second port: %v", err)
 	}
@@ -34,7 +37,7 @@ func TestAllocatePort_Sequential(t *testing.T) {
 	}
 
 	// 세 번째 포트 할당 (15064 예상)
-	port3, err := im.allocatePort("udp")
+	port3, err := im.allocatePort("udp", "127.0.0.1")
 	if err != nil {
 		t.Fatalf("Failed to allocate third port: %v", err)
 	}
@@ -65,7 +68,7 @@ func TestAllocatePort_PermissionDeniedFallback(t *testing.T) {
 	im.basePort = 15060
 	im.nextPort = 15060
 
-	port1, err := im.allocatePort("udp")
+	port1, err := im.allocatePort("udp", "127.0.0.1")
 	if err != nil {
 		t.Fatalf("permission fallback should still allocate a port: %v", err)
 	}
@@ -73,7 +76,7 @@ func TestAllocatePort_PermissionDeniedFallback(t *testing.T) {
 		t.Fatalf("expected fallback port 15060, got %d", port1)
 	}
 
-	port2, err := im.allocatePort("udp")
+	port2, err := im.allocatePort("udp", "127.0.0.1")
 	if err != nil {
 		t.Fatalf("second permission fallback allocation failed: %v", err)
 	}
@@ -104,12 +107,49 @@ func TestAllocatePort_RetriesOnPortConflict(t *testing.T) {
 	im.basePort = 15110
 	im.nextPort = 15110
 
-	port, err := im.allocatePort("udp")
+	port, err := im.allocatePort("udp", "127.0.0.1")
 	if err != nil {
 		t.Fatalf("expected allocation after retry, got %v", err)
 	}
 	if port != 15112 {
 		t.Fatalf("expected retry to move to 15112, got %d", port)
+	}
+}
+
+func TestResolveBindHost(t *testing.T) {
+	testCases := []struct {
+		name     string
+		config   SipInstanceConfig
+		expected string
+	}{
+		{
+			name:     "empty host uses loopback",
+			config:   SipInstanceConfig{},
+			expected: "127.0.0.1",
+		},
+		{
+			name:     "localhost uses loopback",
+			config:   SipInstanceConfig{PBXHost: "localhost"},
+			expected: "127.0.0.1",
+		},
+		{
+			name:     "loopback ip uses loopback",
+			config:   SipInstanceConfig{PBXHost: "127.0.0.1"},
+			expected: "127.0.0.1",
+		},
+		{
+			name:     "external host uses wildcard bind",
+			config:   SipInstanceConfig{PBXHost: "100.100.108.151"},
+			expected: "0.0.0.0",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := resolveBindHost(tc.config); got != tc.expected {
+				t.Fatalf("expected bind host %s, got %s", tc.expected, got)
+			}
+		})
 	}
 }
 
@@ -126,7 +166,6 @@ func TestCreateInstances_Basic(t *testing.T) {
 				Config: SipInstanceConfig{
 					ID:    "instance-a",
 					Label: "Instance A",
-					Mode:  "DN",
 					DN:    "100",
 				},
 				StartNodes: []*GraphNode{},
@@ -135,7 +174,6 @@ func TestCreateInstances_Basic(t *testing.T) {
 				Config: SipInstanceConfig{
 					ID:    "instance-b",
 					Label: "Instance B",
-					Mode:  "DN",
 					DN:    "200",
 				},
 				StartNodes: []*GraphNode{},
@@ -238,7 +276,6 @@ func TestCleanup(t *testing.T) {
 				Config: SipInstanceConfig{
 					ID:    "instance-test",
 					Label: "Test Instance",
-					Mode:  "DN",
 					DN:    "300",
 				},
 				StartNodes: []*GraphNode{},
@@ -278,6 +315,73 @@ func TestCleanup(t *testing.T) {
 	}
 }
 
+func TestCleanup_ReleasesListenPort(t *testing.T) {
+	im := NewInstanceManager()
+	im.basePort = 15120
+	im.nextPort = 15120
+
+	graph := &ExecutionGraph{
+		Instances: map[string]*InstanceChain{
+			"instance-test": {
+				Config: SipInstanceConfig{
+					ID:    "instance-test",
+					Label: "Test Instance",
+					DN:    "301",
+				},
+				StartNodes: []*GraphNode{},
+			},
+		},
+		Nodes: map[string]*GraphNode{},
+	}
+
+	if err := im.CreateInstances(graph); err != nil {
+		t.Fatalf("Failed to create instances: %v", err)
+	}
+
+	inst, err := im.GetInstance("instance-test")
+	if err != nil {
+		t.Fatalf("Failed to get instance: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err := im.StartServing(ctx); err != nil {
+		t.Fatalf("Failed to start serving: %v", err)
+	}
+
+	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(inst.Port))
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		conn, err := net.ListenPacket("udp", addr)
+		if err != nil {
+			break
+		}
+		_ = conn.Close()
+		if time.Now().After(deadline) {
+			t.Fatalf("port %d was not claimed by serve loop in time", inst.Port)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	if err := im.Cleanup(); err != nil {
+		t.Fatalf("Cleanup failed: %v", err)
+	}
+
+	deadline = time.Now().Add(2 * time.Second)
+	for {
+		conn, err := net.ListenPacket("udp", addr)
+		if err == nil {
+			_ = conn.Close()
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("port %d was not released after cleanup: %v", inst.Port, err)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
 func TestGetInstance_NotFound(t *testing.T) {
 	im := NewInstanceManager()
 
@@ -300,7 +404,6 @@ func TestReset(t *testing.T) {
 				Config: SipInstanceConfig{
 					ID:    "instance-reset",
 					Label: "Reset Test",
-					Mode:  "DN",
 					DN:    "400",
 				},
 				StartNodes: []*GraphNode{},
@@ -335,7 +438,6 @@ func TestResolveTarget_ByDN(t *testing.T) {
 		Config: SipInstanceConfig{
 			ID:    "instance-a",
 			Label: "Instance A",
-			Mode:  "DN",
 			DN:    "100",
 		},
 		Port: 15100,
@@ -357,7 +459,6 @@ func TestResolveTarget_ByDN_TCP(t *testing.T) {
 		Config: SipInstanceConfig{
 			ID:           "instance-a",
 			Label:        "Instance A",
-			Mode:         "DN",
 			DN:           "100",
 			PBXTransport: "TCP",
 		},
@@ -401,10 +502,10 @@ func TestCreateInstances_DuplicateDN(t *testing.T) {
 	graph := &ExecutionGraph{
 		Instances: map[string]*InstanceChain{
 			"instance-a": {
-				Config: SipInstanceConfig{ID: "instance-a", Mode: "DN", DN: "100"},
+				Config: SipInstanceConfig{ID: "instance-a", DN: "100"},
 			},
 			"instance-b": {
-				Config: SipInstanceConfig{ID: "instance-b", Mode: "DN", DN: "100"},
+				Config: SipInstanceConfig{ID: "instance-b", DN: "100"},
 			},
 		},
 		Nodes: map[string]*GraphNode{},
